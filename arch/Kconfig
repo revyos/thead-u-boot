@@ -119,6 +119,7 @@ config SANDBOX
 	select SPI
 	select SUPPORT_OF_CONTROL
 	select SYSRESET_CMD_POWEROFF if CMD_POWEROFF
+	select SUPPORT_EXTENSION_SCAN
 	imply BITREVERSE
 	select BLOBLIST
 	imply CMD_DM
@@ -152,6 +153,7 @@ config SANDBOX
 	imply PHYLIB
 	imply DM_MDIO
 	imply DM_MDIO_MUX
+	imply CMD_EXTENSION
 
 config SH
 	bool "SuperH architecture"
