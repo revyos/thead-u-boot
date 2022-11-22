@@ -29,9 +29,16 @@ enum light_pll_clktype {
 	LIGHT_DPU1_PLL,
 };
 
+struct clk_info {
+	const char *clk_name;
+	enum clk_device_type clk_dev_type;
+};
+
 int clk_config(void);
 int clk_light_set_rate(const char *clk_name, enum clk_device_type clk_dev_type, unsigned long rate);
 unsigned long clk_light_get_rate(const char *clk_name, enum clk_device_type clk_dev_type);
+int clk_light_set_parent(const char *clk_name, const char *parent);
+const struct clk_info *clk_light_get_parent(const char *clk_name);
 
 void ap_dpu_clk_endisable(bool en);
 void ap_hdmi_clk_endisable(bool en);

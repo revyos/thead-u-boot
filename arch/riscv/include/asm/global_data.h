@@ -18,7 +18,7 @@ struct arch_global_data {
 #ifdef CONFIG_SIFIVE_CLINT
 	void __iomem *clint;	/* clint base address */
 #endif
-#ifdef CONFIG_ANDES_PLIC
+#if (defined CONFIG_ANDES_PLIC) || (defined CONFIG_THEAD_PLIC)
 	void __iomem *plic;	/* plic base address */
 #endif
 #ifdef CONFIG_ANDES_PLMT

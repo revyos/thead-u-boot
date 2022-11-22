@@ -30,7 +30,9 @@
 	.align 2
 	.global trap_entry
 trap_entry:
+#ifndef CONFIG_THEAD_PLIC
 	ebreak
+#endif
 	addi sp, sp, -32 * REGBYTES
 	SREG x1,   1 * REGBYTES(sp)
 	SREG x2,   2 * REGBYTES(sp)

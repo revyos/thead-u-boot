@@ -151,6 +151,13 @@
 
 			#address-cells = <1>;
 			#size-cells = <0>;
+
+			pcal6408ahk_a: gpio@20 {
+				compatible = "nxp,pca9554";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
 		};
 
 		i2c5: i2c@fff7f2c000{

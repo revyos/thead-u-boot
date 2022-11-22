@@ -13,6 +13,11 @@
 #include <asm/system.h>
 #include <asm/encoding.h>
 
+__attribute__((weak)) int plic_init(void)
+{
+	return 0;
+}
+
 static void _exit_trap(ulong code, ulong epc, struct pt_regs *regs)
 {
 	static const char * const exception_code[] = {
@@ -47,6 +52,8 @@ static void _exit_trap(ulong code, ulong epc, struct pt_regs *regs)
 
 int interrupt_init(void)
 {
+	debug("[%s,%d]Initialize the plic\n", __func__, __LINE__);
+	plic_init();
 	return 0;
 }
 
@@ -72,10 +79,12 @@ ulong handle_trap(ulong cause, ulong epc, struct pt_regs *regs)
 	is_irq = (cause & MCAUSE_INT);
 	irq = (cause & ~MCAUSE_INT);
 
+	debug("[%s,%d]\n", __func__, __LINE__);
 	if (is_irq) {
 		switch (irq) {
 		case IRQ_M_EXT:
 		case IRQ_S_EXT:
+			debug("[%s,%d]\n", __func__, __LINE__);
 			external_interrupt(0);	/* handle external interrupt */
 			break;
 		case IRQ_M_TIMER:
@@ -90,6 +99,7 @@ ulong handle_trap(ulong cause, ulong epc, struct pt_regs *regs)
 		_exit_trap(cause, epc, regs);
 	}
 
+	debug("[%s,%d]\n", __func__, __LINE__);
 	return epc;
 }
 

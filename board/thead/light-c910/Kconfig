@@ -12,15 +12,15 @@ config PMIC_VOL_INIT
 
 config DDR_REGU_0V6
     int "uint in uv"
-    default 640000
+    default 600000
 
 config DDR_REGU_0V8
     int "uint in uv"
-    default 820000
+    default 800000
 
 config DDR_REGU_1V1
     int "uint in uv"
-    default 1200000
+    default 1100000
 
 config SYS_CPU
     default "c9xx"
@@ -45,8 +45,8 @@ config LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A
 config LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B
 	bool "light board-b security boot with verification"
 
-config LIGHT_SEC_BOOT_WITH_VERIFY_ANT_EVT
-	bool "light ant evt security boot with verification"
+config LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF
+	bool "light ant ref security boot with verification"
 
 config TARGET_LIGHT_FPGA_FM_C910
     bool "light fullmask FPGA board"
@@ -60,16 +60,32 @@ config TARGET_LIGHT_FM_C910_VAL_A
     bool "light fullmask VAL board-a for system validation"
     default n
 
+config TARGET_LIGHT_FM_C910_A_REF
+    bool "light fullmask reference A board"
+    default n
+
 config TARGET_LIGHT_FM_C910_VAL_B
     bool "light fullmask VAL board-b for system validation"
     default n
 
-config TARGET_LIGHT_FM_C910_VAL_ANT_EVT
-    bool "light fullmask for ant-evt board "
+config TARGET_LIGHT_FM_C910_B_REF
+    bool "light fullmask reference B board"
+    default n
+
+config TARGET_LIGHT_FM_C910_VAL_ANT_REF
+    bool "light fullmask for ant-ref board "
     default n
 
 config TARGET_LIGHT_FM_C910_VAL_ANT_DISCRETE
-    bool "light fullmask for ant-evt board "
+    bool "light fullmask for ant-discrete board "
+    default n
+
+config TARGET_LIGHT_FM_C910_BEAGLE
+    bool "light fullmask for beagle board "
+    default n
+
+config TARGET_LIGHT_FM_C910_B_POWER
+    bool "light fullmask for light-b-power board "
     default n
 
 config SYS_TEXT_BASE
@@ -78,12 +94,36 @@ config SYS_TEXT_BASE
 
 config SPL_TEXT_BASE
     hex
-    default 0xffe0000800 if LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A || LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B || LIGHT_SEC_BOOT_WITH_VERIFY_ANT_EVT
-    default 0xffe0000000 if !(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A || LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B || LIGHT_SEC_BOOT_WITH_VERIFY_ANT_EVT)
+    default 0xffe0000800 if LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A || LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B || LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF
+    default 0xffe0000000 if !(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A || LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B || LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF)
 
 config SPL_MAX_SIZE
     hex
     default 0x2f000
+
+config THEAD_PLIC
+	bool "Light PLIC Setting"
+	depends on RISCV_MMODE || SPL_RISCV_MMODE
+	select REGMAP
+	select SYSCON
+	default n
+	help
+	  The Thead PLIC block holds memory-mapped claim and pending registers
+	  associated with software interrupt.
+
+config THEAD_LIGHT_TIMER
+	bool "Light TIMER0 driver and test"
+	depends on THEAD_PLIC
+	default n
+	help
+	  The timer driver to verify the plic interrupt framework is ready
+
+config THEAD_LIGHT_DIGITAL_SENSOR
+	bool "Light Digital Sensor Setting"
+	depends on THEAD_PLIC
+	default n
+	help
+	  The security digital sensor driver
 
 config BOARD_SPECIFIC_OPTIONS
     def_bool y

@@ -5,6 +5,7 @@
  */
 
 #include <common.h>
+#include <command.h>
 #include <asm/io.h>
 #include <asm/types.h>
 #include <thead/clock_config.h>
@@ -805,7 +806,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GMAC0_RXD3, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 
 }
-#elif defined   ( CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
+#elif defined ( CONFIG_TARGET_LIGHT_FM_C910_VAL_B) || defined ( CONFIG_TARGET_LIGHT_FM_C910_B_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
 static void light_iopin_init(void)
 {
 	/* aon-padmux config */
@@ -826,12 +827,25 @@ static void light_iopin_init(void)
 	light_pin_mux(AOGPIO_12,1);
 	light_pin_mux(AOGPIO_13,1);
 	light_pin_mux(AOGPIO_14,0);
+	light_pin_cfg(AOGPIO_14,PIN_SPEED_NORMAL,PIN_PU,2);  ///WL_DEV_WAKE_HOST
 	light_pin_mux(AOGPIO_15,0);
+	light_pin_cfg(AOGPIO_15,PIN_SPEED_NORMAL,PIN_PU,2);  ///BT_DEV_WAKE_HOST
+
+	light_pin_mux(AUDIO_PA4,3);                           ///NC
+	light_pin_cfg(AUDIO_PA4,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_mux(AUDIO_PA5,3);                           ///NC
+	light_pin_cfg(AUDIO_PA5,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_mux(AUDIO_PA11,3);                          ///NC
+	light_pin_cfg(AUDIO_PA11,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_mux(AUDIO_PA16,3);                          ///NC
+	light_pin_cfg(AUDIO_PA16,PIN_SPEED_NORMAL,PIN_PN,2);
 
 	light_pin_mux(AUDIO_PA9,3);
 	light_pin_cfg(AUDIO_PA9,PIN_SPEED_NORMAL,PIN_PU,2);// reset signal for audio-pa
-	light_pin_mux(AUDIO_PA10,3);
-	light_pin_mux(AUDIO_PA12,3);
+	light_pin_mux(AUDIO_PA10,3);                          ///NC
+	light_pin_cfg(AUDIO_PA10,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_mux(AUDIO_PA12,3);                          ///NC
+	light_pin_cfg(AUDIO_PA12,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_mux(AUDIO_PA13,0);
 
 	/*ap-padmux on left/top */
@@ -840,8 +854,8 @@ static void light_iopin_init(void)
 	light_pin_cfg(QSPI1_SCLK,PIN_SPEED_NORMAL,PIN_PN,8);
 	light_pin_cfg(QSPI1_D0_MOSI,PIN_SPEED_NORMAL,PIN_PU,8);
 	light_pin_cfg(QSPI1_D1_MISO,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D2_WP,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D3_HOLD,PIN_SPEED_NORMAL,PIN_PU,8);
+	light_pin_cfg(QSPI1_D2_WP,PIN_SPEED_NORMAL,PIN_PN,8);
+	light_pin_cfg(QSPI1_D3_HOLD,PIN_SPEED_NORMAL,PIN_PN,8);
 
 	light_pin_cfg(I2C0_SCL,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C0_SDA,PIN_SPEED_NORMAL,PIN_PN,4);
@@ -871,9 +885,9 @@ static void light_iopin_init(void)
 	light_pin_mux(GPIO0_30,0);
 	light_pin_cfg(GPIO0_20,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO0_21,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO0_27,PIN_SPEED_NORMAL,PIN_PD,2);//soc_dovdd18_ir_reg
-	light_pin_cfg(GPIO0_28,PIN_SPEED_NORMAL,PIN_PD,2);//soc_avdd25_ir_reg
-	light_pin_cfg(GPIO0_29,PIN_SPEED_NORMAL,PIN_PD,2);//soc_dvdd12_ir_reg
+	light_pin_cfg(GPIO0_27,PIN_SPEED_NORMAL,PIN_PN,2);//soc_dovdd18_ir_reg
+	light_pin_cfg(GPIO0_28,PIN_SPEED_NORMAL,PIN_PN,2);//soc_avdd25_ir_reg
+	light_pin_cfg(GPIO0_29,PIN_SPEED_NORMAL,PIN_PN,2);//soc_dvdd12_ir_reg
 	light_pin_cfg(GPIO0_30,PIN_SPEED_NORMAL,PIN_PU,2);//soc_vdd_3v3_en_reg for uart/gmac/debug_port/hdmi/sd
 
 	light_pin_mux(GPIO1_0,1);
@@ -896,13 +910,21 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO1_2,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_3,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_4,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PD,2); //soc_vdd18_lcd0_en_reg --backup regulator
-	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PU,2);//soc_lcd0_bias_en_reg
+#ifndef defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
+	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PN,2); //soc_vdd18_lcd0_en_reg --backup regulator
+#else
+	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PU,2); //soc_vdd18_lcd0_en_reg
+#endif
+	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PN,2);//soc_lcd0_bias_en_reg
 	light_pin_cfg(GPIO1_11,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PD,2);//reg_tp_pwr_en --touch pannel
-	light_pin_cfg(GPIO1_13,PIN_SPEED_NORMAL,PIN_PD,2);//soc_dovdd18_rgb_reg
-	light_pin_cfg(GPIO1_14,PIN_SPEED_NORMAL,PIN_PD,2);//soc_dvdd12_rgb_reg
-	light_pin_cfg(GPIO1_15,PIN_SPEED_NORMAL,PIN_PD,2);//soc_avdd28_rgb_reg
+#ifndef defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
+	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PN,2);//reg_tp_pwr_en --touch pannel
+#else
+	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PU,2);//reg_tp_pwr_en --touch pannel
+#endif
+	light_pin_cfg(GPIO1_13,PIN_SPEED_NORMAL,PIN_PN,2);//soc_dovdd18_rgb_reg
+	light_pin_cfg(GPIO1_14,PIN_SPEED_NORMAL,PIN_PN,2);//soc_dvdd12_rgb_reg
+	light_pin_cfg(GPIO1_15,PIN_SPEED_NORMAL,PIN_PN,2);//soc_avdd28_rgb_reg
 	light_pin_cfg(GPIO1_16,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_24,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_25,PIN_SPEED_NORMAL,PIN_PN,2);
@@ -911,7 +933,7 @@ static void light_iopin_init(void)
 	light_pin_mux(CLK_OUT_1,1);
 	light_pin_mux(CLK_OUT_2,3);
 	light_pin_mux(CLK_OUT_3,1);
-	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2);///volume key
 
 	/*ap-pdmux on righ/top*/
 	light_pin_mux(QSPI0_SCLK,2);
@@ -931,14 +953,16 @@ static void light_iopin_init(void)
 	light_pin_mux(SPI_MOSI,3);
 	light_pin_mux(SPI_MISO,3);
 	light_pin_mux(SPI_SCLK,3);
-	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PU,2);  ///vdd5v_se_en
 
 	light_pin_mux(GPIO2_18,0);
 	light_pin_mux(GPIO2_19,0);
 	light_pin_mux(GPIO2_20,0);
 	light_pin_mux(GPIO2_21,0);
 	light_pin_mux(GPIO2_22,0);
+	light_pin_cfg(GPIO2_22,PIN_SPEED_NORMAL,PIN_PU,2); ///WL_HOST_WAKE_DEV
 	light_pin_mux(GPIO2_23,0);
+	light_pin_cfg(GPIO2_23,PIN_SPEED_NORMAL,PIN_PU,2); ///BT_DEV_WAKE_HOST
 	light_pin_mux(GPIO2_24,0);
 	light_pin_mux(GPIO2_25,0);
 
@@ -953,20 +977,20 @@ static void light_iopin_init(void)
 
 
 	light_pin_mux(SDIO0_WPRTN,3);
-	light_pin_cfg(SDIO0_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO0_WPRTN,PIN_SPEED_NORMAL,PIN_PN,2);///NC
 	light_pin_mux(SDIO1_WPRTN,3);
-	light_pin_cfg(SDIO1_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);//wcn33_en
+	light_pin_cfg(SDIO1_WPRTN,PIN_SPEED_NORMAL,PIN_PD,2);//gpio2_28 vbus_en
 	light_pin_mux(SDIO1_DETN,3);
-	light_pin_cfg(SDIO1_DETN,PIN_SPEED_NORMAL,PIN_PU,2); //se_5v_en
+	light_pin_cfg(SDIO1_DETN,PIN_SPEED_NORMAL,PIN_PN,2); //gpio2_29 wcn33_en
 
 	light_pin_mux(GPIO2_30,0);
 	light_pin_mux(GPIO2_31,0);
 	light_pin_mux(GPIO3_0,0);
 	light_pin_mux(GPIO3_1,0);
 	light_pin_mux(GPIO3_2,1);
-	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PD, 0x2);//soc_avdd28_scan_en_reg
-	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PD, 0x2);//soc_dovdd18_scan_reg
-	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PD, 0x2); //soc_dvdd12_scan_reg
+	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PN, 0x2);//soc_avdd28_scan_en_reg
+	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PN, 0x2);//soc_dovdd18_scan_reg
+	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PN, 0x2); //soc_dvdd12_scan_reg
 	light_pin_cfg(GPIO3_1, PIN_SPEED_NORMAL, PIN_PN, 0x2);
 	light_pin_cfg(GPIO3_2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 
@@ -996,8 +1020,8 @@ static void light_iopin_init(void)
 	/* aon-padmux config */
 	light_pin_cfg(I2C_AON_SCL,PIN_SPEED_NORMAL,PIN_PN,8);
 	light_pin_cfg(I2C_AON_SDA,PIN_SPEED_NORMAL,PIN_PN,8);
-	light_pin_cfg(AOGPIO_7,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(AOGPIO_8,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(AOGPIO_7,PIN_SPEED_NORMAL,PIN_PN,2);    ///NC
+	light_pin_cfg(AOGPIO_8,PIN_SPEED_NORMAL,PIN_PN,2);    ///NC
 	light_pin_cfg(AOGPIO_9,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(AOGPIO_10,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(AOGPIO_11,PIN_SPEED_NORMAL,PIN_PN,2);
@@ -1008,27 +1032,28 @@ static void light_iopin_init(void)
 	light_pin_mux(AOGPIO_9,3);
 	light_pin_mux(AOGPIO_10,3);
 	light_pin_mux(AOGPIO_11,0);
-	light_pin_mux(AOGPIO_12,0);
-	light_pin_mux(AOGPIO_13,0);
+	light_pin_mux(AOGPIO_12,0);                           ///aud-tx
+	light_pin_mux(AOGPIO_13,0);                           ///aud-rx
 	light_pin_mux(AOGPIO_14,0);
 	light_pin_mux(AOGPIO_15,0);
 
+
 	light_pin_mux(AUDIO_PA9,3);
-	light_pin_cfg(AUDIO_PA9,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_mux(AUDIO_PA10,3);
+	light_pin_cfg(AUDIO_PA9,PIN_SPEED_NORMAL,PIN_PN,2);  ///audio-pa-rst
+	light_pin_mux(AUDIO_PA10,3);                         ///aud_3v3_en
 	light_pin_cfg(AUDIO_PA10,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_mux(AUDIO_PA12,3);
+	light_pin_mux(AUDIO_PA12,3);                         ///aud_1v8_en
 	light_pin_cfg(AUDIO_PA12,PIN_SPEED_NORMAL,PIN_PU,2);
 	light_pin_mux(AUDIO_PA13,0);
 
 	/*ap-padmux on left/top */
 	light_pin_mux(QSPI1_CSN0,3);
-	light_pin_cfg(QSPI1_CSN0,PIN_SPEED_NORMAL,PIN_PN,8);
-	light_pin_cfg(QSPI1_SCLK,PIN_SPEED_NORMAL,PIN_PN,8);
-	light_pin_cfg(QSPI1_D0_MOSI,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D1_MISO,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D2_WP,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D3_HOLD,PIN_SPEED_NORMAL,PIN_PU,8);
+	light_pin_cfg(QSPI1_CSN0,PIN_SPEED_NORMAL,PIN_PN,8);     ///se-spi
+	light_pin_cfg(QSPI1_SCLK,PIN_SPEED_NORMAL,PIN_PN,8);     ///se-spi
+	light_pin_cfg(QSPI1_D0_MOSI,PIN_SPEED_NORMAL,PIN_PU,8);  ///se-spi
+	light_pin_cfg(QSPI1_D1_MISO,PIN_SPEED_NORMAL,PIN_PU,8);  ///se-spi
+	light_pin_cfg(QSPI1_D2_WP,PIN_SPEED_NORMAL,PIN_PN,8);    ///uart5-rx
+	light_pin_cfg(QSPI1_D3_HOLD,PIN_SPEED_NORMAL,PIN_PN,8);  ///uart5-tx
 
 	light_pin_cfg(I2C0_SCL,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C0_SDA,PIN_SPEED_NORMAL,PIN_PN,4);
@@ -1058,10 +1083,10 @@ static void light_iopin_init(void)
 	light_pin_mux(GPIO0_30,0);
 	light_pin_cfg(GPIO0_20,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO0_21,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO0_27,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO0_28,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO0_29,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO0_30,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(GPIO0_27,PIN_SPEED_NORMAL,PIN_PN,2); /// NC
+	light_pin_cfg(GPIO0_28,PIN_SPEED_NORMAL,PIN_PN,2); /// AVDD25_IR_EN
+	light_pin_cfg(GPIO0_29,PIN_SPEED_NORMAL,PIN_PN,2); /// DVDD12_IR_EN
+	light_pin_cfg(GPIO0_30,PIN_SPEED_NORMAL,PIN_PN,2); /// vdd-3v3-en (gmac,uart,led)
 
 	light_pin_mux(GPIO1_0,1);
 	light_pin_mux(GPIO1_1,1);
@@ -1086,26 +1111,26 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO1_2,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_3,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_4,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO1_11,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO1_13,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO1_14,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO1_15,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO1_16,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PN,2);   ///VDD18_LCD0_EN
+	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PN,2);  ///LCD0_BIAS_EN
+	light_pin_cfg(GPIO1_11,PIN_SPEED_NORMAL,PIN_PN,2);  /// LCD_ID0
+	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PN,2);  /// VDD28_TP0_EN
+	light_pin_cfg(GPIO1_13,PIN_SPEED_NORMAL,PIN_PN,2);  /// DOVDD18_RGB_EN
+	light_pin_cfg(GPIO1_14,PIN_SPEED_NORMAL,PIN_PN,2);  /// DVDD12_RGB_EN
+	light_pin_cfg(GPIO1_15,PIN_SPEED_NORMAL,PIN_PN,2);  /// AVDD28_RGB_EN
+	light_pin_cfg(GPIO1_16,PIN_SPEED_NORMAL,PIN_PN,2);  /// RGBCAM_RESET
 	light_pin_cfg(GPIO1_21,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_22,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_23,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_24,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_25,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_26,PIN_SPEED_NORMAL,PIN_PD,2);
+	light_pin_cfg(GPIO1_26,PIN_SPEED_NORMAL,PIN_PN,2);  /// DBB2LEDDRIVER_EN1
 
 	light_pin_mux(CLK_OUT_0,1);
 	light_pin_mux(CLK_OUT_1,1);
 	light_pin_mux(CLK_OUT_3,1);
 	light_pin_mux(CLK_OUT_2,3);
-	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2); ///volume key
 
 	/*ap-pdmux on righ/top*/
 	light_pin_mux(QSPI0_SCLK,2);
@@ -1125,7 +1150,7 @@ static void light_iopin_init(void)
 	light_pin_mux(SPI_MOSI,3);
 	light_pin_mux(SPI_MISO,3);
 	light_pin_mux(SPI_SCLK,3);
-	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PN,2); ///NC
 
 	light_pin_mux(GPIO2_18,0);
 	light_pin_mux(GPIO2_19,0);
@@ -1139,32 +1164,33 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO2_18,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO2_19,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO2_20,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO2_21,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_22,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_23,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_24,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(GPIO2_21,PIN_SPEED_NORMAL,PIN_PN,2); ///NC
+	light_pin_cfg(GPIO2_22,PIN_SPEED_NORMAL,PIN_PN,2); ///WIFI_BT_GPIO2
+	light_pin_cfg(GPIO2_23,PIN_SPEED_NORMAL,PIN_PN,2); ///WIFI_BT_GPIO3
+	light_pin_cfg(GPIO2_24,PIN_SPEED_NORMAL,PIN_PN,2); ///WIFI_BT_RST_N
+	light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PU,2); ///KEY1
 
 
 	light_pin_mux(SDIO0_WPRTN,3);
-	light_pin_cfg(SDIO0_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO0_WPRTN,PIN_SPEED_NORMAL,PIN_PN,2); ///NC
 	light_pin_mux(SDIO1_WPRTN,3);
-	light_pin_cfg(SDIO1_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO1_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2); ///VBUS_EN
 	light_pin_mux(SDIO1_DETN,3);
-	light_pin_cfg(SDIO1_DETN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO1_DETN,PIN_SPEED_NORMAL,PIN_PN,2);  ///WCN33_EN
 
 	light_pin_mux(GPIO2_30,0);
 	light_pin_mux(GPIO2_31,0);
 	light_pin_mux(GPIO3_0,0);
+
 	light_pin_mux(GPIO3_1,0);
 	light_pin_mux(GPIO3_2,1);
 	light_pin_mux(GPIO3_3,0);
-	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PU, 0x2);
-	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PU, 0x2);
-	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PU, 0x2);
+	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PN, 0x2); ///NC
+	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PN, 0x2); ///NC
+	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PN, 0x2);  ///NC
 	light_pin_cfg(GPIO3_1, PIN_SPEED_NORMAL, PIN_PN, 0x2);
 	light_pin_cfg(GPIO3_2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
-	light_pin_cfg(GPIO3_3, PIN_SPEED_NORMAL, PIN_PN, 0x2);
+	light_pin_cfg(GPIO3_3, PIN_SPEED_NORMAL, PIN_PN, 0x2);  /// WAKEUP_IN_CAT1
 
 	light_pin_mux(GMAC0_COL,3);
 	light_pin_mux(GMAC0_CRS,3);
@@ -1185,14 +1211,14 @@ static void light_iopin_init(void)
 	light_pin_cfg(GMAC0_RXD2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 	light_pin_cfg(GMAC0_RXD3, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 }
-#elif defined   (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_EVT)
+#elif defined   (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE)
 static void light_iopin_init(void)
 {
 	/* aon-padmux config */
 	light_pin_cfg(I2C_AON_SCL,PIN_SPEED_NORMAL,PIN_PN,8);
 	light_pin_cfg(I2C_AON_SDA,PIN_SPEED_NORMAL,PIN_PN,8);
-	light_pin_cfg(AOGPIO_7,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(AOGPIO_8,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(AOGPIO_7,PIN_SPEED_NORMAL,PIN_PN,2);     ///NC
+	light_pin_cfg(AOGPIO_8,PIN_SPEED_NORMAL,PIN_PN,2);     ///NC
 	light_pin_cfg(AOGPIO_9,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(AOGPIO_10,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(AOGPIO_11,PIN_SPEED_NORMAL,PIN_PN,2);
@@ -1208,22 +1234,22 @@ static void light_iopin_init(void)
 	light_pin_mux(AOGPIO_14,0);
 	light_pin_mux(AOGPIO_15,0);
 
-	light_pin_mux(AUDIO_PA9,3);
-	light_pin_cfg(AUDIO_PA9,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_mux(AUDIO_PA10,3);
+	light_pin_mux(AUDIO_PA9,3);                         ///AUDIO-PA-RESET
+	light_pin_cfg(AUDIO_PA9,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_mux(AUDIO_PA10,3);                        /// AUD-3V3-EN
 	light_pin_cfg(AUDIO_PA10,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_mux(AUDIO_PA12,3);
+	light_pin_mux(AUDIO_PA12,3);                        /// AUD-1V8-EN
 	light_pin_cfg(AUDIO_PA12,PIN_SPEED_NORMAL,PIN_PU,2);
 	light_pin_mux(AUDIO_PA13,0);
 
 	/*ap-padmux on left/top */
 	light_pin_mux(QSPI1_CSN0,3);
-	light_pin_cfg(QSPI1_CSN0,PIN_SPEED_NORMAL,PIN_PN,8);
-	light_pin_cfg(QSPI1_SCLK,PIN_SPEED_NORMAL,PIN_PN,8);
-	light_pin_cfg(QSPI1_D0_MOSI,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D1_MISO,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D2_WP,PIN_SPEED_NORMAL,PIN_PU,8);
-	light_pin_cfg(QSPI1_D3_HOLD,PIN_SPEED_NORMAL,PIN_PU,8);
+	light_pin_cfg(QSPI1_CSN0,PIN_SPEED_NORMAL,PIN_PN,8);  ///se-spi
+	light_pin_cfg(QSPI1_SCLK,PIN_SPEED_NORMAL,PIN_PN,8);  ///se-spi
+	light_pin_cfg(QSPI1_D0_MOSI,PIN_SPEED_NORMAL,PIN_PU,8);  ///se-spi
+	light_pin_cfg(QSPI1_D1_MISO,PIN_SPEED_NORMAL,PIN_PU,8);  ///se-spi
+	light_pin_cfg(QSPI1_D2_WP,PIN_SPEED_NORMAL,PIN_PN,8);    ///NC
+	light_pin_cfg(QSPI1_D3_HOLD,PIN_SPEED_NORMAL,PIN_PN,8);  ///NC
 
 	light_pin_cfg(I2C0_SCL,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C0_SDA,PIN_SPEED_NORMAL,PIN_PN,4);
@@ -1253,10 +1279,10 @@ static void light_iopin_init(void)
 	light_pin_mux(GPIO0_30,0);
 	light_pin_cfg(GPIO0_20,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO0_21,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO0_27,PIN_SPEED_NORMAL,PIN_PD,2);                          ///< NC(not used)
-	light_pin_cfg(GPIO0_28,PIN_SPEED_NORMAL,PIN_PD,2);                          ///<AVDD25_IR_EN
-	light_pin_cfg(GPIO0_29,PIN_SPEED_NORMAL,PIN_PD,2);                          ///<DVDD12_IR_EN
-	light_pin_cfg(GPIO0_30,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(GPIO0_27,PIN_SPEED_NORMAL,PIN_PN,2);                          ///< NC(not used)
+	light_pin_cfg(GPIO0_28,PIN_SPEED_NORMAL,PIN_PN,2);                          ///< AVDD25_IR_EN
+	light_pin_cfg(GPIO0_29,PIN_SPEED_NORMAL,PIN_PN,2);                          ///< DVDD12_IR_EN
+	light_pin_cfg(GPIO0_30,PIN_SPEED_NORMAL,PIN_PU,2);                          ///< gmac,uart,led
 
 	light_pin_mux(GPIO1_0,1);
 	light_pin_mux(GPIO1_1,1);
@@ -1281,46 +1307,46 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO1_2,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_3,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_4,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PD,2);                          ///<VDD18_LCD0_EN
-	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<LCD0_BIAS_EN
+	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PN,2);                          ///<VDD18_LCD0_EN
+	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<LCD0_BIAS_EN
 	light_pin_cfg(GPIO1_11,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<TOUCH-PANNEL VDD28_TP0_EN
-	light_pin_cfg(GPIO1_13,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<DOVDD18_RGB_EN
-	light_pin_cfg(GPIO1_14,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<DVDD12_RGB_EN
-	light_pin_cfg(GPIO1_15,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<AVDD28_RGB_EN
+	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<TOUCH-PANNEL VDD28_TP0_EN
+	light_pin_cfg(GPIO1_13,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<DOVDD18_RGB_EN
+	light_pin_cfg(GPIO1_14,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<DVDD12_RGB_EN
+	light_pin_cfg(GPIO1_15,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<AVDD28_RGB_EN
 	light_pin_cfg(GPIO1_16,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_21,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_22,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_23,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<LED_PDN
+	light_pin_cfg(GPIO1_23,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<LED_PDN
 	light_pin_cfg(GPIO1_24,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_25,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO1_26,PIN_SPEED_NORMAL,PIN_PD,2);                         ///<DBB2LEDDRIVER_EN
+	light_pin_cfg(GPIO1_26,PIN_SPEED_NORMAL,PIN_PN,2);                         ///<DBB2LEDDRIVER_EN
 
 	light_pin_mux(CLK_OUT_0,1);
 	light_pin_mux(CLK_OUT_1,1);
 	light_pin_mux(CLK_OUT_3,1);
 	light_pin_mux(CLK_OUT_2,3);
-	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2);                        ///volume key "-"
 
 	/*ap-pdmux on righ/top*/
-	light_pin_mux(QSPI0_SCLK,2);
-	light_pin_mux(QSPI0_CSN0,2);
-	light_pin_mux(QSPI0_CSN1,2);
-	light_pin_mux(QSPI0_D0_MOSI,2);
-	light_pin_mux(QSPI0_D1_MISO,2);
-	light_pin_mux(QSPI0_D2_WP,2);
-	light_pin_mux(QSPI0_D3_HOLD,2);
+	light_pin_mux(QSPI0_SCLK,3);            ///NC
+	light_pin_mux(QSPI0_CSN0,3);            ///NC
+	light_pin_mux(QSPI0_CSN1,3);            ///NC
+	light_pin_mux(QSPI0_D0_MOSI,3);         ///NC
+	light_pin_mux(QSPI0_D1_MISO,3);         ///NC
+	light_pin_mux(QSPI0_D2_WP,3);           ///NC
+	light_pin_mux(QSPI0_D3_HOLD,3);         ///NC
 
 	light_pin_cfg(I2C2_SCL,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C2_SDA,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C3_SCL,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C3_SDA,PIN_SPEED_NORMAL,PIN_PN,4);
 
-	light_pin_mux(SPI_CSN,3);
-	light_pin_mux(SPI_MOSI,3);
-	light_pin_mux(SPI_MISO,3);
+	light_pin_mux(SPI_CSN,3);                                                /// W_DISABLE_CATE1
+	light_pin_mux(SPI_MOSI,3);                                               /// NC
+	light_pin_mux(SPI_MISO,3);                                               /// RERST1_N_CAT1
 	light_pin_mux(SPI_SCLK,3);
-	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PN,2);                       /// NC
 
 	light_pin_mux(GPIO2_18,0);
 	light_pin_mux(GPIO2_19,0);
@@ -1334,19 +1360,19 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO2_18,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO2_19,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO2_20,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(GPIO2_21,PIN_SPEED_NORMAL,PIN_PD,2);                        ///<NC(not-connected)
-	light_pin_cfg(GPIO2_22,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_23,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_24,PIN_SPEED_NORMAL,PIN_PU,2);
-	light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(GPIO2_21,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<NC
+	light_pin_cfg(GPIO2_22,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<WIFI_BT_GPIO2
+	light_pin_cfg(GPIO2_23,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<WIFI_BT_GPIO3
+	light_pin_cfg(GPIO2_24,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<WIFI_BT_RST_N
+	light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PU,2);                        ///KEY1
 
 
 	light_pin_mux(SDIO0_WPRTN,3);
-	light_pin_cfg(SDIO0_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO0_WPRTN,PIN_SPEED_NORMAL,PIN_PN,2);                    ///< NC
 	light_pin_mux(SDIO1_WPRTN,3);
-	light_pin_cfg(SDIO1_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO1_WPRTN,PIN_SPEED_NORMAL,PIN_PU,2);                   ///VBUS_EN
 	light_pin_mux(SDIO1_DETN,3);
-	light_pin_cfg(SDIO1_DETN,PIN_SPEED_NORMAL,PIN_PU,2);
+	light_pin_cfg(SDIO1_DETN,PIN_SPEED_NORMAL,PIN_PN,2);                    ///WCN_33_EN
 
 	light_pin_mux(GPIO2_30,0);
 	light_pin_mux(GPIO2_31,0);
@@ -1354,9 +1380,9 @@ static void light_iopin_init(void)
 	light_pin_mux(GPIO3_1,0);
 	light_pin_mux(GPIO3_2,1);
 	light_pin_mux(GPIO3_3,0);
-	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PU, 0x2);
-	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PU, 0x2);
-	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PU, 0x2);
+	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PN, 0x2);                 ///NC
+	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PN, 0x2);                 ///NC
+	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PN, 0x2);                  ///NC
 	light_pin_cfg(GPIO3_1, PIN_SPEED_NORMAL, PIN_PN, 0x2);
 	light_pin_cfg(GPIO3_2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 	light_pin_cfg(GPIO3_3, PIN_SPEED_NORMAL, PIN_PN, 0x2);
@@ -1557,7 +1583,9 @@ int board_init(void)
 static void light_usb_boot_check(void)
 {
 	int boot_mode;
-
+	uchar env_enetaddr[6]={0};
+	uchar env_enet1addr[6]={0};
+	int env_ethaddr_flag,env_eth1addr_flag;
 	boot_mode = readl((void *)SOC_OM_ADDRBASE) & 0x7;
 	if (boot_mode & BIT(2))
 		return;
@@ -1565,8 +1593,26 @@ static void light_usb_boot_check(void)
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("usb_fastboot", "yes");
 #endif
+	/*Get this version ethaddr(mac addr) env,which follows one board, trans to next version env*/
+	env_ethaddr_flag  = eth_env_get_enetaddr_by_index("eth", 0, env_enetaddr);
+	env_eth1addr_flag = eth_env_get_enetaddr_by_index("eth", 1, env_enet1addr);
 
 	run_command("env default -a -f", 0);
+	/*If mac addr in last version env  is valid, before save,inherit env mac addr */
+	if(env_ethaddr_flag){
+		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);
+		run_command("printenv ethaddr",0);
+	}else{
+		printf("env ethaddr not exist or invalid\n");
+	}
+
+	if(env_eth1addr_flag){
+		eth_env_set_enetaddr_by_index("eth", 1, env_enet1addr);
+		run_command("printenv eth1addr",0);
+	}else{
+		printf("env eth1addr not exist or invalid\n");
+	}
+
 	run_command("env save", 0);
 	run_command("run gpt_partition", 0);
 	run_command("fastboot usb 0", 0);
@@ -1587,3 +1633,30 @@ int board_late_init(void)
 	ap_peri_clk_disable();
 	return 0;
 }
+
+static int do_env_ethaddr_check(cmd_tbl_t *cmdtp, int flag, int argc,
+		       char * const argv[])
+{
+	uchar env_enetaddr[6]={0};
+	int i;
+	for(i=0;i<2;i++){
+		if(eth_env_get_enetaddr_by_index("eth", i, env_enetaddr)){
+			printf("env (eth%d) MAC address ok- %pM\n",i, env_enetaddr);
+		}
+		else {
+			printf("env (eth%d) MAC address invalid - %pM\n",i, env_enetaddr);
+			printf(" * Check that the Ethernet address (MAC) is not 00:00:00:00:00:00,\n"
+				   " is not a multicast address(first byte low bit zero is not multi addr), \n"
+					"and is not FF:FF:FF:FF:FF:FF.\n");
+		}
+
+	}
+	return 0;
+
+}
+
+U_BOOT_CMD(
+	chk_ethaddr, 2, 0,	do_env_ethaddr_check,
+	"check ethaddrs in environment variables is valid",
+	""
+);

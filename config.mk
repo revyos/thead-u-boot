@@ -63,6 +63,11 @@ ifdef FTRACE
 PLATFORM_CPPFLAGS += -finstrument-functions -DFTRACE
 endif
 
+ifeq ($(BUILD_TYPE),RELEASE)
+PLATFORM_CPPFLAGS += -DU_BUILD_RELEASE
+else # default build debug 
+PLATFORM_CPPFLAGS += -DU_BUILD_DEBUG
+endif
 #########################################################################
 
 RELFLAGS := $(PLATFORM_RELFLAGS)

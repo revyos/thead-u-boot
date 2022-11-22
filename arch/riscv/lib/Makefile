@@ -15,6 +15,7 @@ obj-$(CONFIG_SIFIVE_CLINT) += sifive_clint.o
 obj-$(CONFIG_ANDES_PLIC) += andes_plic.o
 obj-$(CONFIG_ANDES_PLMT) += andes_plmt.o
 obj-$(CONFIG_THEAD_IPI) += thead_ipi.o
+obj-$(CONFIG_THEAD_PLIC) += thead_plic.o
 else
 obj-$(CONFIG_SBI_IPI) += sbi_ipi.o
 endif

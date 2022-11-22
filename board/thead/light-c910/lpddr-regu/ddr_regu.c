@@ -136,9 +136,9 @@ static const struct regulator_t g_apcpu_regu_id_list[] = {
 		REGU_ID_DEF(IIC_IDX_AONIIC,APCPU_REGU_VDDM,0x31,0x39,0,1,800000,600000,3500000,12500,1),
 	},
 };
-#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_EVT)
+#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_A_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF) || (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE)
 /**
- * board for ant-evt
+ * board for ant-ref
  *
  */
 static const struct regulator_t g_regu_id_list[] = {
@@ -817,13 +817,14 @@ int pmic_ddr_regu_init(void)
 
 int pmic_ddr_set_voltage(void)
 {
-	int ret = -1;
+	int ret = 0;
 	uint32_t val = 0;
 	uint32_t regu_num = ARRAY_SIZE(g_regu_id_list);
 	uint32_t i;
 	struct regulator_t *pregu;
 	csi_iic_t          *dev_handle;
 
+#if 0 //currently,no need to modify ddr regulator voltage
 	pregu = (struct regulator_t*)g_regu_id_list;
 	for (i = 0; i < regu_num; i++, pregu++) {
 		if (pregu->regu_vol_target < pregu->regu_vol_min || pregu->regu_vol_target > pregu->regu_vol_max)
@@ -834,6 +835,8 @@ int pmic_ddr_set_voltage(void)
 		if (ret)
 			return ret;
 	}
+#endif
+
 #if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
 	/*enable lcd0_en ldo*/
 	pregu = (struct regulator_t*)&g_regu_id_list[LCD0_EN];
@@ -941,7 +944,7 @@ int pmic_reset_apcpu_voltage(void)
 		return ret;
 	return 0;
 }
-#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_EVT)
+#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_A_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF)|| (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE)
 int pmic_reset_apcpu_voltage(void)
 {
 	int                ret = -1;

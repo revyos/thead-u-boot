@@ -34,6 +34,47 @@ static const unsigned char emmc_rpmb_key_sample[32] = {0x33, 0x22, 0x11, 0x00, 0
 #endif
 static unsigned int upgrade_image_version = 0;
 
+int csi_rpmb_write_access_key(void) 
+{
+    unsigned long *temp_rpmb_key_addr = NULL;
+    char runcmd[64] = {0};
+    uint8_t blkdata[256] = {0};
+    uint8_t kdf_rpmb_key[32];
+	uint32_t kdf_rpmb_key_length = 0;
+	int ret = 0;
+
+#ifdef LIGHT_KDF_RPMB_KEY
+    /* Step1: retrive RPMB key from KDF function */
+	ret = csi_kdf_gen_hmac_key(kdf_rpmb_key, &kdf_rpmb_key_length);
+	if (ret != 0) {
+		return -1;
+	}
+    /* Make sure rpmb key length must be 32*/
+    if (kdf_rpmb_key_length != 32) {
+        return -1;
+    }
+
+	temp_rpmb_key_addr = (unsigned long *)kdf_rpmb_key;
+
+    /* Step2: check whether RPMB key is available */
+    sprintf(runcmd, "mmc rpmb read 0x%lx 0 1 0x%lx", (unsigned long)blkdata, (unsigned long)temp_rpmb_key_addr);
+	ret = run_command(runcmd, 0);
+    if (ret == CMD_RET_SUCCESS) {
+        return -1;
+    }
+
+    /* Step3: Write RPMB key at once */
+    sprintf(runcmd, "mmc rpmb key 0x%lx", (unsigned long)temp_rpmb_key_addr);
+	ret = run_command(runcmd, 0);
+    if (ret != CMD_RET_SUCCESS) {
+        return -1;
+    }
+    return 0;
+#else
+    return 1;
+#endif
+}
+
 int csi_tf_get_image_version(unsigned int *ver)
 {
 	char runcmd[64] = {0};
@@ -93,6 +134,19 @@ int csi_tee_get_image_version(unsigned int *ver)
 	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
 	run_command(runcmd, 0);
 	*ver = (blkdata[0] << 8) + blkdata[1];
+
+	return 0;
+}
+
+int csi_kernel_get_image_version(unsigned int *ver)
+{
+	char runcmd[64] = {0};
+	unsigned char blkdata[256];
+
+	/* kernel version reside in RPMB block#0, offset#32*/
+	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
+	run_command(runcmd, 0);
+	*ver = (blkdata[32] << 8) + blkdata[33];
 
 	return 0;
 }
@@ -307,6 +361,13 @@ int light_vimage(int argc, char *const argv[])
 			printf("Get tee img version fail\n");
 			return CMD_RET_FAILURE;
 		}
+	} else if (strcmp(imgname, KERNEL_PART_NAME) == 0){
+
+		ret = csi_kernel_get_image_version(&cur_img_version);
+		if (ret != 0) {
+			printf("Get kernel img version fail\n");
+			return CMD_RET_FAILURE;
+		}
 	} else if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
 		ret = csi_uboot_get_image_version(&cur_img_version);
 		if (ret != 0) {
@@ -351,6 +412,11 @@ int light_vimage(int argc, char *const argv[])
 		if (ret != 0) {
 			return CMD_RET_FAILURE;
 		}
+	} else if (strcmp(imgname, KERNEL_PART_NAME) == 0) {
+		ret = verify_customer_image(T_KRLIMG, vimage_addr);
+		if (ret != 0) {
+			return CMD_RET_FAILURE;
+		}
 	} else if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
 		ret = verify_customer_image(T_UBOOT, vimage_addr);
 		if (ret != 0) {
@@ -369,11 +435,16 @@ int light_secboot(int argc, char * const argv[])
 	int ret = 0;
 	unsigned long tf_addr = LIGHT_TF_FW_ADDR;
 	unsigned long tee_addr = LIGHT_TEE_FW_ADDR;
+    unsigned long kernel_addr = LIGHT_KERNEL_ADDR;
 	unsigned int tf_image_size = 0;
 	unsigned int tee_image_size = 0;
+	unsigned int kernel_image_size = 0;
 
 	printf("\n\n");
 	printf("Now, we start to verify all trust firmware before boot kernel !\n");
+
+    /* Enject RPMB KEY directly in startup */
+    csi_rpmb_write_access_key();
 
 	/* Initialize secure basis of functions */
 	ret = csi_sec_init();
@@ -427,6 +498,29 @@ int light_secboot(int argc, char * const argv[])
 			return CMD_RET_FAILURE;
 		#endif
 	}
+
+    // /* Step3. Check and verify light kernel image */
+	// if (image_have_head(kernel_addr) == 1) {
+	// 	printf("Process kernel image verification ...\n");
+	// 	ret = verify_customer_image(T_KRLIMG, kernel_addr);
+	// 	if (ret != 0) {
+	// 		return CMD_RET_FAILURE;
+	// 	}
+
+	// 	kernel_image_size = get_image_size(kernel_addr);
+	// 	printf("Kernel image size: %d\n", kernel_image_size);
+	// 	if (kernel_image_size < 0) {
+	// 		printf("GET kernel image size error\n");
+	// 		return CMD_RET_FAILURE;
+	// 	}
+
+	// 	memmove((void *)kernel_addr, (const void *)(kernel_addr + HEADER_SIZE), kernel_image_size);
+	// } else {
+	// 	#ifndef LIGHT_NON_COT_BOOT
+	// 		return CMD_RET_FAILURE;
+	// 	#endif
+	// }
+
 	return 0;
 }
 

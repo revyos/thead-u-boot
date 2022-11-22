@@ -151,6 +151,13 @@
 
 			#address-cells = <1>;
 			#size-cells = <0>;
+
+			pcal6408ahk_a: gpio@20 {
+				compatible = "nxp,pca9554";
+				reg = <0x20>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
 		};
 
 		i2c5: i2c@fff7f2c000{
@@ -209,7 +216,7 @@
 			snps,fixed-burst;
 			phy-mode = "rgmii-id";
 			phy-handle = <&phy_88E1111_b>;
-			status = "disabled";
+			status = "okay";
 		};
 
 		emmc: sdhci@ffe7080000 {
@@ -256,7 +263,6 @@
 			spi-max-frequency = <100000000>;
 			#address-cells = <1>;
 			#size-cells =<0>;
-			status = "disabled";
 			spi-flash@0 {
 				#address-cells = <1>;
 				#size-cells = <1>;
@@ -276,7 +282,6 @@
 			spi-max-frequency = <66000000>;
 			#address-cells = <1>;
 			#size-cells =<0>;
-			status = "disabled";
 			spi-flash@0 {
 				#address-cells = <1>;
 				#size-cells = <1>;
@@ -295,7 +300,6 @@
 			spi-max-frequency = <100000000>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			status = "disabled";
 			flash@0 {
 				compatible = "jedec,spi-nor";
 				reg = <0>;
@@ -466,8 +470,8 @@
 			compatible      = "ilitek,ili9881c";
 			backlight       = <&lcd_backlight>;
 			reset-gpios     = <&gpio1_porta 5 1>;   /* active low  */
-			lcd-en-gpios    = <&gpio1_porta 9 0>; /* active high */
-			lcd-bias-en-gpios = <&gpio1_porta 10 0>;/* active high */
+			lcd-en-gpios    = <&pcal6408ahk_a 2 0>; /* active high */
+			lcd-bias-en-gpios = <&pcal6408ahk_a 4 0>;/* active high */
 		};
 	};
 

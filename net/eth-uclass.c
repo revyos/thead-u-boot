@@ -541,6 +541,8 @@ static int eth_post_probe(struct udevice *dev)
 
 		/* Override the ROM MAC address */
 		memcpy(pdata->enetaddr, env_enetaddr, ARP_HLEN);
+		printf("%s (eth%d) using MAC address - %pM\n",
+		       dev->name, dev->seq, pdata->enetaddr);
 	} else if (is_valid_ethaddr(pdata->enetaddr)) {
 		eth_env_set_enetaddr_by_index("eth", dev->seq, pdata->enetaddr);
 		printf("\nWarning: %s using MAC address from ROM\n",

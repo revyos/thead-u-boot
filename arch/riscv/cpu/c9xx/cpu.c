@@ -122,6 +122,7 @@ void invalid_dcache_range(unsigned long start, unsigned long end)
 
 void icache_enable(void)
 {
+#ifdef CONFIG_SPL_BUILD
 #ifdef CONFIG_SPL_RISCV_MMODE
 #ifdef CONFIG_TARGET_LIGHT_C910
 	asm volatile (
@@ -131,16 +132,19 @@ void icache_enable(void)
     );
 #endif
 #endif
+#endif
 }
 
 void dcache_enable(void)
 {
+#ifdef CONFIG_SPL_BUILD
 #ifdef CONFIG_SPL_RISCV_MMODE
 #ifdef CONFIG_TARGET_LIGHT_C910
 	asm volatile (
         "li x29, 0x11ff\n\t"
         "csrw mhcr, x29\n\t"
     );
+#endif
 #endif
 #endif
 }
