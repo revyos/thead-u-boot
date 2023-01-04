@@ -1,12 +1,19 @@
 /*
- * Copyright (C) 2019-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2019-2020 Alibaba Group Holding Limited
  */
 
 #ifndef __KDF_H__
 #define __KDF_H__
+#ifdef SEC_LIB_VERSION
 #include "drv/aes.h"
 #include "drv/sm4.h"
 #include "drv/common.h"
+#else
+#include "aes.h"
+#include "sm4.h"
+#include "common.h"
+#endif
+
 #include <stdint.h>
 
 typedef enum {
@@ -50,6 +57,9 @@ typedef enum {
         KDF_KEY_TYPE_TDES_192,
         KDF_KEY_TYPE_TDES_128,
         KDF_KEY_TYPE_DES,
+	/* for rpmb, str */
+/* 	KDF_KEY_TYPE_HMAC_SHA256,
+ */
         KDF_KEY_TYPE_MAX,
 } csi_kdf_key_type_t;
 
@@ -113,12 +123,12 @@ csi_error_t csi_kdf_destory_key(csi_kdf_t *kdf, csi_kdf_derived_key_t dkey);
 
 /**
   \brief       Set key to algorithim engine.
-  \param[in]   handle    Handle to cipher.
   \param[in]   kdf    Handle to operate.
+  \param[in]   handle    Handle to cipher.
   \param[in]   dkey derived key type.
   \return      error code
 */
-csi_error_t csi_kdf_set_key(csi_kdf_key_handle_t *handle, csi_kdf_t *kdf,
+csi_error_t csi_kdf_set_key(csi_kdf_t *kdf, csi_kdf_key_handle_t *handle,
                             csi_kdf_derived_key_t dkey);
 
 /**
@@ -138,5 +148,12 @@ csi_error_t csi_kdf_clear_key(csi_kdf_t *kdf, csi_kdf_derived_key_t dkey);
 */
 csi_error_t csi_kdf_get_key_attr(csi_kdf_t *kdf, csi_kdf_derived_key_t dkey,
                                  csi_kdf_key_attr_t *attr);
+
+
+/**
+  \brief       kdf generate hmac key.
+  \param[in]   kdf    Handle to operate
+*/
+csi_error_t csi_kdf_gen_hmac_key(uint8_t* key,uint32_t * length);
 
 #endif

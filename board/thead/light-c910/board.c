@@ -12,7 +12,7 @@
 
 #ifdef CONFIG_USB_DWC3
 static struct dwc3_device dwc3_device_data = {
-	.maximum_speed = USB_SPEED_HIGH,
+	.maximum_speed = USB_SPEED_SUPER,
 	.dr_mode = USB_DR_MODE_PERIPHERAL,
 	.index = 0,
 };

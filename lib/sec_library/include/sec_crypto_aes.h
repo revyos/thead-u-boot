@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     seccrypt_aes.h
@@ -11,11 +11,16 @@
 #ifndef _SC_AES_H_
 #define _SC_AES_H_
 
+#include "sec_include_config.h"
 #include <stdint.h>
-#include <sec_crypto_errcode.h>
+#include "sec_crypto_errcode.h"
 
 #ifdef CONFIG_SYSTEM_SECURE
-#include "drv/aes.h"
+#ifdef SEC_LIB_VERSION
+#include <drv/aes.h>
+#else
+#include "aes.h"
+#endif
 #endif
 
 #ifdef CONFIG_SEC_CRYPTO_AES_SW
@@ -187,8 +192,7 @@ uint32_t sc_aes_cfb8_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, 
   \param[out]  num     the number of the 128-bit block we have used
   \return      error code \ref uint32_t
 */
-uint32_t sc_aes_cfb128_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv,
-                               uint32_t *num);
+uint32_t sc_aes_cfb128_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv);
 
 /**
   \brief       Aes cfb128 encrypt
@@ -200,8 +204,7 @@ uint32_t sc_aes_cfb128_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size
   \param[out]  num     the number of the 128-bit block we have used
   \return      error code \ref uint32_t
 */
-uint32_t sc_aes_cfb128_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv,
-                               uint32_t *num);
+uint32_t sc_aes_cfb128_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv);
 /**
   \brief       Aes ofb encrypt
   \param[in]   aes     handle to operate
@@ -209,11 +212,11 @@ uint32_t sc_aes_cfb128_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size
   \param[out]  out     Pointer to the Result data
   \param[in]   size    the Source data size
   \param[in]   iv      init vector
-  \param[out]  num     the number of the 128-bit block we have used
+  \param[in]  key_len key bits
   \return      error code \ref uint32_t
 */
-uint32_t sc_aes_ofb_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv,
-                            uint32_t *num);
+uint32_t sc_aes_ofb_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv);
+
 /**
   \brief       Aes ofb decrypt
   \param[in]   aes     handle to operate
@@ -221,43 +224,83 @@ uint32_t sc_aes_ofb_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, v
   \param[out]  out     Pointer to the Result data
   \param[in]   size    the Source data size
   \param[in]   iv      init vector
-  \param[out]  num     the number of the 128-bit block we have used
+  \param[in]  key_len key bits
   \return      error code \ref uint32_t
 */
-uint32_t sc_aes_ofb_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv,
-                            uint32_t *num);
+uint32_t sc_aes_ofb_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv);
+
 /**
   \brief       Aes ctr encrypt
   \param[in]   aes              handle to operate
   \param[in]   in               Pointer to the Source data
   \param[out]  out              Pointer to the Result data
   \param[in]   size             the Source data size
-  \param[in]   nonce_counter    Pointer to the 128-bit nonce and counter
-  \param[in]   stream_block     Pointer to the saved stream-block for resuming
   \param[in]   iv               init vector
-  \param[out]  num              the number of the 128-bit block we have used
   \return      error code \ref uint32_t
 */
-uint32_t sc_aes_ctr_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size,
-                            uint8_t nonce_counter[16], uint8_t stream_block[16], void *iv,
-                            uint32_t *num);
+uint32_t sc_aes_ctr_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size,void *iv);
+
 /**
   \brief       Aes ctr decrypt
   \param[in]   aes              handle to operate
   \param[in]   in               Pointer to the Source data
   \param[out]  out              Pointer to the Result data
   \param[in]   size             the Source data size
-  \param[in]   nonce_counter    Pointer to the 128-bit nonce and counter
-  \param[in]   stream_block     Pointer to the saved stream-block for resuming
   \param[in]   iv               init vecotr
-  \param[out]  num              the number of the 128-bit block we have used
   \return      error code \ref uint32_t
 */
-uint32_t sc_aes_ctr_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size,
-                            uint8_t nonce_counter[16], uint8_t stream_block[16], void *iv,
-                            uint32_t *num);
+uint32_t sc_aes_ctr_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size,void *iv);
+
+/**
+  \brief       Aes gcm encrypt
+  \param[in]   dev_aes          dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data.
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vector
+  \return      error code \ref csi_error_t
+*/
+uint32_t sc_aes_gcm_encrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv);
+
+/**
+  \brief       Aes gcm decrypt
+  \param[in]   dev_aes          dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data.
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vecotr
+  \return      error code \ref csi_error_t
+*/
+uint32_t sc_aes_gcm_decrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv);
+
+/**
+  \brief       Aes gcm encrypt
+  \param[in]   dev_aes          dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data.
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vector
+  \param[in]   tag_out          tag output ,parse null if not needed
+  \return      error code \ref csi_error_t
+*/
+uint32_t sc_aes_ccm_encrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t* tag_out);
+
+/**
+  \brief       Aes gcm decrypt
+  \param[in]   dev_aes          dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data.
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vecotr
+  \param[in]   tag_out tag output,parse null if not needed
+  \return      error code \ref csi_error_t
+*/
+uint32_t sc_aes_ccm_decrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t* tag_out);
+
+void sc_aes_dma_enable(sc_aes_t *aes, uint8_t en);
 
 #ifdef __cplusplus
 }
 #endif
+
 #endif /* _SC_AES_H_ */

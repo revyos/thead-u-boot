@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2019-2020 Alibaba Group Holding Limited
  */
 #ifndef __CSI_EFUSE_API_H__
 #define __CSI_EFUSE_API_H__
@@ -22,8 +22,7 @@ typedef enum {
 } img_encrypt_st_t;
 
 int csi_efuse_api_int(void);
-
-int csi_efuse_api_uninit(void);
+void csi_efuse_api_uninit(void);
 
 int csi_efuse_get_secure_boot_st(sboot_st_t *sboot_st);
 

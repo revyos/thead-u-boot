@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     seccrypt_rsa.h
@@ -10,13 +10,18 @@
  ******************************************************************************/
 #ifndef _SC_RSA_H_
 #define _SC_RSA_H_
+#include "sec_include_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 #ifdef CONFIG_SYSTEM_SECURE
+#ifdef SEC_LIB_VERSION
 #include "drv/rsa.h"
+#else
+#include "rsa.h"
+#endif
 #endif
 
 
@@ -27,8 +32,12 @@ extern "C" {
 
 #include <stdint.h>
 #include <stdbool.h>
-#include <drv/common.h>
-#include <sec_crypto_errcode.h>
+#ifdef SEC_LIB_VERSION
+#include "drv/common.h"
+#else
+#include "common.h"
+#endif
+#include "sec_crypto_errcode.h"
 
 
 //TODO Del this file after updating to sc2.0
@@ -286,6 +295,31 @@ uint32_t sc_rsa_enable_pm(sc_rsa_t *rsa);
 */
 void sc_rsa_disable_pm(sc_rsa_t *rsa);
 
+/**
+  \brief       set if checked decrypt error.
+  \param[in]   checked      if checked error.
+*/
+void sc_rsa_set_ignore_decrypt_error(bool checked);
+
+/**
+  \brief       Get publickey by p q prime data
+  \param[in]   rsa          rsa handle to operate.
+  \param[in]   context      Pointer to the rsa context
+  \param[in]   p            Pointer to the prime p
+  \param[in]   p_byte_len   Pointer to the prime p byte length
+  \param[in]   q            Pointer to the prime q
+  \param[in]   q_byte_len   Pointer to the prime q byte length
+  \param[in]   out          Pointer to the publickey
+*/
+uint32_t sc_rsa_get_publickey(sc_rsa_t *rsa, sc_rsa_context_t *context, void *p, uint32_t p_byte_len, 
+                                void *q, uint32_t q_byte_len, void *out);
+
+/**
+  \brief       Generation rsa keyparis 
+  \param[in]   rsa          rsa handle to operate.
+  \param[in]   context      Pointer to the rsa context
+*/
+uint32_t sc_rsa_gen_keypairs(sc_rsa_t *rsa, sc_rsa_context_t *context);
 #ifdef __cplusplus
 }
 #endif

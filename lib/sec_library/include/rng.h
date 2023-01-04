@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 
 /******************************************************************************
@@ -12,7 +12,7 @@
 #ifndef _DRV_TNG_H_
 #define _DRV_TNG_H_
 
-#include "drv/common.h"
+#include "common.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

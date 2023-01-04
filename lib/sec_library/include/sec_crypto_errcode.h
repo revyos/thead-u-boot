@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2019-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2019-2020 Alibaba Group Holding Limited
  */
 
 #ifndef _SC_ERRCODE_H

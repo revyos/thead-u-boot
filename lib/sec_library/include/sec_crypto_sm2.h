@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     sec_crypt_sm2.h
@@ -10,6 +10,7 @@
  ******************************************************************************/
 #ifndef _SC_SM2_H_
 #define _SC_SM2_H_
+#include "sec_include_config.h"
 
 #ifdef CONFIG_SEC_CRYPTO_SM2
 
@@ -17,7 +18,12 @@
 extern "C" {
 #endif
 
+#ifdef SEC_LIB_VERSION
 #include "drv/sm2.h"
+#else
+#include "sm2.h"
+#endif
+
 
 typedef struct {
         uint32_t sm2_curve : 1; ///< supports 256bits curve

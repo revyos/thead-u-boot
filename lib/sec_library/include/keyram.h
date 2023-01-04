@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 
 /******************************************************************************
@@ -9,7 +9,7 @@
  * @date     12. MAR 2021
  ******************************************************************************/
 
-#include "drv/kdf.h"
+#include "kdf.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -45,7 +45,7 @@
  *
  * @return uint32_t
  */
-uint32_t keyram_init();
+uint32_t keyram_init(void);
 
 /**
  * @brief keyram set key.
@@ -70,9 +70,9 @@ uint32_t keyram_get_key_addr(csi_kdf_derived_key_t key, uint64_t *addr);
  *
  * @return uint32_t
  */
-uint32_t keyram_clear();
+uint32_t keyram_clear(void);
 
 /**
  * @brief Uninit. This function will lock KDF.
  */
-void keyram_uninit();
+void keyram_uninit(void);

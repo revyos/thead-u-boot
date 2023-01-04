@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     sec_crypt_sm4.h
@@ -11,10 +11,14 @@
 
 #ifndef _SC_SM4_H_
 #define _SC_SM4_H_
-
+#include "sec_include_config.h"
 
 #ifdef CONFIG_CSI_V2
+#ifdef SEC_LIB_VERSION
 #include "drv/sm4.h"
+#else
+#include "sm4.h"
+#endif
 #endif
 
 #ifdef __cplusplus
@@ -51,7 +55,7 @@ void sc_sm4_uninit(sc_sm4_t *sm4);
   \param[in]   key        Pointer to the key buf
   \return      error code \ref uint32_t
 */
-uint32_t sc_sm4_set_encrypt_key(sc_sm4_t *sm4, uint8_t *key);
+uint32_t sc_sm4_set_encrypt_key(sc_sm4_t *sm4, uint8_t *key, csi_sm4_key_bits_t key_len);
 
 /**
   \brief       Set decrypt key
@@ -59,7 +63,7 @@ uint32_t sc_sm4_set_encrypt_key(sc_sm4_t *sm4, uint8_t *key);
   \param[in]   key        Pointer to the key buf
   \return      error code \ref uint32_t
 */
-uint32_t sc_sm4_set_decrypt_key(sc_sm4_t *sm4, uint8_t *key);
+uint32_t sc_sm4_set_decrypt_key(sc_sm4_t *sm4, uint8_t *key, csi_sm4_key_bits_t key_len);
 
 /**
   \brief       sm4 ecb encrypt

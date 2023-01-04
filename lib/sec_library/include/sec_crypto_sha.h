@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     seccrypt_sha.h
@@ -10,17 +10,26 @@
  ******************************************************************************/
 #ifndef _SC_SHA_H_
 #define _SC_SHA_H_
+#include "sec_include_config.h"
 
 #include <stdint.h>
 #ifdef CONFIG_SYSTEM_SECURE
+#ifdef SEC_LIB_VERSION
 #include "drv/sha.h"
+#else
+#include "sha.h"
+#endif
 #include "soc.h"
 #endif
 #ifdef CONFIG_SEC_CRYPTO_SM3
+#ifdef SEC_LIB_VERSION
 #include "drv/sm3.h"
+#else
+#include "sm3.h"
+#endif
 #endif
 
-#include <sec_crypto_errcode.h>
+#include "sec_crypto_errcode.h"
 
 
 #ifdef CONFIG_SEC_CRYPTO_SHA_SW
@@ -34,13 +43,14 @@ extern "C" {
 
 /*----- SHA Control Codes: Mode -----*/
 typedef enum {
-    SC_SHA_MODE_1 = 1U,  ///< SHA_1 mode
+    SC_SHA_MODE_SHA1 = 1U,  ///< SHA_1 mode
     SC_SHA_MODE_256,     ///< SHA_256 mode
     SC_SHA_MODE_224,     ///< SHA_224 mode
     SC_SHA_MODE_512,     ///< SHA_512 mode
     SC_SHA_MODE_384,     ///< SHA_384 mode
     SC_SHA_MODE_512_256, ///< SHA_512_256 mode
-    SC_SHA_MODE_512_224,  ///< SHA_512_224 mode
+    SC_SHA_MODE_512_224, ///< SHA_512_224 mode
+    SC_SHA_MODE_MD5,     ///< MD5 mode
     SC_SM3_MODE,
 } sc_sha_mode_t;
 
@@ -60,6 +70,8 @@ uint8_t ctx[SHA_CONTEXT_SIZE];
 #ifdef CONFIG_CSI_V2
   csi_sha_context_t ctx;
   csi_sm3_context_t sm3ctx;
+  csi_sha_state_t   state;
+  csi_sm3_state_t   sm3state;
 #endif
 #endif
 #if defined(CONFIG_TEE_CA)
@@ -69,7 +81,7 @@ uint8_t ctx[SHA_CONTEXT_SIZE];
   sc_mbedtls_sha1_context sha1_ctx;
   sc_mbedtls_sha256_context sha2_ctx;
 #endif
-    sc_sha_mode_t mode;        ///< sha mode
+  sc_sha_mode_t mode;        ///< sha mode
 } sc_sha_context_t;
 
 /****** SHA Event *****/
@@ -166,6 +178,28 @@ uint32_t sc_sha_update_async(sc_sha_t *sha, sc_sha_context_t *context, const voi
 */
 uint32_t sc_sha_finish(sc_sha_t *sha, sc_sha_context_t *context, void *output, uint32_t *out_size);
 
+/**
+  \brief       calculate the digest
+  \param[in]   sha      sha handle to operate.
+  \param[in]   idx      index of sha
+  \param[in]   context  Pointer to the sha context \ref sc_sha_context_t
+  \param[in]   mode     sha mode \ref sc_sha_mode_t
+  \param[in]   input    Pointer to the Source data
+  \param[in]   size     the data size
+  \param[out]  output   Pointer to the result data
+  \param[out]  out_size Pointer to the result data size(bytes)
+  \return      error code \ref uint32_t
+*/
+uint32_t sc_sha_digest(sc_sha_t *sha, uint32_t idx, sc_sha_context_t *context, sc_sha_mode_t mode,
+                        const void *input, uint32_t size, void *output, uint32_t out_size);            
+
+/**
+  \brief       finish the engine
+  \param[in]   sha      sha handle to operate.
+  \param[in]   context  Pointer to the sha context \ref sc_sha_context_t
+  \return      error code \ref uint32_t
+*/
+uint32_t sc_sha_get_state(sc_sha_t *sha,sc_sha_context_t *context);
 #ifdef __cplusplus
 }
 #endif

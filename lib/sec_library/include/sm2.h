@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 
 /******************************************************************************
@@ -14,7 +14,7 @@
 #define _DRV_SM2_H_
 
 #include <stdint.h>
-#include <drv/common.h>
+#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 
 /******************************************************************************
@@ -13,22 +13,31 @@
 #ifndef _DRV_SHA_H_
 #define _DRV_SHA_H_
 
-#include <drv/common.h>
-#include <drv/dma.h>
+#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define HASH_DATAIN_BLOCK_SIZE   64
+
+#define SHA1_DIGEST_OUT_SIZE     20
+#define SHA224_DIGEST_OUT_SIZE   28
+#define SHA256_DIGEST_OUT_SIZE   32
+#define SHA384_DIGEST_OUT_SIZE   48
+#define SHA512_DIGEST_OUT_SIZE   64
+#define MD5_DIGEST_OUT_SIZE      16
+
 /****** SHA mode ******/
 typedef enum {
-    SHA_MODE_1                    = 1U,   ///< SHA_1 mode
+    SHA_MODE_SHA1                 = 1U,   ///< SHA_1 mode
     SHA_MODE_256,                         ///< SHA_256 mode
     SHA_MODE_224,                         ///< SHA_224 mode
     SHA_MODE_512,                         ///< SHA_512 mode
     SHA_MODE_384,                         ///< SHA_384 mode
     SHA_MODE_512_256,                     ///< SHA_512_256 mode
-    SHA_MODE_512_224                      ///< SHA_512_224 mode
+    SHA_MODE_512_224,                     ///< SHA_512_224 mode
+    SHA_MODE_MD5                          ///< MD5 mode
 } csi_sha_mode_t;
 
 /****** SHA State ******/
@@ -42,11 +51,16 @@ typedef struct {
     uint32_t        total[2];             ///< Number of bytes processed
     uint32_t        state[16];            ///< Intermediate digest state
     uint8_t         buffer[128];          ///< Data block being processed
+    uint8_t         result[64];           ///< Data block has processed
+    uint32_t        process_len;
+    uint32_t        digest_len;
 } csi_sha_context_t;
 
 /****** SHA Event ******/
 typedef enum {
     SHA_EVENT_COMPLETE    = 0U,           ///< Calculate completed
+    SHA_EVENT_UPDATE,
+    SHA_EVENT_START,
     SHA_EVENT_ERROR                       ///< Calculate error
 } csi_sha_event_t;
 
@@ -56,7 +70,6 @@ struct csi_sha {
     csi_dev_t               dev;                                          ///< SHA hw-device info
     void (*callback)(csi_sha_t *sha, csi_sha_event_t event, void *arg);   ///< SHA event callback for user
     void                    *arg;                                         ///< SHA custom designed param passed to evt_cb
-    csi_dma_ch_t            *dma_in;                                      ///< SHA in dma handle param
     csi_sha_state_t         state;                                        ///< SHA state
     void                    *priv;
 };

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 
 /******************************************************************************
@@ -14,17 +14,20 @@
 #define _DRV_SM3_H_
 
 #include <stdint.h>
-#include <drv/common.h>
-#include <drv/dma.h>
+#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define SM3_DATAIN_BLOCK_SIZE 64
+#define SM3_DIGEST_OUT_SIZE   32
+
 typedef struct {
-        uint32_t total[2];   ///< Number of bytes processed
-        uint32_t state[16];  ///< Intermediate digest state
-        uint8_t  buffer[64]; ///< Data block  beingprocessed
+    uint32_t total[2];   ///< Number of bytes processed
+    uint32_t state[16];  ///< Intermediate digest state
+    uint8_t  buffer[SM3_DATAIN_BLOCK_SIZE]; ///< Data block  beingprocessed
+    uint8_t  result[SM3_DIGEST_OUT_SIZE]; ///< Data block has processed
 } csi_sm3_context_t;
 
 /****** SM3 State ******/
@@ -36,20 +39,21 @@ typedef struct {
 
 /****** SM3 Event ******/
 typedef enum {
-        SM3_EVENT_COMPLETE = 0U, ///< Calculate completed
-        SM3_EVENT_ERROR          ///< Calculate error
+    SM3_EVENT_COMPLETE = 0U, ///< Calculate completed
+    SM3_EVENT_UPDATE,
+    SM3_EVENT_START,
+    SM3_EVENT_ERROR          ///< Calculate error
 } csi_sm3_event_t;
 
 typedef struct csi_sm3_t csi_sm3_t;
 
 struct csi_sm3_t {
-        csi_dev_t dev; ///< SM3 hw-device info
-        void (*callback)(csi_sm3_t *sm3, csi_sm3_event_t event,
-                         void *arg); ///< SM3 event callback for user
-        void *          arg;    ///< SM3 custom designed param passed to evt_cb
-        csi_dma_ch_t *  dma_in; ///< SM3 in dma handle param
-        csi_sm3_state_t state;  ///< SM3 state
-        void *          priv;
+    csi_dev_t dev; ///< SM3 hw-device info
+    void (*callback)(csi_sm3_t *sm3, csi_sm3_event_t event,
+                        void *arg); ///< SM3 event callback for user
+    void *          arg;    ///< SM3 custom designed param passed to evt_cb
+    csi_sm3_state_t state;  ///< SM3 state
+    void *          priv;
 };
 
 // Function documentation

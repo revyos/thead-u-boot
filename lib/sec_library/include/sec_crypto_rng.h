@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     seccrypt_rng.h
@@ -13,7 +13,7 @@
 
 
 #include <stdint.h>
-#include <sec_crypto_errcode.h>
+#include "sec_crypto_errcode.h"
 
 
 #ifdef __cplusplus
@@ -23,10 +23,10 @@ extern "C" {
 /**
   \brief       Get data from the TRNG engine
   \param[out]  data  Pointer to buffer with data get from TRNG
-  \param[in]   num   Number of data items,uinit in uint32
+  \param[in]   num   Number of data items in bytes
   \return      error code
 */
-uint32_t sc_rng_get_multi_word(uint32_t *data, uint32_t num);
+uint32_t sc_rng_get_multi_byte(uint8_t *data, uint32_t num);
 
 /**
   \brief       Get data from the TRNG engine

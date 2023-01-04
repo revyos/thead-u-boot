@@ -7,23 +7,28 @@
 #include <dm.h>
 #include <fdt_support.h>
 #include <fdtdec.h>
+#include <mmc.h>
 #include <opensbi.h>
 #include <asm/csr.h>
 #include <asm/arch-thead/boot_mode.h>
 #include "../../../lib/sec_library/include/csi_efuse_api.h"
-
-
+#include "../../../lib/sec_library/include/sec_crypto_sha.h"
+#include "../../../lib/sec_library/include/kdf.h"
+#include "../../../lib/sec_library/include/sec_crypto_mac.h"
 
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
 
-/* The micro is used to enable NON-COT boot with non-signed image */
+/* The macro is used to enable NON-COT boot with non-signed image */
 #define LIGHT_NON_COT_BOOT	1
 
-/* The micro is used to enable uboot version in efuse */
+/* The macro is used to enable uboot version in efuse */
 #define	LIGHT_UBOOT_VERSION_IN_ENV	1
 
-/* The micro is used to enble RPMB ACCESS KEY from KDF */
+/* The macro is used to enble RPMB ACCESS KEY from KDF */
 //#define LIGHT_KDF_RPMB_KEY	1
+
+/* The macro is used to enable secure image version check in boot */
+//#define LIGHT_IMG_VERSION_CHECK_IN_BOOT	1
 
 /* the sample rpmb key is only used for testing */
 #ifndef LIGHT_KDF_RPMB_KEY 
@@ -34,18 +39,87 @@ static const unsigned char emmc_rpmb_key_sample[32] = {0x33, 0x22, 0x11, 0x00, 0
 #endif
 static unsigned int upgrade_image_version = 0;
 
+#define RPMB_EMMC_CID_SIZE 16
+#define RPMB_CID_PRV_OFFSET             9
+#define RPMB_CID_CRC_OFFSET             15
+static int tee_rpmb_key_gen(uint8_t* key, uint32_t * length)
+{
+	uint32_t data[RPMB_EMMC_CID_SIZE / 4];
+    uint8_t huk[32];
+    uint32_t huk_len;
+	struct mmc *mmc = find_mmc_device(0);
+	int i;
+	sc_mac_t mac_handle;
+	int ret = 0;
+
+	if (!mmc)
+		return -1;
+
+	if (!mmc->ext_csd)
+		return -1;
+
+	for (i = 0; i < ARRAY_SIZE(mmc->cid); i++)
+		data[i] = cpu_to_be32(mmc->cid[i]);
+	/*
+	 * PRV/CRC would be changed when doing eMMC FFU
+	 * The following fields should be masked off when deriving RPMB key
+	 *
+	 * CID [55: 48]: PRV (Product revision)
+	 * CID [07: 01]: CRC (CRC7 checksum)
+	 * CID [00]: not used
+	 */
+	memset((void *)((uint64_t)data + RPMB_CID_PRV_OFFSET), 0, 1);
+	memset((void *)((uint64_t)data + RPMB_CID_CRC_OFFSET), 0, 1);
+
+    /* Step1: Derive HUK from KDF function */
+	ret = csi_kdf_gen_hmac_key(huk, &huk_len);
+	if (ret) {
+		printf("kdf gen hmac key faild[%d]\r\n", ret);
+		return -1;
+	}
+
+    /* Step2: Using HUK and data to generate RPMB key */
+	ret = sc_mac_init(&mac_handle, 0);
+	if (ret) {
+		printf("mac init faild[%d]\r\n", ret);
+		ret = -1;
+		return -1;
+	}
+
+	/* LSB 16 bytes are used as key */
+	ret = sc_mac_set_key(&mac_handle, huk, 16);
+	if (ret) {
+		printf("mac set key faild[%d]\r\n", ret);
+		ret = -1;
+		goto func_exit;
+	}
+
+	ret = sc_mac_calc(&mac_handle, SC_SHA_MODE_256, (uint8_t *)&data, sizeof(data), key, length);
+	if (ret) {
+		printf("mac calc faild[%d]\r\n", ret);
+		ret = -1;
+		goto func_exit;
+	}
+
+func_exit:
+	sc_mac_uninit(&mac_handle);
+
+	return ret;
+
+}
+
 int csi_rpmb_write_access_key(void) 
 {
     unsigned long *temp_rpmb_key_addr = NULL;
     char runcmd[64] = {0};
     uint8_t blkdata[256] = {0};
-    uint8_t kdf_rpmb_key[32];
+    __attribute__((__aligned__(8))) uint8_t kdf_rpmb_key[32];
 	uint32_t kdf_rpmb_key_length = 0;
 	int ret = 0;
 
 #ifdef LIGHT_KDF_RPMB_KEY
     /* Step1: retrive RPMB key from KDF function */
-	ret = csi_kdf_gen_hmac_key(kdf_rpmb_key, &kdf_rpmb_key_length);
+	ret = tee_rpmb_key_gen(kdf_rpmb_key, &kdf_rpmb_key_length);
 	if (ret != 0) {
 		return -1;
 	}
@@ -320,6 +394,79 @@ int verify_image_version_rule(unsigned int new_ver, unsigned int cur_ver)
 	return 0;
 }
 
+int check_image_version_rule(unsigned int new_ver, unsigned int cur_ver)
+{
+	unsigned char new_ver_x = 0, new_ver_y = 0;
+	unsigned char cur_ver_x = 0, cur_ver_y = 0;
+
+	/* Get secure version X from image version X.Y */
+	new_ver_x = (new_ver & 0xFF00) >> 8;
+	new_ver_y = new_ver & 0xFF;
+	cur_ver_x = (cur_ver & 0xFF00) >> 8;
+	cur_ver_y = cur_ver & 0xFF;
+
+	/* Ensure image version must be less than expected version */
+	if (new_ver_x < cur_ver_x) {
+		return -1;
+	}
+
+	return 0;
+}
+
+int check_tf_version_in_boot(unsigned long tf_addr)
+{
+	int ret = 0;
+	unsigned int img_version = 0;
+	unsigned int expected_img_version = 0;
+	
+	img_version = get_image_version(tf_addr);
+	if (img_version == 0) {
+		printf("get tf image version fail\n");
+		return -1;
+	}
+
+	ret = csi_tf_get_image_version(&expected_img_version);
+	if (ret != 0) {
+		printf("Get tf expected img version fail\n");
+		return -1;
+	}
+
+	ret = check_image_version_rule(img_version, expected_img_version);
+	if (ret != 0) {
+		printf("Image version breaks the rule\n");
+		return -1;
+	}
+
+	return 0;
+}
+
+int check_tee_version_in_boot(unsigned long tee_addr)
+{
+	int ret = 0;
+	unsigned int img_version = 0;
+	unsigned int expected_img_version = 0;
+	
+	img_version = get_image_version(tee_addr);
+	if (img_version == 0) {
+		printf("get tee image version fail\n");
+		return -1;
+	}
+
+	ret = csi_tee_get_image_version(&expected_img_version);
+	if (ret != 0) {
+		printf("Get tee expected img version fail\n");
+		return -1;
+	}
+
+	ret = check_image_version_rule(img_version, expected_img_version);
+	if (ret != 0) {
+		printf("Image version breaks the rule\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 int light_vimage(int argc, char *const argv[])
 {
 	int ret = 0;
@@ -454,6 +601,13 @@ int light_secboot(int argc, char * const argv[])
 
 	/* Step1. Check and verify TF image */
 	if (image_have_head(LIGHT_TF_FW_TMP_ADDR) == 1) {
+#ifdef LIGHT_IMG_VERSION_CHECK_IN_BOOT
+		printf("check TF version in boot \n");
+		ret = check_tf_version_in_boot(LIGHT_TF_FW_TMP_ADDR);
+		if (ret != 0) {
+			return CMD_RET_FAILURE;
+		}
+#endif
 
 		printf("Process TF image verification ...\n");
 		ret = verify_customer_image(T_TF, LIGHT_TF_FW_TMP_ADDR);
@@ -479,6 +633,14 @@ int light_secboot(int argc, char * const argv[])
 
 	/* Step2. Check and verify TEE image */
 	if (image_have_head(tee_addr) == 1) {
+#ifdef LIGHT_IMG_VERSION_CHECK_IN_BOOT
+		printf("check TEE version in boot \n");
+		ret = check_tee_version_in_boot(tee_addr);
+		if (ret != 0) {
+			return CMD_RET_FAILURE;
+		}
+#endif
+
 		printf("Process TEE image verification ...\n");
 		ret = verify_customer_image(T_TEE, tee_addr);
 		if (ret != 0) {

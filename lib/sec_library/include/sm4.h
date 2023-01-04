@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 
 /******************************************************************************
@@ -14,18 +14,41 @@
 #define _DRV_SM4_H_
 
 #include <stdint.h>
-#include <drv/common.h>
+#include "common.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#define SM4_KEY_LEN_BYTES_32 32
+#define SM4_KEY_LEN_BYTES_24 24
+#define SM4_KEY_LEN_BYTES_16 16
+
+typedef enum {
+    SM4_KEY_LEN_BITS_128        = 0,       /*128 Data bits*/
+    SM4_KEY_LEN_BITS_256                   /*256 Data bits*/
+} csi_sm4_key_bits_t;
+
+typedef struct {
+    uint32_t busy             : 1;        ///< Calculate busy flag
+    uint32_t error            : 1;        ///< Calculate error flag
+} csi_sm4_state_t;
+
+typedef struct {
+    uint32_t            key_len_byte;
+    uint8_t             key[32];          ///< Data block being processed
+    uint32_t            sca;
+} csi_sm4_context_t;
+
 /**
 \brief SM4 Ctrl Block
 */
 typedef struct {
-        csi_dev_t dev;
-        void *    priv;
+    csi_sm4_state_t   state;
+    csi_sm4_context_t context;
+    csi_dev_t         dev;
+    void *            priv;
+    uint32_t          is_kdf;
 } csi_sm4_t;
 
 // Function documentation
@@ -50,7 +73,7 @@ void csi_sm4_uninit(csi_sm4_t *sm4);
   \param[in]   key        Pointer to the key buf
   \return      error code \ref uint32_t
 */
-csi_error_t csi_sm4_set_encrypt_key(csi_sm4_t *sm4, uint8_t *key);
+csi_error_t csi_sm4_set_encrypt_key(csi_sm4_t *sm4, uint8_t *key, csi_sm4_key_bits_t key_len);
 
 /**
   \brief       Set decrypt key
@@ -58,7 +81,7 @@ csi_error_t csi_sm4_set_encrypt_key(csi_sm4_t *sm4, uint8_t *key);
   \param[in]   key        Pointer to the key buf
   \return      error code \ref uint32_t
 */
-csi_error_t csi_sm4_set_decrypt_key(csi_sm4_t *sm4, uint8_t *key);
+csi_error_t csi_sm4_set_decrypt_key(csi_sm4_t *sm4, uint8_t *key, csi_sm4_key_bits_t key_len);
 
 /**
   \brief       sm4 ecb encrypt

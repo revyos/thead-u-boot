@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017-2021 Alibaba Group Holding Limited
+ * Copyright (C) 2017-2020 Alibaba Group Holding Limited
  */
 /******************************************************************************
  * @file     drv/rsa.h
@@ -16,7 +16,29 @@ extern "C" {
 #endif
 
 #include <stdint.h>
-#include <drv/common.h>
+#include "common.h"
+
+#define RSA_PRIME_256_BIT_LEN        128
+#define RSA_PRIME_512_BIT_LEN        256
+#define RSA_PRIME_1024_BIT_LEN       512
+#define RSA_PRIME_2048_BIT_LEN       1024
+#define RSA_PRIME_4096_BIT_LEN       2048
+
+#define RSA_256_BYTE_LEN        32
+#define RSA_512_BYTE_LEN        64
+#define RSA_1024_BYTE_LEN       128
+#define RSA_2048_BYTE_LEN       256
+#define RSA_4096_BYTE_LEN       512
+#define RSA_EM_BYTE_LEN         RSA_4096_BYTE_LEN
+
+#define SHA256_DIGEST_BYTE_LEN  32
+#define RSA_PKCS1_PADDING_SIZE  11
+#define RSA_MD5_OID_LEN         (6 + 8 + 4)
+#define RSA_SHA1_OID_LEN        (6 + 5 + 4)
+#define RSA_SHA224_OID_LEN      (6 + 9 + 4)
+#define RSA_SHA256_OID_LEN      (6 + 9 + 4)
+#define RSA_SHA384_OID_LEN      (6 + 9 + 4)
+#define RSA_SHA512_OID_LEN      (6 + 9 + 4)
 
 /*----- RSA Control Codes: Mode Parameters: Key Bits -----*/
 typedef enum {
@@ -48,10 +70,16 @@ typedef enum {
 } csi_rsa_hash_type_t;
 
 typedef struct {
+    csi_rsa_hash_type_t hash_type;
+    uint32_t            oid_len;
+    uint8_t             *oid;
+}RSA_OID;
+
+typedef struct {
     void *n;                                ///< Pointer to the public modulus
     void *e;                                ///< Pointer to the public exponent
     void *d;                                ///< Pointer to the private exponent
-    csi_rsa_key_bits_t  key_bits;           ///< RSA KEY BITS
+    csi_rsa_key_bits_t     key_bits;        ///< RSA KEY BITS
     csi_rsa_padding_type_t padding_type;    ///< RSA PADDING TYPE
 } csi_rsa_context_t;
 
@@ -256,6 +284,30 @@ csi_error_t csi_rsa_enable_pm(csi_rsa_t *rsa);
   \param[in]   rsa  RSA handle to operate.
 */
 void csi_rsa_disable_pm(csi_rsa_t *rsa);
+
+/**
+  \brief       Get publickey by p q prime data
+  \param[in]   rsa          rsa handle to operate.
+  \param[in]   p            Pointer to the prime p
+  \param[in]   p_byte_len   Pointer to the prime p byte length
+  \param[in]   q            Pointer to the prime q
+  \param[in]   q_byte_len   Pointer to the prime q byte length
+  \param[in]   out          Pointer to the publickey
+  \param[in]   keybits_len  Pointer to the publickey bits length
+  \return      \ref csi_error_t
+*/
+csi_error_t csi_rsa_get_publickey(csi_rsa_t *rsa, void *p, uint32_t p_byte_len, void *q, uint32_t q_byte_len, void *out, csi_rsa_key_bits_t keybits_len);
+
+/**
+  \brief       Generation rsa keyparis 
+  \param[in]   rsa          rsa handle to operate.
+  \param[in]   context   Pointer to the rsa context
+  \param[in]   keybits_len  Pointer to the publickey bits length
+  \return      \ref csi_error_t
+*/
+csi_error_t csi_rsa_gen_keypairs(csi_rsa_t *rsa, csi_rsa_context_t *context, csi_rsa_key_bits_t keybits_len);
+
+void csi_rsa_set_ignore_decrypt_error(bool checked);
 
 #ifdef __cplusplus
 }
