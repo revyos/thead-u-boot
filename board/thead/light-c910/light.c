@@ -630,6 +630,7 @@ static void light_iopin_init(void)
 {
 	return;
 }
+
 #elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_A)
 static void light_iopin_init(void)
 {
@@ -809,6 +810,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GMAC0_RXD3, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 
 }
+
 #elif defined ( CONFIG_TARGET_LIGHT_FM_C910_VAL_B) || defined ( CONFIG_TARGET_LIGHT_FM_C910_B_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
 static void light_iopin_init(void)
 {
@@ -1214,6 +1216,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GMAC0_RXD2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 	light_pin_cfg(GMAC0_RXD3, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 }
+
 #elif defined   (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE)
 static void light_iopin_init(void)
 {
@@ -1367,7 +1370,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO2_22,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<WIFI_BT_GPIO2
 	light_pin_cfg(GPIO2_23,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<WIFI_BT_GPIO3
 	light_pin_cfg(GPIO2_24,PIN_SPEED_NORMAL,PIN_PN,2);                        ///<WIFI_BT_RST_N
-	light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PU,2);                        ///KEY1
+	light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PN,2);                        ///KEY1
 
 
 	light_pin_mux(SDIO0_WPRTN,3);
@@ -1384,7 +1387,7 @@ static void light_iopin_init(void)
 	light_pin_mux(GPIO3_2,1);
 	light_pin_mux(GPIO3_3,0);
 	light_pin_cfg(GPIO2_30, PIN_SPEED_NORMAL, PIN_PN, 0x2);                 ///NC
-	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PN, 0x2);                 ///NC
+	light_pin_cfg(GPIO2_31, PIN_SPEED_NORMAL, PIN_PU, 0x2);                 ///NC
 	light_pin_cfg(GPIO3_0, PIN_SPEED_NORMAL, PIN_PN, 0x2);                  ///NC
 	light_pin_cfg(GPIO3_1, PIN_SPEED_NORMAL, PIN_PN, 0x2);
 	light_pin_cfg(GPIO3_2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
@@ -1683,6 +1686,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GMAC0_COL, PIN_SPEED_NORMAL, PIN_PU, 2);
 	light_pin_cfg(GMAC0_CRS, PIN_SPEED_NORMAL, PIN_PU, 2);
 }
+
 #else
 static void light_iopin_init(void)
 {
