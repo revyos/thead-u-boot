@@ -19,14 +19,28 @@
 extern "C" {
 #endif
 
-#define HASH_DATAIN_BLOCK_SIZE   64
+#define HASH_DATAIN_BLOCK_SIZE  (64)
 
-#define SHA1_DIGEST_OUT_SIZE     20
-#define SHA224_DIGEST_OUT_SIZE   28
-#define SHA256_DIGEST_OUT_SIZE   32
-#define SHA384_DIGEST_OUT_SIZE   48
-#define SHA512_DIGEST_OUT_SIZE   64
-#define MD5_DIGEST_OUT_SIZE      16
+#define SHA1_DIGEST_OUT_SIZE    (20)
+#define SHA224_DIGEST_OUT_SIZE  (28)
+#define SHA256_DIGEST_OUT_SIZE  (32)
+#define SHA384_DIGEST_OUT_SIZE  (48)
+#define SHA512_DIGEST_OUT_SIZE  (64)
+#define MD5_DIGEST_OUT_SIZE     (16)
+
+#define CSI_SHA256_MODE         (0x00000008)
+#define CSI_SHA224_MODE         (0x00000010)
+#define CSI_SHA384_MODE         (0x00000040)
+#define CSI_SHA512_MODE         (0x00000020)
+#define CSI_MD5_MODE            (0x00000002)
+#define CSI_SHA1_MODE           (0x00000004)
+
+#define CSI_SHA256_NEW_MODE     (0x00000009)
+#define CSI_SHA224_MEW_MODE     (0x00000011)
+#define CSI_SHA384_NEW_MODE     (0x00000041)
+#define CSI_SHA512_NEW_MODE     (0x00000021)
+#define CSI_MD5_NEW_MODE        (0x00000003)
+#define CSI_SHA1_NEW_MODE       (0x00000005)
 
 /****** SHA mode ******/
 typedef enum {

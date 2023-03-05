@@ -44,13 +44,13 @@ extern "C" {
 /*----- SHA Control Codes: Mode -----*/
 typedef enum {
     SC_SHA_MODE_SHA1 = 1U,  ///< SHA_1 mode
-    SC_SHA_MODE_256,     ///< SHA_256 mode
-    SC_SHA_MODE_224,     ///< SHA_224 mode
-    SC_SHA_MODE_512,     ///< SHA_512 mode
-    SC_SHA_MODE_384,     ///< SHA_384 mode
-    SC_SHA_MODE_512_256, ///< SHA_512_256 mode
-    SC_SHA_MODE_512_224, ///< SHA_512_224 mode
-    SC_SHA_MODE_MD5,     ///< MD5 mode
+    SC_SHA_MODE_256,        ///< SHA_256 mode
+    SC_SHA_MODE_224,        ///< SHA_224 mode
+    SC_SHA_MODE_512,        ///< SHA_512 mode
+    SC_SHA_MODE_384,        ///< SHA_384 mode
+    SC_SHA_MODE_512_256,    ///< SHA_512_256 mode
+    SC_SHA_MODE_512_224,    ///< SHA_512_224 mode
+    SC_SHA_MODE_MD5,        ///< MD5 mode
     SC_SM3_MODE,
 } sc_sha_mode_t;
 
@@ -125,7 +125,7 @@ void sc_sha_uninit(sc_sha_t *sha);
 
 /**
   \brief       attach the callback handler to SHA
-  \param[in]   sha  operate handle.
+  \param[in]   sha      operate handle.
   \param[in]   callback callback function
   \param[in]   arg      callback's param
   \return      error code
@@ -165,8 +165,7 @@ uint32_t sc_sha_update(sc_sha_t *sha, sc_sha_context_t *context, const void *inp
   \param[in]   size    the data size
   \return      error code \ref uint32_t
 */
-uint32_t sc_sha_update_async(sc_sha_t *sha, sc_sha_context_t *context, const void *input,
-                             uint32_t size);
+uint32_t sc_sha_update_async(sc_sha_t *sha, sc_sha_context_t *context, const void *input, uint32_t size);
 
 /**
   \brief       finish the engine

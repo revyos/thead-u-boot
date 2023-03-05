@@ -5,7 +5,7 @@ dtb-$(CONFIG_TARGET_SIFIVE_FU540) += hifive-unleashed-a00.dtb
 dtb-$(CONFIG_TARGET_ICE_C910) += ice-c910.dtb
 dtb-$(CONFIG_TARGET_LIGHT_EVB_MPW_C910) += light-evb-mpw-c910.dtb
 dtb-$(CONFIG_TARGET_LIGHT_FPGA_FM_C910) += light-fpga-fm-c910.dtb
-dtb-$(CONFIG_TARGET_LIGHT_C910) += light-a-ref.dtb light-b-ref.dtb light-a-val.dtb light-b-product.dtb light-a-product.dtb light-ant-ref.dtb light-beagle.dtb light-b-power.dtb
+dtb-$(CONFIG_TARGET_LIGHT_C910) += light-a-ref.dtb light-b-ref.dtb light-a-val.dtb light-b-product.dtb light-a-product.dtb light-ant-ref.dtb light-beagle.dtb light-b-power.dtb light-lpi4a.dtb
 
 targets += $(dtb-y)
 

@@ -20,9 +20,11 @@
 extern "C" {
 #endif
 
-#define SM4_KEY_LEN_BYTES_32 32
-#define SM4_KEY_LEN_BYTES_24 24
-#define SM4_KEY_LEN_BYTES_16 16
+#define SM4_KEY_LEN_BYTES_32 (32)
+#define SM4_KEY_LEN_BYTES_24 (24)
+#define SM4_KEY_LEN_BYTES_16 (16)
+
+#define SM4_IV_LEN_BYTES_16  (16)
 
 typedef enum {
     SM4_KEY_LEN_BITS_128        = 0,       /*128 Data bits*/
@@ -91,8 +93,7 @@ csi_error_t csi_sm4_set_decrypt_key(csi_sm4_t *sm4, uint8_t *key, csi_sm4_key_bi
   \param[in]   size    the Source data size
   \return      error code \ref uint32_t
 */
-csi_error_t csi_sm4_ecb_encrypt(csi_sm4_t *sm4, uint8_t *in, uint8_t *out,
-                                uint32_t size);
+csi_error_t csi_sm4_ecb_encrypt(csi_sm4_t *sm4, uint8_t *in, uint8_t *out, uint32_t size);
 
 /**
   \brief       sm4 ecb decrypt
@@ -102,8 +103,7 @@ csi_error_t csi_sm4_ecb_encrypt(csi_sm4_t *sm4, uint8_t *in, uint8_t *out,
   \param[in]   size    the Source data size
   \return      error code \ref uint32_t
 */
-csi_error_t csi_sm4_ecb_decrypt(csi_sm4_t *sm4, uint8_t *in, uint8_t *out,
-                                uint32_t size);
+csi_error_t csi_sm4_ecb_decrypt(csi_sm4_t *sm4, uint8_t *in, uint8_t *out, uint32_t size);
 
 /**
   \brief       sm4 cbc encrypt

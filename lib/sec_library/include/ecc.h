@@ -20,8 +20,15 @@
 extern "C" {
 #endif
 
-#define ECC_PRIME_CURVE_G_BYTES 64
-#define ECC_PRIME_CURVE_P_BYTES 70
+#define CSI_ECC_PUBKEY_LEN      (65-1)
+#define CSI_ECC_PRIVKEY_LEN     (32)
+#define CSI_ECC_PUBKEYTMP_LEN   (65)
+#define CSI_ECC_RK_LEN          (24) //random
+#define CSI_ECC_SIGNATURE_LEN   (64)
+#define CSI_ECC_DIGEST_LEN      (32)
+
+#define ECC_PRIME_CURVE_G_BYTES (64)
+#define ECC_PRIME_CURVE_P_BYTES (70)
 
 typedef struct {
     uint32_t ecc_curve : 1; ///< supports 256bits curve
@@ -35,11 +42,17 @@ typedef enum {
     ECC_C1C2C3,
 } ecc_cipher_order_e;
 
+/**
+\brief ECC endian mode
+*/
 typedef enum {
     ECC_ENDIAN_LITTLE = 0, ///< Little Endian
     ECC_ENDIAN_BIG         ///< Big Endian
 } ecc_endian_mode_e;
 
+/**
+\brief ECC prime curve type
+*/
 typedef enum {
     ECC_PRIME256V1 = 0,
 } ecc_prime_curve_type;
@@ -59,11 +72,17 @@ typedef enum {
     ECC_EVENT_EXCHANGE_KEY_COMPLETE, ///< Exchange key completed
 } ecc_event_e;
 
+/**
+\brief ECC prime curve param
+*/
 typedef struct {
     ecc_prime_curve_type type;
     uint32_t *p;
 } csi_ecc_prime_curve_t;
 
+/**
+\brief ECC curve type g param
+*/
 typedef struct {
     ecc_prime_curve_type type;
     uint8_t *G;
@@ -77,6 +96,9 @@ typedef struct {
     uint32_t busy : 1; ///< Calculate busy flag
 } csi_ecc_state_t;
 
+/**
+\brief ECC handle
+*/
 typedef struct {
     csi_dev_t       dev;
     void *          cb;
@@ -90,9 +112,8 @@ typedef void (*csi_ecc_callback_t)(ecc_event_e event);
 
 /**
   \brief       Initialize ECC.
-  \param[in]   ecc  ecc handle to operate.
   \param[in]   idx  device id
-  \return      \ref uint32_t
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_init(csi_ecc_t *ecc, uint32_t idx);
 
@@ -106,111 +127,111 @@ void csi_ecc_uninit(csi_ecc_t *ecc);
 /**
   \brief       ecc get capability.
   \param[in]   ecc  Operate handle.
-  \return      \ref uint32_t
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_ecc_config(csi_ecc_t *ecc, ecc_cipher_order_e co,
-                           ecc_endian_mode_e endian);
+csi_error_t csi_ecc_config(csi_ecc_t *ecc, ecc_cipher_order_e co, ecc_endian_mode_e endian);
 
 /**
   \brief       Attach the callback handler to ECC
   \param[in]   ecc  Operate handle.
   \param[in]   cb    Callback function
   \param[in]   arg   User can define it by himself as callback's param
-  \return      Error code \ref csi_error_t
+  \return      Error code Error code \ref csi_error_t
 */
-csi_error_t csi_ecc_attach_callback(csi_ecc_t *ecc, csi_ecc_callback_t cb,
-                                    void *arg);
+csi_error_t csi_ecc_attach_callback(csi_ecc_t *ecc, csi_ecc_callback_t cb, void *arg);
 
 /**
   \brief       Detach the callback handler
   \param[in]   ecc  Operate handle.
+  \return      Error code Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_detach_callback(csi_ecc_t *ecc);
 
 /**
   \brief       ecc get capability.
   \param[in]   ecc  Operate handle.
-  \param[out]   cap  Pointer of ecc_capabilities_t.
-  \return      \ref uint32_t
+  \param[out]  cap  Pointer of ecc_capabilities_t.
+  \return      Error code Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_get_capabilities(csi_ecc_t *ecc, ecc_capabilities_t *cap);
 
+/**
+  \brief       check whether the public key and private key are a pair.
+  \param[in]   ecc       ecc handle to operate.
+  \param[in]   private   Pointer to the ecc private key, alloc by caller.
+  \param[in]   public    Pointer to the ecc public key, alloc by caller.
+  \return      Error code \ref csi_error_t
+*/
 csi_error_t csi_ecc_check_keypair(csi_ecc_t *ecc, uint8_t pubkey[65], uint8_t prikey[32]);
 
 /**
   \brief       generate ecc key.
   \param[in]   ecc       ecc handle to operate.
   \param[out]  private   Pointer to the ecc private key, alloc by caller.
-  \param[out]  public   Pointer to the ecc public key, alloc by caller.
-  \return      \ref uint32_t
+  \param[out]  public    Pointer to the ecc public key, alloc by caller.
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_ecc_gen_key(csi_ecc_t *ecc, uint8_t pubkey[65],
-                            uint8_t prikey[32]);
+csi_error_t csi_ecc_gen_key(csi_ecc_t *ecc, uint8_t pubkey[65], uint8_t prikey[32]);
 
 /**
-  \brief       generate ecc pubkey by privkey.
+  \brief       generate ecc public key by private key.
   \param[in]   ecc       ecc handle to operate.
-  \param[in]   private   Pointer to the ecc private key, alloc by caller.
-  \param[out]  public   Pointer to the ecc public key, alloc by caller.
-  \return      \ref uint32_t
+  \param[out]  private   Pointer to the ecc private key, alloc by caller.
+  \param[out]  public    Pointer to the ecc public key, alloc by caller.
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_ecc_gen_pubkey(csi_ecc_t *ecc, uint8_t pubkey[65],
-                            uint8_t prikey[32]);
-
-/**
-  \brief       ecc sign
-  \param[in]   ecc       ecc handle to operate.
-  \param[in]   d       Pointer to the digest.
-  \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
-  \return      \ref uint32_t
-*/
-csi_error_t csi_ecc_sign(csi_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32],
-                         uint8_t s[64]);
+csi_error_t csi_ecc_gen_pubkey(csi_ecc_t *ecc, uint8_t pubkey[65], uint8_t prikey[32]);
 
 /**
   \brief       ecc sign
-  \param[in]   ecc       ecc handle to operate.
-  \param[in]   d       Pointer to the digest.
-  \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
-  \return      \ref uint32_t
+  \param[in]   ecc      ecc handle to operate.
+  \param[in]   d        Pointer to the digest.
+  \param[out]  privkey  Pointer to the private key
+  \param[out]  s        Pointer to the signature
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_ecc_sign_async(csi_ecc_t *ecc, uint8_t d[32],
-                               uint8_t prikey[32], uint8_t s[64]);
+csi_error_t csi_ecc_sign(csi_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32], uint8_t s[64]);
+
+/**
+  \brief       ecc sign asybnc
+  \param[in]   ecc      ecc handle to operate.
+  \param[in]   d        Pointer to the digest.
+  \param[out]  privkey  Pointer to the private key
+  \param[out]  s        Pointer to the signature
+  \return      Error code \ref csi_error_t
+*/
+csi_error_t csi_ecc_sign_async(csi_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32], uint8_t s[64]);
 
 /* TODO */
 /**
   \brief       ecc verify
-  \param[in]   ecc       ecc handle to operate.
-  \param[in]   d       Pointer to the digest.
-  \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
-  \return      verify result
+  \param[in]   ecc      ecc handle to operate.
+  \param[in]   d        Pointer to the digest.
+  \param[out]  privkey  Pointer to the private key
+  \param[out]  s        Pointer to the signature
+  \return      verify result 
 */
-bool csi_ecc_verify(csi_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65],
-                    uint8_t s[64]);
+bool csi_ecc_verify(csi_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65], uint8_t s[64]);
 
 /**
   \brief       ecc verify
-  \param[in]   ecc       ecc handle to operate.
-  \param[in]   d       Pointer to the digest.
-  \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
+  \param[in]   ecc      ecc handle to operate.
+  \param[in]   d        Pointer to the digest.
+  \param[out]  privkey  Pointer to the private key
+  \param[out]  s        Pointer to the signature
   \return      verify result
 */
-bool csi_ecc_verify_async(csi_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65],
-                          uint8_t s[64]);
+bool csi_ecc_verify_async(csi_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65], uint8_t s[64]);
 
 /**
   \brief       ecc encrypto
-  \param[in]   ecc       ecc handle to operate.
-  \param[in]   Plain       Pointer to the plaintext.
-  \param[in]  PlainByteLen plaintext len
-  \param[in]  pubKey public key.
-  \param[out]  Cipher Pointer to the chipher
-  \param[out]  CipherByteLen Pointer to the chipher len.
-  \return      uint32_t
+  \param[in]   ecc              ecc handle to operate.
+  \param[in]   Plain            Pointer to the plaintext.
+  \param[in]   PlainByteLen     plaintext len
+  \param[in]   pubKey           public key.
+  \param[out]  Cipher           Pointer to the chipher
+  \param[out]  CipherByteLen    Pointer to the chipher len.
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_encrypt(csi_ecc_t *ecc, uint8_t *Plain,
                             uint32_t PlainByteLen, uint8_t pubKey[65],
@@ -218,13 +239,13 @@ csi_error_t csi_ecc_encrypt(csi_ecc_t *ecc, uint8_t *Plain,
 
 /**
   \brief       ecc encrypto
-  \param[in]   ecc       ecc handle to operate.
-  \param[in]  Cipher Pointer to the chipher
-  \param[in]  CipherByteLen chipher len.
-  \param[in]  prikey private key.
-  \param[out]   Plain       Pointer to the plaintext.
-  \param[out]  PlainByteLen plaintext len
-  \return      uint32_t
+  \param[in]   ecc              ecc handle to operate.
+  \param[in]   Cipher           Pointer to the chipher
+  \param[in]   CipherByteLen    chipher len.
+  \param[in]   prikey           private key.
+  \param[out]  Plain            Pointer to the plaintext.
+  \param[out]  PlainByteLen     plaintext len
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_decrypt(csi_ecc_t *ecc, uint8_t *Cipher,
                             uint32_t CipherByteLen, uint8_t prikey[32],
@@ -233,7 +254,7 @@ csi_error_t csi_ecc_decrypt(csi_ecc_t *ecc, uint8_t *Cipher,
 /**
   \brief       ecc key exchange
   \param[in]   ecc       ecc handle to operate.
-  \return      uint32_t
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_exchangekey(csi_ecc_t *ecc, ecc_exchange_role_e role,
                                 uint8_t *dA, uint8_t *PB, uint8_t *rA,
@@ -244,7 +265,7 @@ csi_error_t csi_ecc_exchangekey(csi_ecc_t *ecc, ecc_exchange_role_e role,
 /**
   \brief       ecc key exchange get Z.
   \param[in]   ecc       ecc handle to operate.
-  \return      uint32_t
+  \return      Error code Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_getZ(csi_ecc_t *ecc, uint8_t *ID, uint32_t byteLenofID,
                          uint8_t pubKey[65], uint8_t Z[32]);
@@ -252,7 +273,7 @@ csi_error_t csi_ecc_getZ(csi_ecc_t *ecc, uint8_t *ID, uint32_t byteLenofID,
 /**
   \brief       ecc key exchange get E
   \param[in]   ecc       ecc handle to operate.
-  \return      uint32_t
+  \return      Error code Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_getE(csi_ecc_t *ecc, uint8_t *M, uint32_t byteLen,
                          uint8_t Z[32], uint8_t E[32]);
@@ -261,14 +282,14 @@ csi_error_t csi_ecc_getE(csi_ecc_t *ecc, uint8_t *M, uint32_t byteLen,
   \brief       Get ECC state.
   \param[in]   ecc      ECC handle to operate.
   \param[out]  state    ECC state \ref csi_ecc_state_t.
-  \return      Error code \ref csi_error_t
+  \return      Error code Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_get_state(csi_ecc_t *ecc, csi_ecc_state_t *state);
 
 /**
   \brief       Enable ecc power manage
   \param[in]   ecc  ECC handle to operate.
-  \return      Error code \ref csi_error_t
+  \return      Error code Error code \ref csi_error_t
 */
 csi_error_t csi_ecc_enable_pm(csi_ecc_t *ecc);
 

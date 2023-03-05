@@ -84,6 +84,10 @@ config TARGET_LIGHT_FM_C910_BEAGLE
     bool "light fullmask for beagle board "
     default n
 
+config TARGET_LIGHT_FM_C910_LPI4A
+    bool "light fullmask for Lichee Pi 4A board "
+    default n
+
 config TARGET_LIGHT_FM_C910_B_POWER
     bool "light fullmask for light-b-power board "
     default n

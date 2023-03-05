@@ -136,7 +136,7 @@ static const struct regulator_t g_apcpu_regu_id_list[] = {
 		REGU_ID_DEF(IIC_IDX_AONIIC,APCPU_REGU_VDDM,0x31,0x39,0,1,800000,600000,3500000,12500,1),
 	},
 };
-#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_A_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF) || (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE)
+#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_A_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF) || (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE) || defined (CONFIG_TARGET_LIGHT_FM_C910_LPI4A)
 /**
  * board for ant-ref
  *
@@ -944,7 +944,7 @@ int pmic_reset_apcpu_voltage(void)
 		return ret;
 	return 0;
 }
-#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_A_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF)|| (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE)
+#elif defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_A_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF)|| (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE) || defined (CONFIG_TARGET_LIGHT_FM_C910_LPI4A)
 int pmic_reset_apcpu_voltage(void)
 {
 	int                ret = -1;

@@ -20,6 +20,16 @@
 extern "C" {
 #endif
 
+#define CSI_SM2_PUBKEY_LEN      (65-1)
+#define CSI_SM2_PRIVKEY_LEN     (32)
+#define CSI_SM2_PUBKEYTMP_LEN   (65)
+#define CSI_SM2_RK_LEN          (32) //random
+#define CSI_SM2_SIGNATURE_LEN   (64)
+#define CSI_SM2_DIGEST_LEN      (32)
+
+#define SM2_PRIME_CURVE_G_BYTES (64)
+#define SM2_PRIME_CURVE_N_BYTES (32)
+
 typedef struct {
         uint32_t sm2_curve : 1; ///< supports 256bits curve
 } sm2_capabilities_t;
@@ -95,95 +105,96 @@ csi_error_t csi_sm2_config(csi_sm2_t *sm2, sm2_cipher_order_e co,
 
 /**
   \brief       Attach the callback handler to SM2
-  \param[in]   sm2  Operate handle.
+  \param[in]   sm2   Operate handle.
   \param[in]   cb    Callback function
   \param[in]   arg   User can define it by himself as callback's param
   \return      Error code \ref csi_error_t
 */
-csi_error_t csi_sm2_attach_callback(csi_sm2_t *sm2, csi_sm2_callback_t cb,
-                                    void *arg);
+csi_error_t csi_sm2_attach_callback(csi_sm2_t *sm2, csi_sm2_callback_t cb, void *arg);
 
 /**
   \brief       Detach the callback handler
   \param[in]   sm2  Operate handle.
+  \return      none
 */
 void csi_sm2_detach_callback(csi_sm2_t *sm2);
 
 /**
   \brief       sm2 get capability.
   \param[in]   sm2  Operate handle.
-  \param[out]   cap  Pointer of sm2_capabilities_t.
-  \return      \ref uint32_t
+  \param[out]  cap  Pointer of sm2_capabilities_t.
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_sm2_get_capabilities(csi_sm2_t *sm2, sm2_capabilities_t *cap);
 
-csi_error_t csi_sm2_check_keypair(csi_sm2_t *sm2, uint8_t pubkey[65],
-                                  uint8_t prikey[32]);
+/**
+  \brief       check whether the public key and private key are a pair.
+  \param[in]   sm2       sm2 handle to operate.
+  \param[in]   private   Pointer to the sm2 private key, alloc by caller.
+  \param[in]   public    Pointer to the sm2 public key, alloc by caller.
+  \return      Error code \ref csi_error_t
+*/
+csi_error_t csi_sm2_check_keypair(csi_sm2_t *sm2, uint8_t pubkey[65], uint8_t prikey[32]);
 
 /**
   \brief       generate sm2 key.
   \param[in]   sm2       sm2 handle to operate.
   \param[out]  private   Pointer to the sm2 private key, alloc by caller.
-  \param[out]  public   Pointer to the sm2 public key, alloc by caller.
-  \return      \ref uint32_t
+  \param[out]  public    Pointer to the sm2 public key, alloc by caller.
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_sm2_gen_key(csi_sm2_t *sm2, uint8_t pubkey[65],
-                            uint8_t prikey[32]);
+csi_error_t csi_sm2_gen_key(csi_sm2_t *sm2, uint8_t pubkey[65], uint8_t prikey[32]);
 
 /**
   \brief       sm2 sign
-  \param[in]   sm2       sm2 handle to operate.
+  \param[in]   sm2     sm2 handle to operate.
   \param[in]   d       Pointer to the digest.
   \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
-  \return      \ref uint32_t
+  \param[out]  s       Pointer to the signature
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_sm2_sign(csi_sm2_t *sm2, uint8_t d[32], uint8_t prikey[32],
-                         uint8_t s[64]);
+csi_error_t csi_sm2_sign(csi_sm2_t *sm2, uint8_t d[32], uint8_t prikey[32], uint8_t s[64]);
 
 /**
   \brief       sm2 sign
-  \param[in]   sm2       sm2 handle to operate.
+  \param[in]   sm2     sm2 handle to operate.
   \param[in]   d       Pointer to the digest.
   \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
-  \return      \ref uint32_t
+  \param[out]  s       Pointer to the signature
+  \return      Error code \ref csi_error_t
 */
-csi_error_t csi_sm2_sign_async(csi_sm2_t *sm2, uint8_t d[32],
-                               uint8_t prikey[32], uint8_t s[64]);
+csi_error_t csi_sm2_sign_async(csi_sm2_t *sm2, uint8_t d[32], uint8_t prikey[32], uint8_t s[64]);
 
 /* TODO */
 /**
   \brief       sm2 verify
-  \param[in]   sm2       sm2 handle to operate.
+  \param[in]   sm2     sm2 handle to operate.
   \param[in]   d       Pointer to the digest.
   \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
+  \param[out]  s       Pointer to the signature
   \return      verify result
 */
-bool csi_sm2_verify(csi_sm2_t *sm2, uint8_t d[32], uint8_t pubkey[65],
-                    uint8_t s[64]);
+bool csi_sm2_verify(csi_sm2_t *sm2, uint8_t d[32], uint8_t pubkey[65], uint8_t s[64]);
 
 /**
   \brief       sm2 verify
-  \param[in]   sm2       sm2 handle to operate.
+  \param[in]   sm2     sm2 handle to operate.
   \param[in]   d       Pointer to the digest.
   \param[out]  privkey Pointer to the private key
-  \param[out]  s Pointer to the signature
+  \param[out]  s       Pointer to the signature
   \return      verify result
 */
-bool csi_sm2_verify_async(csi_sm2_t *sm2, uint8_t d[32], uint8_t pubkey[65],
-                          uint8_t s[64]);
+bool csi_sm2_verify_async(csi_sm2_t *sm2, uint8_t d[32], uint8_t pubkey[65], uint8_t s[64]);
 
 /**
   \brief       sm2 encrypto
-  \param[in]   sm2       sm2 handle to operate.
-  \param[in]   Plain       Pointer to the plaintext.
-  \param[in]  PlainByteLen plaintext len
-  \param[in]  pubKey public key.
-  \param[out]  Cipher Pointer to the chipher
+  \param[in]   sm2           sm2 handle to operate.
+  \param[in]   Plain         Pointer to the plaintext.
+  \param[in]   PlainByteLen  plaintext len
+  \param[in]   pubKey        public key.
+  \param[out]  Cipher        Pointer to the chipher
   \param[out]  CipherByteLen Pointer to the chipher len.
-  \return      uint32_t
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_sm2_encrypt(csi_sm2_t *sm2, uint8_t *Plain,
                             uint32_t PlainByteLen, uint8_t pubKey[65],
@@ -191,13 +202,13 @@ csi_error_t csi_sm2_encrypt(csi_sm2_t *sm2, uint8_t *Plain,
 
 /**
   \brief       sm2 encrypto
-  \param[in]   sm2       sm2 handle to operate.
-  \param[in]  Cipher Pointer to the chipher
-  \param[in]  CipherByteLen chipher len.
-  \param[in]  prikey private key.
-  \param[out]   Plain       Pointer to the plaintext.
-  \param[out]  PlainByteLen plaintext len
-  \return      uint32_t
+  \param[in]   sm2           sm2 handle to operate.
+  \param[in]   Cipher        Pointer to the chipher
+  \param[in]   CipherByteLen chipher len.
+  \param[in]   prikey        private key.
+  \param[out]  Plain         Pointer to the plaintext.
+  \param[out]  PlainByteLen  plaintext len
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_sm2_decrypt(csi_sm2_t *sm2, uint8_t *Cipher,
                             uint32_t CipherByteLen, uint8_t prikey[32],
@@ -206,7 +217,7 @@ csi_error_t csi_sm2_decrypt(csi_sm2_t *sm2, uint8_t *Cipher,
 /**
   \brief       sm2 key exchange
   \param[in]   sm2       sm2 handle to operate.
-  \return      uint32_t
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_sm2_exchangekey(csi_sm2_t *sm2, sm2_exchange_role_e role,
                                 uint8_t *dA, uint8_t *PB, uint8_t *rA,
@@ -217,7 +228,7 @@ csi_error_t csi_sm2_exchangekey(csi_sm2_t *sm2, sm2_exchange_role_e role,
 /**
   \brief       sm2 key exchange get Z.
   \param[in]   sm2       sm2 handle to operate.
-  \return      uint32_t
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_sm2_getZ(csi_sm2_t *sm2, uint8_t *ID, uint32_t byteLenofID,
                          uint8_t pubKey[65], uint8_t Z[32]);
@@ -225,7 +236,7 @@ csi_error_t csi_sm2_getZ(csi_sm2_t *sm2, uint8_t *ID, uint32_t byteLenofID,
 /**
   \brief       sm2 key exchange get E
   \param[in]   sm2       sm2 handle to operate.
-  \return      uint32_t
+  \return      Error code \ref csi_error_t
 */
 csi_error_t csi_sm2_getE(csi_sm2_t *sm2, uint8_t *M, uint32_t byteLen,
                          uint8_t Z[32], uint8_t E[32]);

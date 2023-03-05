@@ -1302,7 +1302,7 @@ int clk_config(void)
 
 	/* The boards other than the LightA board perform the bus down-speed operation */
 
-#if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_DISCRETE) || defined (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER) || defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
+#if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_DISCRETE) || defined (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER) || defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B) || defined (CONFIG_TARGET_LIGHT_FM_C910_LPI4A)
 	ap_multimedia_div_num_set(VI_MIPI_CSI0_DIV, 12); /* Input frquency: 2376MHZ */
 	ap_multimedia_div_num_set(VI_ISP0_CORE_DIV, 15); /* Input frquency: 2376MHZ */
 	ap_multimedia_div_num_set(VI_ISP1_CORE_DIV, 12); /* Input frquency: 2376MHZ */

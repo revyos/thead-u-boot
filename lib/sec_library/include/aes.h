@@ -21,12 +21,44 @@ extern "C" {
 #endif
 
 /*----- Encrypt & Decrypt: Config key length -----*/
+#define AES_KEY_LEN_BYTES_32  (32)
+#define AES_KEY_LEN_BYTES_24  (24)
+#define AES_KEY_LEN_BYTES_16  (16)
+
+#define AES_BLOCK_IV_SIZE     (16)
+#define AES_BLOCK_TAG_SIZE    (16)
+#define AES_BLOCK_CRYPTO_SIZE (16)
+
+#define AES_DIR_ENCRYPT       (1)
+#define AES_DIR_DECRYPT       (0)
+
+#define KEY_128_BITS          (0x08)
+#define KEY_192_BITS          (0x10)
+#define KEY_256_BITS          (0x18)
+
+#define AES_DMA_ENABLE        (1)
+#define AES_DMA_DISABLE       (0)
+
+/**
+\brief DES data transfer mode config
+*/
+typedef enum {
+    AES_SLAVE_MODE = 0U,         ///< slave mode
+    AES_DMA_MODE,                ///< dma mode
+} csi_aes_trans_mode_t;
+
+/**
+\brief AES Keylen type
+*/
 typedef enum {
     AES_KEY_LEN_BITS_128        = 0,       ///< 128 Data bits
     AES_KEY_LEN_BITS_192,                  ///< 192 Data bits
     AES_KEY_LEN_BITS_256                   ///< 256 Data bits
 } csi_aes_key_bits_t;
 
+/**
+\brief AES mode config
+*/
 typedef enum{
     AES_MODE_ECB = 0,
     AES_MODE_CBC = 0x20000020,
@@ -35,48 +67,19 @@ typedef enum{
     AES_MODE_GCM = 0x20030040,
     AES_MODE_CCM = 0x21D40040,
     AES_MODE_OFB = 0x24000000,
-} aes_mode_t;
-
-#define AES_KEY_LEN_BYTES_32 32
-#define AES_KEY_LEN_BYTES_24 24
-#define AES_KEY_LEN_BYTES_16 16
-
-#define AES_CRYPTO_CTRL_CBC_256 0x20000038
-#define AES_CRYPTO_CTRL_CBC_192 0x20000030
-#define AES_CRYPTO_CTRL_CBC_128 0x20000028
-#define AES_CRYPTO_CTRL_ECB_256 0x00000018
-#define AES_CRYPTO_CTRL_ECB_192 0x00000010
-#define AES_CRYPTO_CTRL_ECB_128 0x00000008
-
-#define AES_BLOCK_IV_SIZE  16
-#define AES_BLOCK_TAG_SIZE  16
-#define AES_BLOCK_CRYPTO_SIZE  16
-
-#define AES_DIR_ENCRYPT    1
-#define AES_DIR_DECRYPT    0
-
-#define KEY_128_BITS 0x8
-#define KEY_192_BITS 0x10
-#define KEY_256_BITS 0x18
-
-#define AES_DMA_ENABLE  1
-#define AES_DMA_DISABLE 0
-
-
-typedef enum{
-    AES_CRYPTO_ECB_256_MODE = 0,
-    AES_CRYPTO_ECB_192_MODE,
-    AES_CRYPTO_ECB_128_MODE,
-    AES_CRYPTO_CBC_256_MODE,
-    AES_CRYPTO_CBC_192_MODE,
-    AES_CRYPTO_CBC_128_MODE,
 } csi_aes_mode_t;
 
+/**
+\brief AES state
+*/
 typedef struct {
     uint32_t busy             : 1;        ///< Calculate busy flag
     uint32_t error            : 1;        ///< Calculate error flag
 } csi_aes_state_t;
 
+/**
+\brief AES Context
+*/
 typedef struct {
     uint32_t            key_len_byte;
     uint8_t             key[32];          ///< Data block being processed
@@ -343,11 +346,11 @@ csi_error_t csi_aes_enable_pm(csi_aes_t *aes);
 void csi_aes_disable_pm(csi_aes_t *aes);
 
 /**
-  \brief       Config AES mode dma or slave
-  \param[in]   dam_en    zero disable dma, not zero enable dma 
+  \brief       Config AES data transfer mode
+  \param[in]   mode    \ref csi_des_trans_mode_t 
   \return      None
 */
-void csi_aes_dma_enable(csi_aes_t *aes, uint8_t dma_en);
+void csi_aes_trans_config(csi_aes_t *aes, csi_aes_trans_mode_t mode);
 
 #ifdef __cplusplus
 }

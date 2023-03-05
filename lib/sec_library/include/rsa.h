@@ -18,17 +18,17 @@ extern "C" {
 #include <stdint.h>
 #include "common.h"
 
-#define RSA_PRIME_256_BIT_LEN        128
-#define RSA_PRIME_512_BIT_LEN        256
-#define RSA_PRIME_1024_BIT_LEN       512
-#define RSA_PRIME_2048_BIT_LEN       1024
-#define RSA_PRIME_4096_BIT_LEN       2048
+#define RSA_PRIME_256_BIT_LEN   (128)
+#define RSA_PRIME_512_BIT_LEN   (256)
+#define RSA_PRIME_1024_BIT_LEN  (512)
+#define RSA_PRIME_2048_BIT_LEN  (1024)
+#define RSA_PRIME_4096_BIT_LEN  (2048)
 
-#define RSA_256_BYTE_LEN        32
-#define RSA_512_BYTE_LEN        64
-#define RSA_1024_BYTE_LEN       128
-#define RSA_2048_BYTE_LEN       256
-#define RSA_4096_BYTE_LEN       512
+#define RSA_256_BYTE_LEN        (32)
+#define RSA_512_BYTE_LEN        (64)
+#define RSA_1024_BYTE_LEN       (128)
+#define RSA_2048_BYTE_LEN       (256)
+#define RSA_4096_BYTE_LEN       (512)
 #define RSA_EM_BYTE_LEN         RSA_4096_BYTE_LEN
 
 #define SHA256_DIGEST_BYTE_LEN  32
@@ -301,7 +301,7 @@ csi_error_t csi_rsa_get_publickey(csi_rsa_t *rsa, void *p, uint32_t p_byte_len, 
 /**
   \brief       Generation rsa keyparis 
   \param[in]   rsa          rsa handle to operate.
-  \param[in]   context   Pointer to the rsa context
+  \param[in]   context      Pointer to the rsa context
   \param[in]   keybits_len  Pointer to the publickey bits length
   \return      \ref csi_error_t
 */

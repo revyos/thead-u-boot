@@ -68,11 +68,13 @@ extern "C" {
     } while (0);
 
 typedef enum {
-    CSI_OK          =  0,
-    CSI_ERROR       = -1,
-    CSI_BUSY        = -2,
-    CSI_TIMEOUT     = -3,
-    CSI_UNSUPPORTED = -4
+    CSI_OK            =  0,
+    CSI_ERROR         = -1,
+    CSI_BUSY          = -2,
+    CSI_TIMEOUT       = -3,
+    CSI_UNSUPPORTED   = -4,
+    CSI_INVALID_PARAM = -5,
+    CSI_CRYPT_FAIL    = -6,
 } csi_error_t;
 
 typedef struct {
@@ -132,9 +134,7 @@ typedef struct {
 
 csi_error_t target_get(csi_dev_tag_t dev_tag, uint32_t idx, csi_dev_t *dev);
 csi_error_t target_get_optimal_dma_channel(void *dma_list, uint32_t ctrl_num, csi_dev_t *parent_dev, void *ch_info);
-//void mdelay(uint32_t ms);
-//void udelay(uint32_t us);
-//void msleep(uint32_t ms);
+void msleep(uint32_t ms);
 
 #ifdef __cplusplus
 }

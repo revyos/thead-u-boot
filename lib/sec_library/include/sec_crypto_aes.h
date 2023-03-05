@@ -31,6 +31,17 @@
 extern "C" {
 #endif
 
+/**
+\brief AES data transfer mode config
+*/
+typedef enum {
+    SC_AES_SLAVE_MODE = 0U,         ///< slave mode
+    SC_AES_DMA_MODE,                ///< dma mode
+} sc_aes_trans_mode_t;
+
+/**
+\brief AES key-len-bits type
+*/
 typedef enum {
     SC_AES_KEY_LEN_BITS_128 = 0U, ///< 128 Data bits
     SC_AES_KEY_LEN_BITS_192,      ///< 192 Data bits
@@ -297,7 +308,10 @@ uint32_t sc_aes_ccm_encrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, ui
 */
 uint32_t sc_aes_ccm_decrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t* tag_out);
 
-void sc_aes_dma_enable(sc_aes_t *aes, uint8_t en);
+/**
+  \brief       Aes data transfer config
+*/
+void sc_aes_trans_config(sc_aes_t *aes, sc_aes_trans_mode_t mode) ;
 
 #ifdef __cplusplus
 }
