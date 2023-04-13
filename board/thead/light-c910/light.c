@@ -1945,8 +1945,8 @@ static void light_iopin_init(void)
 	light_pin_mux(AOGPIO_15,0);
 	
 	/* Debug port */
-    light_pin_mux(AOGPIO_12,1); // TXD
-	light_pin_mux(AOGPIO_13,1); // RXD
+    light_pin_mux(AOGPIO_12,0xF); // TXD
+	light_pin_mux(AOGPIO_13,0xF); // RXD
 
 	/* LEDs */
 	light_pin_mux(AUDIO_PA8,3);
