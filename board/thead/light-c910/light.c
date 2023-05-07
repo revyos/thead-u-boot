@@ -1967,23 +1967,39 @@ static void light_iopin_init(void)
     light_pin_mux(CLK_OUT_0,1);
 	light_pin_mux(CLK_OUT_1,1);
 
-	/*mikroBUS*/
+	/*mikroBUS pinmuxing*/
+
+	/*mikroBUS PWM*/
 	light_pin_mux(QSPI0_CSN1,3); // MB_PWM
+	light_pin_cfg(QSPI0_CSN1,PIN_SPEED_NORMAL,PIN_PN,2);
 	
-	light_pin_mux(GPIO2_20,0); // MB_CS
+	/*mikroBUS GPIO*/
+	light_pin_mux(AUDIO_PA3,3); // MB_RST
 	light_pin_mux(GPIO2_21,0); // MB_INT
-	light_pin_cfg(GPIO2_20,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(AUDIO_PA3,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO2_21,PIN_SPEED_NORMAL,PIN_PN,2);
+
+	/*mikroBUS UART*/
+	light_pin_mux(UART3_RXD,3); // MB_RXD
+	light_pin_mux(UART3_TXD,3); // MB_TXD
+	light_pin_cfg(UART3_RXD,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(UART3_TXD,PIN_SPEED_NORMAL,PIN_PN,2);
 	
-	light_pin_mux(GPIO0_18,1); // MB_SCL
-	light_pin_mux(GPIO0_19,1); // MB_SDA
+	/*mikroBUS SPI*/
+	light_pin_mux(GPIO2_20,3); // MB_CS
+	light_pin_mux(SPI_SCLK,3); // MB_SCK
+	light_pin_mux(SPI_MISO,3); // MB_MOSI
+	light_pin_mux(SPI_MOSI,3); // MB_MISO
+	light_pin_cfg(GPIO2_20,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(SPI_SCLK,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(SPI_MISO,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(SPI_MOSI,PIN_SPEED_NORMAL,PIN_PN,2);
+
+	/*mikroBUS I2C*/
+	light_pin_mux(GPIO0_18,0); // MB_SCL
+	light_pin_mux(GPIO0_19,0); // MB_SDA
 	light_pin_cfg(GPIO0_18,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(GPIO0_19,PIN_SPEED_NORMAL,PIN_PN,4);
-	
-    light_pin_mux(UART3_TXD,1); // MB_TXD
-	light_pin_mux(UART3_RXD,1); // MB_RXD
-	light_pin_cfg(UART3_TXD,PIN_SPEED_NORMAL,PIN_PN,2);
-	light_pin_cfg(UART3_RXD,PIN_SPEED_NORMAL,PIN_PN,2);
 	
 	/* CSI0 */
     light_pin_mux(GPIO2_23,0); // CSI0
