@@ -1,0 +1,61 @@
+name: thead-u-boot-build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 2 * * *"
+
+env:
+  xuetie_toolchain: https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1663142514282
+  toolchain_file_name: Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1-20220906.tar.gz
+  toolchain_tripe: riscv64-unknown-linux-gnu-
+  ARCH: riscv
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Install software
+        run: |
+              sudo apt update && \
+              sudo apt install -y gdisk dosfstools g++-12-riscv64-linux-gnu build-essential \
+                                  libncurses-dev gawk flex bison openssl libssl-dev tree \
+                                  dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf device-tree-compiler
+              sudo update-alternatives --install \
+                  /usr/bin/riscv64-linux-gnu-gcc riscv64-gcc /usr/bin/riscv64-linux-gnu-gcc-12 10
+              sudo update-alternatives --install \
+                  /usr/bin/riscv64-linux-gnu-g++ riscv64-g++ /usr/bin/riscv64-linux-gnu-g++-12 10
+
+      - name: Checkout uboot
+        uses: actions/checkout@v3
+
+      - name: Configure toolchains
+        run: |
+              mkdir output
+              wget ${xuetie_toolchain}/${toolchain_file_name}
+              tar -xvf ${toolchain_file_name} -C /opt
+
+      - name: uboot compile
+        run: |
+              export PATH="/opt/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1/bin:$PATH"
+
+              pushd $PWD
+                make ARCH=${ARCH} CROSS_COMPILE=${toolchain_tripe} light_lpi4a_defconfig
+                make ARCH=${ARCH} CROSS_COMPILE=${toolchain_tripe} -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lpi4a.bin
+                make ARCH=${ARCH} CROSS_COMPILE=${toolchain_tripe} clean
+                make ARCH=${ARCH} CROSS_COMPILE=${toolchain_tripe} light_a_val_defconfig
+                make ARCH=${ARCH} CROSS_COMPILE=${toolchain_tripe} -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-vala.bin
+              popd
+              tree ${GITHUB_WORKSPACE}/output
+
+      - name: 'Upload Artifact'
+        uses: actions/upload-artifact@v3
+        with:
+          name: thead-u-uboot
+          path: output/*.bin
+          retention-days: 30
