@@ -30,6 +30,7 @@
 
 #define GMAC0_APB3S_BADDR	0xffec003000
 #define GMAC1_APB3S_BADDR	0xffec004000
+
 static uint64_t apb3s_baddr;
 
 typedef enum {
@@ -1857,9 +1858,11 @@ int board_init(void)
 static void light_usb_boot_check(void)
 {
 	int boot_mode;
-	uchar env_enetaddr[6]={0};
-	uchar env_enet1addr[6]={0};
-	int env_ethaddr_flag,env_eth1addr_flag;
+//	uchar env_enetaddr[6]={0};
+//	uchar env_enet1addr[6]={0};
+//*	
+	
+//	int env_ethaddr_flag,env_eth1addr_flag;
 	boot_mode = readl((void *)SOC_OM_ADDRBASE) & 0x7;
 	if (boot_mode & BIT(2))
 		return;
@@ -1868,30 +1871,56 @@ static void light_usb_boot_check(void)
 	env_set("usb_fastboot", "yes");
 #endif
 	/*Get this version ethaddr(mac addr) env,which follows one board, trans to next version env*/
-	env_ethaddr_flag  = eth_env_get_enetaddr_by_index("eth", 0, env_enetaddr);
-	env_eth1addr_flag = eth_env_get_enetaddr_by_index("eth", 1, env_enet1addr);
-
+//	env_ethaddr_flag  = eth_env_get_enetaddr_by_index("eth", 0, env_enetaddr);
+//	env_eth1addr_flag = eth_env_get_enetaddr_by_index("eth", 1, env_enet1addr);
+	
 	run_command("env default -a -f", 0);
+	
 	/*If mac addr in last version env  is valid, before save,inherit env mac addr */
-	if(env_ethaddr_flag){
-		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);
-		run_command("printenv ethaddr",0);
-	}else{
-		printf("env ethaddr not exist or invalid\n");
-	}
+//	if(env_ethaddr_flag){
+//		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);		
+//		run_command("printenv ethaddr",0);
+//	}else{
+//		printf("env ethaddr not exist or invalid\n");
+//	}
 
-	if(env_eth1addr_flag){
-		eth_env_set_enetaddr_by_index("eth", 1, env_enet1addr);
-		run_command("printenv eth1addr",0);
-	}else{
-		printf("env eth1addr not exist or invalid\n");
-	}
+//	if(env_eth1addr_flag){
+//		eth_env_set_enetaddr_by_index("eth", 1, env_enet1addr);
+//		run_command("printenv eth1addr",0);
+//	}else{
+//		printf("env eth1addr not exist or invalid\n");
+//	}
 
 	run_command("env save", 0);
 	run_command("run gpt_partition", 0);
 	run_command("fastboot usb 0", 0);
 }
 
+static void set_fixed_mac(void)
+{					
+	uchar tmp_enetaddr[6] = {0};					
+	uchar tmp_enet1addr[6] = {0};
+	int env_ethaddr_flag, env_eth1addr_flag;
+	
+	env_ethaddr_flag = eth_env_get_enetaddr("ethaddr", tmp_enetaddr);
+	env_eth1addr_flag = eth_env_set_enetaddr("eth1addr", tmp_enet1addr);		
+	
+	if(!env_ethaddr_flag){
+		net_random_ethaddr(tmp_enetaddr);			
+		eth_env_set_enetaddr("ethaddr", tmp_enetaddr);
+		tmp_enetaddr[5] += 0x01;
+		eth_env_set_enetaddr("eth1addr", tmp_enetaddr);
+		run_command("env save", 0);
+		return ;
+	}
+	if(!env_eth1addr_flag){
+		net_random_ethaddr(tmp_enet1addr);		
+		eth_env_set_enetaddr("eth1addr", tmp_enet1addr);
+		tmp_enet1addr[5] -= 0x01;
+		eth_env_set_enetaddr("ethaddr", tmp_enet1addr);
+		run_command("env save", 0);
+	}
+}
 
 int board_late_init(void)
 {
@@ -1902,8 +1931,8 @@ int board_late_init(void)
 	sec_upgrade_thread();
 	sec_firmware_version_dump();
 #endif
-
 	light_usb_boot_check();
+	set_fixed_mac();
 	ap_peri_clk_disable();
 	return 0;
 }
