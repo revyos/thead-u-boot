@@ -30,6 +30,8 @@
 #define PLIC_BASE_ADDR   0xffd8000000
 #define PMP_BASE_ADDR    0xffdc020000
 
+#define CONFIG_ENV_OVERWRITE 1	//make sure env var can be modified successfully
+
 /* Network Configuration */
 #define CONFIG_DW_ALTDESCRIPTOR
 #define CONFIG_RGMII            1
