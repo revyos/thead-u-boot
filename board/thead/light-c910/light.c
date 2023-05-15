@@ -1860,8 +1860,7 @@ static void light_usb_boot_check(void)
 	int boot_mode;
 //	uchar env_enetaddr[6]={0};
 //	uchar env_enet1addr[6]={0};
-//*	
-	
+
 //	int env_ethaddr_flag,env_eth1addr_flag;
 	boot_mode = readl((void *)SOC_OM_ADDRBASE) & 0x7;
 	if (boot_mode & BIT(2))
@@ -1873,12 +1872,11 @@ static void light_usb_boot_check(void)
 	/*Get this version ethaddr(mac addr) env,which follows one board, trans to next version env*/
 //	env_ethaddr_flag  = eth_env_get_enetaddr_by_index("eth", 0, env_enetaddr);
 //	env_eth1addr_flag = eth_env_get_enetaddr_by_index("eth", 1, env_enet1addr);
-	
 	run_command("env default -a -f", 0);
 	
 	/*If mac addr in last version env  is valid, before save,inherit env mac addr */
 //	if(env_ethaddr_flag){
-//		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);		
+//		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);
 //		run_command("printenv ethaddr",0);
 //	}else{
 //		printf("env ethaddr not exist or invalid\n");
