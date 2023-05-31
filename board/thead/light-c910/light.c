@@ -1961,11 +1961,19 @@ static void light_iopin_init(void)
 	light_pin_cfg(AUDIO_PA12,PIN_SPEED_NORMAL,PIN_PU,2);
 	
 	/* Boot select*/
+
+	/* SD boot button*/
+	light_pin_mux(CLK_OUT_0,3);
+	light_pin_cfg(CLK_OUT_0,PIN_SPEED_NORMAL,PIN_PD,2);
+
+	/* NC */
+	light_pin_mux(CLK_OUT_1,3);
+	light_pin_cfg(CLK_OUT_1,PIN_SPEED_NORMAL,PIN_PD,2);
+
+	/* USB boot button*/
 	light_pin_mux(CLK_OUT_2,3);
 	light_pin_cfg(CLK_OUT_2,PIN_SPEED_NORMAL,PIN_PU,2);
-	
-    light_pin_mux(CLK_OUT_0,1);
-	light_pin_mux(CLK_OUT_1,1);
+
 
 	/*mikroBUS pinmuxing*/
 
