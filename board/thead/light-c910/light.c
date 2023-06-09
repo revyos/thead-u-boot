@@ -2038,6 +2038,14 @@ static void light_iopin_init(void)
     light_pin_cfg(GPIO2_25,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO2_30,PIN_SPEED_NORMAL,PIN_PN,2);                 
 	light_pin_cfg(GPIO2_31,PIN_SPEED_NORMAL,PIN_PU,2);
+
+	//BT hardware flow control uart
+    light_pin_cfg(UART4_TXD, PIN_SPEED_NORMAL, PIN_PN, 2);
+	light_pin_cfg(UART4_RXD, PIN_SPEED_NORMAL, PIN_PN, 2);
+	light_pin_cfg(UART4_CTSN, PIN_SPEED_NORMAL, PIN_PN, 2);
+	light_pin_cfg(UART4_RTSN, PIN_SPEED_NORMAL, PIN_PN, 2);
+
+
 }
 
 #else
