@@ -90,6 +90,16 @@ static inline int __test_and_clear_bit(int nr, void *addr)
 	return retval;
 }
 
+static inline int test_and_clear_bit(int nr, volatile void * addr)
+{
+	unsigned long flags = 0;
+	int out;
+
+	out = __test_and_clear_bit(nr, addr);
+
+	return out;
+}
+
 static inline int __test_and_change_bit(int nr, void *addr)
 {
 	int mask, retval;
