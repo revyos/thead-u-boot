@@ -735,6 +735,30 @@ void board_init_r(gd_t *dummy1, ulong dummy2)
 	jump_to_image_no_args(&spl_image);
 }
 
+static void print_ruyisdk_logo(void)
+{
+	//  _____             _  _____ _____  _  __
+	// |  __ \           (_)/ ____|  __ \| |/ /
+	// | |__) |   _ _   _ _| (___ | |  | | ' / 
+	// |  _  / | | | | | | |\___ \| |  | |  <  
+	// | | \ \ |_| | |_| | |____) | |__| | . \ 
+	// |_|  \_\__,_|\__, |_|_____/|_____/|_|\_\
+	//               __/ |                     
+	//              |___/                      
+
+	printf("-----------------------------------------\n");
+	printf("  _____             _  _____ _____  _  __\n");
+	printf(" |  __ \\           (_)/ ____|  __ \\| |/ /\n");
+	printf(" | |__) |   _ _   _ _| (___ | |  | | ' / \n");
+	printf(" |  _  / | | | | | | |\\___ \\| |  | |  <  \n");
+	printf(" | | \\ \\ |_| | |_| | |____) | |__| | . \\ \n");
+	printf(" |_|  \\_\\__,_|\\__, |_|_____/|_____/|_|\\_\\\n");
+	printf("               __/ |                     \n");
+	printf("              |___/                      \n");
+	printf("                      -- powered by ISCAS\n");
+	printf("-----------------------------------------\n");
+}
+
 #ifdef CONFIG_SPL_SERIAL_SUPPORT
 /*
  * This requires UART clocks to be enabled.  In order for this to work the
@@ -747,6 +771,8 @@ void preloader_console_init(void)
 	serial_init();		/* serial communications setup */
 
 	gd->have_console = 1;
+
+	print_ruyisdk_logo();
 
 #if CONFIG_IS_ENABLED(BANNER_PRINT)
 	puts("\nU-Boot " SPL_TPL_NAME " " PLAIN_VERSION " (" U_BOOT_DATE " - "
