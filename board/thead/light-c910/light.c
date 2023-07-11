@@ -1858,9 +1858,6 @@ int board_init(void)
 static void light_usb_boot_check(void)
 {
 	int boot_mode;
-	uchar env_enetaddr[6]={0};
-	uchar env_enet1addr[6]={0};
-	int env_ethaddr_flag,env_eth1addr_flag;
 	boot_mode = readl((void *)SOC_OM_ADDRBASE) & 0x7;
 	if (boot_mode & BIT(2))
 		return;
@@ -1868,11 +1865,23 @@ static void light_usb_boot_check(void)
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("usb_fastboot", "yes");
 #endif
+
+	run_command("env default -a -f", 0);
+	run_command("env save", 0);
+	run_command("run gpt_partition", 0);
+	run_command("fastboot usb 0", 0);
+}
+
+static void light_mac_vaild_check(void)
+{
+	uchar env_enetaddr[6]={0};
+	uchar env_enet1addr[6]={0};
+	int env_ethaddr_flag,env_eth1addr_flag;
+
 	/*Get this version ethaddr(mac addr) env,which follows one board, trans to next version env*/
 	env_ethaddr_flag  = eth_env_get_enetaddr_by_index("eth", 0, env_enetaddr);
 	env_eth1addr_flag = eth_env_get_enetaddr_by_index("eth", 1, env_enet1addr);
 
-	run_command("env default -a -f", 0);
 	/*If mac addr in last version env  is valid, before save,inherit env mac addr */
 	if(env_ethaddr_flag){
 		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);
@@ -1897,10 +1906,6 @@ static void light_usb_boot_check(void)
 		//printf("env eth1addr not exist or invalid\n");
 		printf("use random addr as fixed mac addr\n");
 	}
-
-	run_command("env save", 0);
-	run_command("run gpt_partition", 0);
-	run_command("fastboot usb 0", 0);
 }
 
 int board_late_init(void)
@@ -1913,6 +1918,7 @@ int board_late_init(void)
 	sec_firmware_version_dump();
 #endif
 	light_usb_boot_check();
+	light_mac_vaild_check();
 	ap_peri_clk_disable();
 	return 0;
 }
