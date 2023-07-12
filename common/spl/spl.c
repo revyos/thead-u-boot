@@ -755,7 +755,7 @@ static void print_ruyisdk_logo(void)
 	printf(" |_|  \\_\\__,_|\\__, |_|_____/|_____/|_|\\_\\\n");
 	printf("               __/ |                     \n");
 	printf("              |___/                      \n");
-	printf("                      -- powered by ISCAS\n");
+	printf("                    -- Presented by ISCAS\n");
 	printf("-----------------------------------------\n");
 }
 
