@@ -213,6 +213,11 @@ config DDR_LP4_2133_SINGLERANK
         help
           Enabling this will support lpddr4 2133 singlerank configuration.
 
+config DDR_ROW16
+	bool "LPDDR4/4X 17-bit row address support"
+	help
+	  Enabling this will support ddr 17-bit row address (16:0).
+
 config DDR_H32_MODE
         bool "LPDDR4/4X 32bit mode configuration"
         help
