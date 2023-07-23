@@ -125,10 +125,11 @@ void icache_enable(void)
 #ifdef CONFIG_SPL_BUILD
 #ifdef CONFIG_SPL_RISCV_MMODE
 #ifdef CONFIG_TARGET_LIGHT_C910
+// mhcr is 0x7c1
 	asm volatile (
-        "csrr x29, mhcr\n\t"
+        "csrr x29, 0x7c1\n\t"
         "ori x28, x29, 0x1\n\t"
-        "csrw mhcr, x28\n\t"
+        "csrw 0x7c1, x28\n\t"
     );
 #endif
 #endif
@@ -142,7 +143,7 @@ void dcache_enable(void)
 #ifdef CONFIG_TARGET_LIGHT_C910
 	asm volatile (
         "li x29, 0x11ff\n\t"
-        "csrw mhcr, x29\n\t"
+        "csrw 0x7c1, x29\n\t"
     );
 #endif
 #endif
