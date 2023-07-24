@@ -304,7 +304,7 @@ void cpu_performance_enable(void)
 	csr_write(CSR_MHINT2_E, csr_read(CSR_MHINT2_E) | 0x20000);
 	csr_write(CSR_MHINT4, csr_read(CSR_MHINT4) | 0x410);
 	csr_write(CSR_MCCR2, 0xe2490009);
-	csr_write(CSR_MHCR, 0x117f); // clear bit7 to disable indirect brantch prediction
+	csr_write(CSR_MHCR, 0x117f); // clear bit7 to disable indirect branch prediction
 	csr_write(CSR_MXSTATUS, 0x638000);
 	csr_write(CSR_MHINT, 0x6e30c | (1<<21) | (1<<22)); // set bit21 & bit 22 to close tlb & fence broadcast
 }
