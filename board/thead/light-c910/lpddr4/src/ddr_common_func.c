@@ -14,6 +14,9 @@ unsigned long get_ddr_density() {
 #ifdef CONFIG_DDR_DUAL_RANK
 	mul = 2;
 #endif
+#ifdef CONFIG_DDR_ROW16
+	mul *= 2;
+#endif
 #ifdef CONFIG_DDR_H32_MODE
     div = 2;
 #endif
