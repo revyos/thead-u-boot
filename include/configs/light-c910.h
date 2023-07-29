@@ -36,6 +36,7 @@
 #define CONFIG_RGMII            1
 #define CONFIG_PHY_MARVELL      1
 #define CONFIG_NET_RETRY_COUNT  20
+#define GMAC_USE_FIRST_MII_BUS
 
 #define CONFIG_SYS_FLASH_BASE       0x0
 #define CONFIG_SYS_MAX_FLASH_BANKS  1
@@ -58,14 +59,14 @@
 #define THEAD_LIGHT_FASTBOOT	1
 #define LIGHT_FW_ADDR		0x0
 #define LIGHT_KERNEL_ADDR	0x200000
-#define LIGHT_DTB_ADDR		0x1f00000
+#define LIGHT_DTB_ADDR		0x2400000
 #define LIGHT_ROOTFS_ADDR	0x2000000
 #define LIGHT_AON_FW_ADDR	0xffffef8000
 #define LIGHT_TEE_FW_ADDR	0x1c000000
 #define LIGHT_TF_FW_ADDR	LIGHT_FW_ADDR
 #define LIGHT_TF_FW_TMP_ADDR	0x100000
 #define LIGHT_KERNEL_ADDR_CMD	"0x200000"
-#define LIGHT_DTB_ADDR_CMD	"0x1f00000"
+#define LIGHT_DTB_ADDR_CMD	"0x2400000"
 
 
 /* trust image name string */
@@ -109,7 +110,7 @@
 /* List of different env in debug/release version  */
 #if defined (U_BUILD_DEBUG)
 #define ENV_KERNEL_LOGLEVEL "kernel_loglevel=7\0"
-#define ENV_STR_BOOT_DELAY  
+#define ENV_STR_BOOT_DELAY
 #else
 #define ENV_KERNEL_LOGLEVEL "kernel_loglevel=4\0"
 #define ENV_STR_BOOT_DELAY	"bootdelay=0\0"
@@ -118,7 +119,7 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"scriptaddr=0x00500000\0" \
 	"pxefile_addr_r=0x00600000\0" \
-	"fdt_addr_r=0x01f00000\0" \
+	"fdt_addr_r=0x02400000\0" \
 	"kernel_addr_r=0x00200000\0" \
 	"ramdisk_addr_r=0x06000000\0" \
 	"boot_conf_addr_r=0xc0000000\0" \
@@ -130,7 +131,7 @@
 	"splashpos=m,m\0" \
 	"fdt_high=0xffffffffffffffff\0" \
 	"kernel_addr_r=0x00200000\0" \
-	"kdump_buf=500M\0" \
+	"kdump_buf=180M\0" \
 	"mmcdev=0\0" \
 	"mmcbootpart=2\0" \
 	"boot_conf_file=/extlinux/extlinux.conf\0" \

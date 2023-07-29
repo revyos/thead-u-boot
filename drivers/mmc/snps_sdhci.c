@@ -13,6 +13,7 @@
 #define HS400_DELAY_LANE	24
 
 volatile int DELAY_LANE = 50;
+volatile int manual_set_delay = 0;  //flag for cmd manual setted DELAY_LANE,non-zero is setted. auto clear in cmd
 
 static void sdhci_phy_1_8v_init_no_pull(struct sdhci_host *host)
 {
@@ -154,10 +155,14 @@ void snps_set_uhs_timing(struct sdhci_host *host)
 {
 	struct mmc *mmc = (struct mmc *)host->mmc;
 	u32 reg;
-
+	int restore_delay;
 	reg = sdhci_readw(host, SDHCI_HOST_CONTROL2);
 	reg &= ~SDHCI_CTRL_UHS_MASK;
-
+    
+	if(manual_set_delay){
+		DELAY_LANE = DELAY_LANE & 0x7f; /*limit bit[0:6]*/
+		printf("%s: manual set delay (%d) active \n",host->name,DELAY_LANE);
+	}
 	switch (mmc->selected_mode) {
 	case UHS_SDR50:
 	case MMC_HS_52:
@@ -175,9 +180,13 @@ void snps_set_uhs_timing(struct sdhci_host *host)
 		reg |= SDHCI_CTRL_UHS_SDR104;
 		break;
 	case MMC_HS_400:
-		DELAY_LANE = HS400_DELAY_LANE;
+		restore_delay = DELAY_LANE;
+		if(!manual_set_delay){  /*default not set manual in cmd,when set in cmd,use DELAY_LANE set in cmd*/
+			 DELAY_LANE = HS400_DELAY_LANE;
+		}
 		sdhci_phy_1_8v_init(host);
 		reg |= SNPS_SDHCI_CTRL_HS400;
+		DELAY_LANE = restore_delay; /*restore for other modes*/
 		break;
 	default:
 		sdhci_phy_3_3v_init(host);
@@ -345,7 +354,10 @@ static int snps_sdhci_probe(struct udevice *dev)
 		ret = max_clk;
 		goto err;
 	}
-
+	//get Maximum Base Clock frequency from dts clock-frequency
+	if(0 == dev_read_u32(dev, "clock-frequency", &max_clk)){
+		host->max_clk = max_clk;
+	}
 	host->mmc = &plat->mmc;
 	host->mmc->dev = dev;
 	host->mmc->priv = host;

@@ -574,6 +574,7 @@ static int do_mmc_rescan(cmd_tbl_t *cmdtp, int flag,
 }
 
 extern volatile uint32_t DELAY_LANE;
+extern volatile int manual_set_delay ;
 static int do_mmc_set_delay_lane(cmd_tbl_t *cmdtp, int flag,
 	       int argc, char * const argv[])
 {
@@ -587,17 +588,22 @@ static int do_mmc_set_delay_lane(cmd_tbl_t *cmdtp, int flag,
 	mmc = find_mmc_device(curr_device);
 	if (!mmc) {
 		printf("no mmc device at slot %x\n", curr_device);
-		return CMD_RET_FAILURE;
+		goto RET_FAILURE;
 	}
-
+	manual_set_delay = 1;
 	if (0 != snps_mmc_init(mmc))
-		return CMD_RET_FAILURE;
+		goto RET_FAILURE;
 
 	mmc = init_mmc_device(curr_device, true);
 	if (!mmc)
-		return CMD_RET_FAILURE;
-
+		goto RET_FAILURE;
+	
+	manual_set_delay = 0;
 	return CMD_RET_SUCCESS;
+
+RET_FAILURE:
+	manual_set_delay = 0;
+	return CMD_RET_FAILURE;
 }
 
 static int do_mmc_turning(cmd_tbl_t *cmdtp, int flag,
@@ -605,6 +611,10 @@ static int do_mmc_turning(cmd_tbl_t *cmdtp, int flag,
 {
 	struct mmc *mmc;
 	int i = 0, n;
+	int stop_on_ok = 1;
+	if(argc > 1 && (!strncmp(argv[1],"cont",4))){
+		stop_on_ok = 0;
+	}
 	for(i = 0; i <= 128; i++) {
 		DELAY_LANE = i;
 		printf("set DELAY_LANE = %d\n", DELAY_LANE);
@@ -616,8 +626,10 @@ static int do_mmc_turning(cmd_tbl_t *cmdtp, int flag,
 			return CMD_RET_FAILURE;
 		}
 
+		manual_set_delay = 1;
 		if (0 != snps_mmc_init(mmc)) {
 			printf("Error: mmc init error!\n");
+			manual_set_delay = 0;
 			return CMD_RET_FAILURE;
 		}
 
@@ -628,18 +640,21 @@ static int do_mmc_turning(cmd_tbl_t *cmdtp, int flag,
 
 		if (mmc_getwp(mmc) == 1) {
 			printf("Error: card is write protected!\n");
+			manual_set_delay = 0;
 			return CMD_RET_FAILURE;
 		}
 
 		n = blk_dwrite(mmc_get_blk_desc(mmc), 0, 1, 0);
 		if (n == 1) {
 			printf("blocks written: %s\n", "OK" );
-			return CMD_RET_SUCCESS;
+			manual_set_delay = 0;
+			if(stop_on_ok)
+				return CMD_RET_SUCCESS;
 		} else {
 			printf("written: %s\n", "error");
 		}
 	}
-
+	manual_set_delay = 0;
 	if (i > 128) {
 		return CMD_RET_FAILURE;
 	}
@@ -1239,9 +1254,10 @@ U_BOOT_CMD(
 #endif
 	"mmc erase blk# cnt\n"
 	"mmc rescan\n"
-	"mmc set_delay # val\n"
-	"mmc turning\n"
-	"mmc memset addr # lenght\n"
+	"mmc set_delay # val - set clk out delay mannaul,reinit host and rescan dev\n"
+	"mmc turning [continue] - loop test for clk delay form 0 to 128, reinit host and rescan dev\n"
+	"             - without arg [continue] exit once init and write ok\n"
+	"mmc memset addr # length - set mem addr 0xff with length  '# length' \n"
 	"mmc part - lists available partition on current mmc device\n"
 	"mmc dev [dev] [part] - show or set current mmc device [partition]\n"
 	"mmc list - lists available devices\n"

@@ -119,15 +119,18 @@ U_BOOT_CMD(
 
 #endif
 
-#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF)
+#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A)
+#if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
 extern int light_secboot(int argc, char * const argv[]);
+#endif
 int do_secboot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
+#if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
     if (light_secboot(argc, argv) != 0) {
         run_command("reset", 0);
         return -1;
     }
-
+#endif
 	return 0;
 }
 U_BOOT_CMD(

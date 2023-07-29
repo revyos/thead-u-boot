@@ -508,7 +508,7 @@ static int dw_phy_init(struct dw_eth_dev *priv, void *dev)
 {
 	struct phy_device *phydev;
 	int phy_addr = -1, ret;
-
+	
 #ifdef CONFIG_PHY_ADDR
 	phy_addr = CONFIG_PHY_ADDR;
 #endif
@@ -801,13 +801,16 @@ int designware_eth_probe(struct udevice *dev)
 		err = ret;
 		goto mdio_err;
 	}
-
+#ifdef GMAC_USE_FIRST_MII_BUS
 	if (!g_mii_bus) {
 		priv->bus = miiphy_get_dev_by_name(dev->name);
 		g_mii_bus = priv->bus;
 	} else {
 		priv->bus = g_mii_bus;
 	}
+#else
+	priv->bus = miiphy_get_dev_by_name(dev->name);
+#endif
 	ret = dw_phy_init(priv, dev);
 	debug("%s, ret=%d\n", __func__, ret);
 	if (!ret)
@@ -815,8 +818,18 @@ int designware_eth_probe(struct udevice *dev)
 
 	/* continue here for cleanup if no PHY found */
 	err = ret;
+#ifdef GMAC_USE_FIRST_MII_BUS
+	struct mii_dev *t_mii = NULL;
+	t_mii = miiphy_get_dev_by_name(dev->name);
+	if((g_mii_bus != t_mii) && (t_mii != NULL) ){
+		printf("free mdio bus %s\n",t_mii->name);
+		mdio_unregister(t_mii);
+		mdio_free(t_mii);
+	}
+#else
 	mdio_unregister(priv->bus);
 	mdio_free(priv->bus);
+#endif
 mdio_err:
 
 #ifdef CONFIG_CLK

@@ -41,6 +41,12 @@ secondary_harts_relocation_error:
 _start:
 
 #if (defined CONFIG_SPL_BUILD) && (defined CONFIG_TARGET_LIGHT_C910)
+	/* Disable indirect branch prediction once entering into uboot world */
+	li t0, 0x117f
+	csrw 0x7c1, t0
+	/* Disable fence broadcase and HW TLB */
+	li t0, 0x66e30c
+	csrw 0x7c5, t0
 	/* Enable cache ASAP as LIGHT's requirement */
 	jal	icache_enable
 	jal	dcache_enable

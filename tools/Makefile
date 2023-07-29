@@ -238,6 +238,10 @@ LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_H)
 LOGO-$(CONFIG_VIDEO_LOGO) += $(LOGO_DATA_H)
 
 # Generic logo
+ifeq ($(CONFIG_VIDEO_LCD_CUSTOM_LOGO),y)
+LOGO_BMP= $(srctree)/$(src)/logos/custom.bmp
+else
+
 ifeq ($(LOGO_BMP),)
 LOGO_BMP= $(srctree)/$(src)/logos/denx.bmp
 
@@ -251,6 +255,8 @@ endif
 endif
 
 endif # !LOGO_BMP
+
+endif
 
 #
 # Use native tools and options
