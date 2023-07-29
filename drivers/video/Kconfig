@@ -353,6 +353,7 @@ config VIDEO_LCD_ILITEK_ILI9881C
 
 config VIDEO_LCD_CUSTOM_LOGO
 	bool "LCD CUSTOM logo support"
+	default n
 	help
 	Say Y here if you want to enable support for custom logo.
 
