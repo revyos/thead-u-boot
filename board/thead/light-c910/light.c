@@ -555,12 +555,14 @@ static void gmac_phy_rst(void)
 	       (void *)LIGHT_GPIO3_BADDR);
 	writel(readl((void *)LIGHT_GPIO1_BADDR) & ~LIGHT_GPIO1_13,
 	       (void *)LIGHT_GPIO1_BADDR);
+	wmb();
 	/* At least 10ms */
-	mdelay(12);
+	mdelay(50);
 	writel(readl((void *)LIGHT_GPIO3_BADDR) | LIGHT_GPIO3_21,
 	       (void *)LIGHT_GPIO3_BADDR);
 	writel(readl((void *)LIGHT_GPIO1_BADDR) | LIGHT_GPIO1_13,
 	       (void *)LIGHT_GPIO1_BADDR);
+	wmb();
 }
 
 static void gmac_glue_init(uint64_t apb3s_baddr)
