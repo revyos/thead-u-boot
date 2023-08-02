@@ -61,6 +61,10 @@ jobs:
                 make -j$(nproc)
                 find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lpi4a.bin
                 make clean
+                make light_beagle_defconfig
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-beagle.bin
+                make clean
                 make light_a_val_defconfig
                 make -j$(nproc)
                 find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-vala.bin
