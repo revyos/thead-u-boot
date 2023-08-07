@@ -40,20 +40,20 @@ extern "C" {
 #define AES_DMA_DISABLE       (0)
 
 /**
-\brief DES data transfer mode config
+\brief AES data transfer mode config
 */
 typedef enum {
-    AES_SLAVE_MODE = 0U,         ///< slave mode
-    AES_DMA_MODE,                ///< dma mode
+    AES_SLAVE_MODE = 0U,         /*slave mode*/
+    AES_DMA_MODE,                /*dma mode*/
 } csi_aes_trans_mode_t;
 
 /**
 \brief AES Keylen type
 */
 typedef enum {
-    AES_KEY_LEN_BITS_128        = 0,       ///< 128 Data bits
-    AES_KEY_LEN_BITS_192,                  ///< 192 Data bits
-    AES_KEY_LEN_BITS_256                   ///< 256 Data bits
+    AES_KEY_LEN_BITS_128        = 0,       /*128 Data bits*/
+    AES_KEY_LEN_BITS_192,                  /*192 Data bits*/
+    AES_KEY_LEN_BITS_256                   /*256 Data bits*/
 } csi_aes_key_bits_t;
 
 /**
@@ -73,8 +73,8 @@ typedef enum{
 \brief AES state
 */
 typedef struct {
-    uint32_t busy             : 1;        ///< Calculate busy flag
-    uint32_t error            : 1;        ///< Calculate error flag
+    uint32_t busy             : 1;        /*Calculate busy flag*/
+    uint32_t error            : 1;        /*Calculate error flag*/
 } csi_aes_state_t;
 
 /**
@@ -82,7 +82,7 @@ typedef struct {
 */
 typedef struct {
     uint32_t            key_len_byte;
-    uint8_t             key[32];          ///< Data block being processed
+    uint8_t             key[32];          /*Data block being processed*/
     uint32_t            sca;
     uint32_t            is_kdf;
     uint32_t            is_dma;
@@ -350,7 +350,7 @@ void csi_aes_disable_pm(csi_aes_t *aes);
   \param[in]   mode    \ref csi_des_trans_mode_t 
   \return      None
 */
-void csi_aes_trans_config(csi_aes_t *aes, csi_aes_trans_mode_t mode);
+csi_error_t csi_aes_trans_config(csi_aes_t *aes, csi_aes_trans_mode_t mode);
 
 #ifdef __cplusplus
 }

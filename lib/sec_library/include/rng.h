@@ -22,16 +22,10 @@ extern "C" {
 /**
   \brief       Get data from the TNG engine
   \param[out]  Data  Pointer to buffer with data get from TNG
-  \param[in]   Num   Number of data items,uinit in uint32
+  \param[in]   Size   Size of data items,uinit in uint32
   \return      Error code \ref csi_error_t
 */
-csi_error_t csi_rng_get_multi_word(uint32_t *data, uint32_t num);
-
-/**
-  \brief       Get data from the TNG engine
-  \return      Error code \ref csi_error_t
-*/
-csi_error_t csi_rng_get_single_word(uint32_t* data);
+csi_error_t csi_rng_get_random_bytes(uint8_t *data, uint32_t size);
 
 #ifdef __cplusplus
 }

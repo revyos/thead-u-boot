@@ -48,6 +48,7 @@ static struct light_reset_list light_post_reset_lists[] = {
 	{0x00000002, 0xFFEF528000}, /* VO sys_reg: GPU rst */
 	{0x00000003, 0xFFEF528000}, /* VO sys_reg: GPU rst */
 	{0x00000007, 0xFFFF529004}, /* VO sys_reg: DPU rst */
+	{0x07FFFF18, 0xFFCB000014}, /* Audio sys_reg: DMA rst */
 };
 
 static void light_pre_reset_config(void)
@@ -399,9 +400,20 @@ void board_init_f(ulong dummy)
 	light_board_init_r(NULL, 0);
 }
 
+static uint32_t get_custom_boot_seq(void)
+{
+	/* boot media definition */
+	/* BOOT_DEVICE_MMC1 - boot from eMMC or SD card */
+	/* BOOT_DEVICE_NAND - boot from nand flash */
+	/* BOOT_DEVICE_SPI - boot from spi flash */
+	/* TODO: user can decide the boot media according their own configuration */
+	return BOOT_DEVICE_MMC1;
+}
+
 void board_boot_order(u32 *spl_boot_list)
 {
 #define SOC_OM_ADDRBASE        0xffef018010
+#if CONFIG_IS_ENABLED(LIGHT_BOOT_FORCE_SEQ)
 	switch (readl((void *)SOC_OM_ADDRBASE) & 0x7) {
 	case 0:
 	case 1:
@@ -428,6 +440,8 @@ void board_boot_order(u32 *spl_boot_list)
 	default:
 		spl_boot_list[0] = BOOT_DEVICE_NONE;
 	}
-
+#else
+	spl_boot_list[0] = get_custom_boot_seq();
+#endif
 	cpu_performance_enable();
 }

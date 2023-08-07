@@ -39,8 +39,8 @@ typedef enum {
 } sc_ecc_cipher_order_e;
 
 typedef enum {
-        SC_ECC_ENDIAN_LITTLE = 0, ///< Little Endian
-        SC_ECC_ENDIAN_BIG         ///< Big Endian
+        SC_ECC_ENDIAN_LITTLE = 0, /*Little Endian*/
+        SC_ECC_ENDIAN_BIG         /*Big Endian*/
 } sc_ecc_endian_mode_e;
 
 /**
@@ -50,23 +50,23 @@ typedef enum { SC_ECC_Role_Sponsor = 0, SC_ECC_Role_Responsor } sc_ecc_exchange_
 
 /****** ECC Event *****/
 typedef enum {
-        SC_ECC_EVENT_MAKE_KEY_COMPLETE = 0, ///< Make key completed
-        SC_ECC_EVENT_ENCRYPT_COMPLETE,      ///< Encrypt completed
-        SC_ECC_EVENT_DECRYPT_COMPLETE,      ///< Decrypt completed
-        SC_ECC_EVENT_SIGN_COMPLETE,         ///< Sign completed
-        SC_ECC_EVENT_VERIFY_COMPLETE,       ///< Verify completed
-        SC_ECC_EVENT_EXCHANGE_KEY_COMPLETE, ///< Exchange key completed
+        SC_ECC_EVENT_MAKE_KEY_COMPLETE = 0, /*Make key completed*/
+        SC_ECC_EVENT_ENCRYPT_COMPLETE,      /*Encrypt completed*/
+        SC_ECC_EVENT_DECRYPT_COMPLETE,      /*Decrypt completed*/
+        SC_ECC_EVENT_SIGN_COMPLETE,         /*Sign completed*/
+        SC_ECC_EVENT_VERIFY_COMPLETE,       /*Verify completed*/
+        SC_ECC_EVENT_EXCHANGE_KEY_COMPLETE, /*Exchange key completed*/
 } sc_ecc_event_e;
 
 typedef struct {
-        uint32_t ecc_curve : 1; ///< supports 256bits curve
+        uint32_t ecc_curve : 1; /*supports 256bits curve*/
 } sc_ecc_capabilities_t;
 
 /**
 \brief ECC status
 */
 typedef struct {
-        uint32_t busy : 1; ///< Calculate busy flag
+        uint32_t busy : 1; /*Calculate busy flag*/
 } sc_ecc_state_t;
 
 typedef struct {
@@ -75,7 +75,7 @@ typedef struct {
 #endif
 } sc_ecc_t;
 
-///< Pointer to \ref sc_ecc_callback_t : ECC Event call back.
+/*Pointer to \ref sc_ecc_callback_t : ECC Event call back.*/
 typedef void (*sc_ecc_callback_t)(sc_ecc_event_e event);
 
 /**
@@ -256,7 +256,7 @@ uint32_t sc_ecc_getE(sc_ecc_t *ecc, uint8_t *m, uint32_t len, uint8_t z[32],
 uint32_t sc_ecc_get_state(sc_ecc_t *ecc, sc_ecc_state_t *state);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif

@@ -41,16 +41,24 @@
 extern "C" {
 #endif
 
+/**
+\brief SHA data transfer mode config
+*/
+typedef enum {
+    SC_SHA_SLAVE_MODE = 0U,         /*slave mode*/
+    SC_SHA_DMA_MODE,                /*dma mode*/
+} sc_sha_trans_mode_t;
+
 /*----- SHA Control Codes: Mode -----*/
 typedef enum {
-    SC_SHA_MODE_SHA1 = 1U,  ///< SHA_1 mode
-    SC_SHA_MODE_256,        ///< SHA_256 mode
-    SC_SHA_MODE_224,        ///< SHA_224 mode
-    SC_SHA_MODE_512,        ///< SHA_512 mode
-    SC_SHA_MODE_384,        ///< SHA_384 mode
-    SC_SHA_MODE_512_256,    ///< SHA_512_256 mode
-    SC_SHA_MODE_512_224,    ///< SHA_512_224 mode
-    SC_SHA_MODE_MD5,        ///< MD5 mode
+    SC_SHA_MODE_SHA1 = 1U,  /*SHA_1 mode*/
+    SC_SHA_MODE_256,        /*SHA_256 mode*/
+    SC_SHA_MODE_224,        /*SHA_224 mode*/
+    SC_SHA_MODE_512,        /*SHA_512 mode*/
+    SC_SHA_MODE_384,        /*SHA_384 mode*/
+    SC_SHA_MODE_512_256,    /*SHA_512_256 mode*/
+    SC_SHA_MODE_512_224,    /*SHA_512_224 mode*/
+    SC_SHA_MODE_MD5,        /*MD5 mode*/
     SC_SM3_MODE,
 } sc_sha_mode_t;
 
@@ -58,8 +66,8 @@ typedef enum {
 \brief SHA State
 */
 typedef struct {
-    uint32_t busy : 1;  ///< calculate busy flag
-    uint32_t error : 1; ///< calculate error flag
+    uint32_t busy : 1;  /*calculate busy flag*/
+    uint32_t error : 1; /*calculate error flag*/
 } sc_sha_state_t;
 
 typedef struct {
@@ -81,13 +89,13 @@ uint8_t ctx[SHA_CONTEXT_SIZE];
   sc_mbedtls_sha1_context sha1_ctx;
   sc_mbedtls_sha256_context sha2_ctx;
 #endif
-  sc_sha_mode_t mode;        ///< sha mode
+  sc_sha_mode_t mode;        /*sha mode*/
 } sc_sha_context_t;
 
 /****** SHA Event *****/
 typedef enum {
-    SC_SHA_EVENT_COMPLETE = 0U, ///< calculate completed
-    SC_SHA_EVENT_ERROR          ///< calculate error
+    SC_SHA_EVENT_COMPLETE = 0U, /*calculate completed*/
+    SC_SHA_EVENT_ERROR          /*calculate error*/
 } sc_sha_event_t;
 
 typedef struct sc_sha {
@@ -95,7 +103,7 @@ typedef struct sc_sha {
 #ifdef CONFIG_CSI_V1
   sha_handle_t handle;
   sc_sha_context_t ctx;
-  sc_sha_mode_t mode;        ///< sha mode
+  sc_sha_mode_t mode;        /*sha mode*/
 #endif /* CONFIG_CSI_V1 */
 #ifdef CONFIG_CSI_V2
   csi_sha_t csi_sha;
@@ -199,6 +207,12 @@ uint32_t sc_sha_digest(sc_sha_t *sha, uint32_t idx, sc_sha_context_t *context, s
   \return      error code \ref uint32_t
 */
 uint32_t sc_sha_get_state(sc_sha_t *sha,sc_sha_context_t *context);
+
+/**
+  \brief       Sha data transfer config
+*/
+uint32_t sc_sha_trans_config(sc_sha_t *sha, sc_sha_context_t *context, sc_sha_trans_mode_t mode);
+
 #ifdef __cplusplus
 }
 #endif

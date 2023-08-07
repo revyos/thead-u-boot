@@ -22,7 +22,11 @@
 
 #define CONFIG_SYS_INIT_SP_ADDR     (CONFIG_SYS_TEXT_BASE + SZ_1M)
 #define CONFIG_SYS_LOAD_ADDR        (CONFIG_SYS_TEXT_BASE + SZ_1M)
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+#define CONFIG_SYS_MALLOC_LEN       (128*SZ_1M)
+#else
 #define CONFIG_SYS_MALLOC_LEN       SZ_1M
+#endif
 #define CONFIG_SYS_BOOTM_LEN        SZ_64M
 #define CONFIG_SYS_CACHELINE_SIZE   64
 
@@ -59,14 +63,14 @@
 #define THEAD_LIGHT_FASTBOOT	1
 #define LIGHT_FW_ADDR		0x0
 #define LIGHT_KERNEL_ADDR	0x200000
-#define LIGHT_DTB_ADDR		0x2400000
+#define LIGHT_DTB_ADDR		0x2800000
 #define LIGHT_ROOTFS_ADDR	0x2000000
 #define LIGHT_AON_FW_ADDR	0xffffef8000
 #define LIGHT_TEE_FW_ADDR	0x1c000000
 #define LIGHT_TF_FW_ADDR	LIGHT_FW_ADDR
 #define LIGHT_TF_FW_TMP_ADDR	0x100000
 #define LIGHT_KERNEL_ADDR_CMD	"0x200000"
-#define LIGHT_DTB_ADDR_CMD	"0x2400000"
+#define LIGHT_DTB_ADDR_CMD	"0x2800000"
 
 
 /* trust image name string */
@@ -119,12 +123,12 @@
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"scriptaddr=0x00500000\0" \
 	"pxefile_addr_r=0x00600000\0" \
-	"fdt_addr_r=0x02400000\0" \
+	"fdt_addr_r=0x02800000\0" \
 	"kernel_addr_r=0x00200000\0" \
 	"ramdisk_addr_r=0x06000000\0" \
 	"boot_conf_addr_r=0xc0000000\0" \
 	"aon_ram_addr=0xffffef8000\0" \
-	"audio_ram_addr=0xffc0000000\0" \
+	"audio_ram_addr=0x32000000\0" \
 	"opensbi_addr=0x0\0" \
 	"fwaddr=0x10000000\0" \
 	"splashimage=0x30000000\0" \

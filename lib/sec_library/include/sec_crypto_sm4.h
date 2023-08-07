@@ -26,6 +26,14 @@ extern "C" {
 #endif
 
 /**
+\brief SM4 data transfer mode config
+*/
+typedef enum {
+    SC_SM4_SLAVE_MODE = 0U,         /*slave mode*/
+    SC_SM4_DMA_MODE,                /*dma mode*/
+} sc_sm4_trans_mode_t;
+
+/**
 \brief SM4 Ctrl Block
 */
 typedef struct {
@@ -48,6 +56,11 @@ uint32_t sc_sm4_init(sc_sm4_t *sm4, uint32_t idx);
   \return      None
 */
 void sc_sm4_uninit(sc_sm4_t *sm4);
+
+/**
+  \brief       Sm4 data transfer config
+*/
+uint32_t sc_sm4_trans_config(sc_sm4_t *sm4, sc_sm4_trans_mode_t mode);
 
 /**
   \brief       Set encrypt key
@@ -234,7 +247,7 @@ uint32_t sc_sm4_ctr_decrypt(sc_sm4_t *sm4, uint8_t *in, uint8_t *out,
                               uint32_t size, uint8_t nonce_counter[16]);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif /* _SC_SM4_H_ */

@@ -48,5 +48,5 @@ void ctrl_init(int rank_num, int speed);
 void addrmap(int rank_num, enum DDR_BITWIDTH bits);
 void ctrl_en(enum DDR_BITWIDTH bits);
 void enable_auto_refresh(void);
-
+void lpddr4_auto_selref(void);
 #endif // DDR_COMMON_FUNCE_H

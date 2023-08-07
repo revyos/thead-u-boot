@@ -23,7 +23,7 @@ extern "C" {
 #define CSI_ECC_PUBKEY_LEN      (65-1)
 #define CSI_ECC_PRIVKEY_LEN     (32)
 #define CSI_ECC_PUBKEYTMP_LEN   (65)
-#define CSI_ECC_RK_LEN          (24) //random
+#define CSI_ECC_RK_LEN          (32) /*random*/
 #define CSI_ECC_SIGNATURE_LEN   (64)
 #define CSI_ECC_DIGEST_LEN      (32)
 
@@ -31,7 +31,7 @@ extern "C" {
 #define ECC_PRIME_CURVE_P_BYTES (70)
 
 typedef struct {
-    uint32_t ecc_curve : 1; ///< supports 256bits curve
+    uint32_t ecc_curve : 1; /*supports 256bits curve*/
 } ecc_capabilities_t;
 
 /**
@@ -46,8 +46,8 @@ typedef enum {
 \brief ECC endian mode
 */
 typedef enum {
-    ECC_ENDIAN_LITTLE = 0, ///< Little Endian
-    ECC_ENDIAN_BIG         ///< Big Endian
+    ECC_ENDIAN_LITTLE = 0, /*Little Endian*/
+    ECC_ENDIAN_BIG         /*Big Endian*/
 } ecc_endian_mode_e;
 
 /**
@@ -64,12 +64,12 @@ typedef enum { ECC_Role_Sponsor = 0, ECC_Role_Responsor } ecc_exchange_role_e;
 
 /****** ECC Event *****/
 typedef enum {
-    ECC_EVENT_MAKE_KEY_COMPLETE = 0, ///< Make key completed
-    ECC_EVENT_ENCRYPT_COMPLETE,      ///< Encrypt completed
-    ECC_EVENT_DECRYPT_COMPLETE,      ///< Decrypt completed
-    ECC_EVENT_SIGN_COMPLETE,         ///< Sign completed
-    ECC_EVENT_VERIFY_COMPLETE,       ///< Verify completed
-    ECC_EVENT_EXCHANGE_KEY_COMPLETE, ///< Exchange key completed
+    ECC_EVENT_MAKE_KEY_COMPLETE = 0, /*Make key completed*/
+    ECC_EVENT_ENCRYPT_COMPLETE,      /*Encrypt completed*/
+    ECC_EVENT_DECRYPT_COMPLETE,      /*Decrypt completed*/
+    ECC_EVENT_SIGN_COMPLETE,         /*Sign completed*/
+    ECC_EVENT_VERIFY_COMPLETE,       /*Verify completed*/
+    ECC_EVENT_EXCHANGE_KEY_COMPLETE, /*Exchange key completed*/
 } ecc_event_e;
 
 /**
@@ -93,7 +93,7 @@ typedef struct {
 \brief ECC status
 */
 typedef struct {
-    uint32_t busy : 1; ///< Calculate busy flag
+    uint32_t busy : 1; /*Calculate busy flag*/
 } csi_ecc_state_t;
 
 /**
@@ -107,7 +107,7 @@ typedef struct {
     ecc_prime_curve_type  type;
 } csi_ecc_t;
 
-///< Pointer to \ref csi_ecc_callback_t : ECC Event call back.
+/*Pointer to \ref csi_ecc_callback_t : ECC Event call back.*/
 typedef void (*csi_ecc_callback_t)(ecc_event_e event);
 
 /**
@@ -300,7 +300,7 @@ csi_error_t csi_ecc_enable_pm(csi_ecc_t *ecc);
 void csi_ecc_disable_pm(csi_ecc_t *ecc);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif

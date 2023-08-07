@@ -23,16 +23,10 @@ extern "C" {
 /**
   \brief       Get data from the TRNG engine
   \param[out]  data  Pointer to buffer with data get from TRNG
-  \param[in]   num   Number of data items in bytes
+  \param[in]   size   Size of data items in bytes
   \return      error code
 */
-uint32_t sc_rng_get_multi_byte(uint8_t *data, uint32_t num);
-
-/**
-  \brief       Get data from the TRNG engine
-  \return      error code
-*/
-uint32_t sc_rng_get_single_word(uint32_t *data);
+uint32_t sc_rng_get_random_bytes(uint8_t *data, uint32_t size);
 
 #ifdef __cplusplus
 }
