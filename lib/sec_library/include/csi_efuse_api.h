@@ -21,7 +21,7 @@ typedef enum {
 	IMAGE_ENCRYPT_EN = ~(IMAGE_ENCRYPT_DIS),
 } img_encrypt_st_t;
 
-int csi_efuse_api_int(void);
+int csi_efuse_api_init(void);
 void csi_efuse_api_uninit(void);
 
 int csi_efuse_get_secure_boot_st(sboot_st_t *sboot_st);
@@ -47,6 +47,8 @@ int csi_efuse_set_bl2_version(uint32_t version);
 int csi_efuse_read_raw(uint32_t addr, void *data, uint32_t cnt);
 
 int csi_efuse_write_raw(uint32_t addr, const void *data, uint32_t cnt);
+
+int csi_efuse_get_lc(int *lc);
 
 #ifdef __cplusplus
 }

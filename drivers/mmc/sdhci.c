@@ -136,9 +136,9 @@ static void sdhci_prepare_dma(struct sdhci_host *host, struct mmc_data *data,
 	unsigned char ctrl;
 
 	if (data->flags == MMC_DATA_READ)
-		host->start_addr = (dma_addr_t)data->dest;
+		host->start_addr = (dma_addr_t)(u64)data->dest;
 	else
-		host->start_addr = (dma_addr_t)data->src;
+		host->start_addr = (dma_addr_t)(u64)data->src;
 
 	ctrl = sdhci_readb(host, SDHCI_HOST_CONTROL);
 	ctrl &= ~SDHCI_CTRL_DMA_MASK;

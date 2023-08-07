@@ -13,6 +13,10 @@
 #include "avb_util.h"
 #include "avb_vbmeta_image.h"
 
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+#include "sec_library.h"
+#endif
+
 typedef struct IAvbKey {
   unsigned int len; /* Length of n[] in number of uint32_t */
   uint32_t n0inv;   /* -1 / n[0] mod 2^32 */
@@ -82,7 +86,19 @@ fail:
 static void iavb_free_parsed_key(IAvbKey* key) {
   avb_free(key);
 }
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
 
+static void hw_crypto_accel_init(void)
+{
+	static bool init = false;
+
+	if (!init) {
+		rambus_crypto_init();
+		init = true;
+	}
+}
+
+#else
 /* a[] -= mod */
 static void subM(const IAvbKey* key, uint32_t* a) {
   int64_t A = 0;
@@ -200,7 +216,7 @@ out:
     avb_free(aaR);
   }
 }
-
+#endif
 /* Verify a RSA PKCS1.5 signature against an expected hash.
  * Returns false on failure, true on success.
  */
@@ -212,6 +228,83 @@ bool avb_rsa_verify(const uint8_t* key,
                     size_t hash_num_bytes,
                     const uint8_t* padding,
                     size_t padding_num_bytes) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  IAvbKey* parsed_key = NULL;
+  uint8_t *nk = NULL;
+  uint8_t *n = NULL;
+  uint8_t *e = NULL;
+  int i;
+  bool success = false;
+  uint32_t key_bytes = 0;
+  sc_rsa_t  rsa;
+  sc_rsa_context_t rsa_ctx;
+
+  if (key == NULL || sig == NULL || hash == NULL || padding == NULL) {
+    avb_error("Invalid input.\n");
+    goto out;
+  }
+
+  parsed_key = iavb_parse_key_data(key, key_num_bytes);
+  if (parsed_key == NULL) {
+    avb_error("Error parsing key.\n");
+    goto out;
+  }
+  
+  if (padding_num_bytes != sig_num_bytes - hash_num_bytes) {
+    avb_error("Padding length does not match hash and signature lengths.\n");
+    goto out;
+  }
+
+  key_bytes = parsed_key->len * sizeof(uint32_t);
+  /* Currently, we only support RSA key 2048bits and SHA256 */
+  if ((key_bytes * 8 != 2048) || (hash_num_bytes * 8 != 256)) {
+    avb_error("Error unsupported keybits length.\n");
+    goto out;
+  }
+
+  nk = (uint8_t *)parsed_key->n;
+  n = avb_malloc(key_bytes);
+  if (n == NULL) {
+    avb_error("Error malloc n.\n");
+    goto out;
+  }
+  /* Reverse modular little endian */
+  for (i = 0; i < key_bytes; i++) {
+    n[i] = nk[key_bytes - i - 1];
+  }
+
+  e = avb_malloc(key_bytes);
+  if (e == NULL) {
+    avb_error("Error malloc e.\n");
+    goto out;
+  }
+  memset(e, 0, key_bytes);
+  /* public exponentiation. (65537} */
+  e[key_bytes-1] = 0x01; e[key_bytes-2] = 0x00; e[key_bytes-3] = 0x01; e[key_bytes-4] = 0x00;
+
+  hw_crypto_accel_init();
+  sc_rsa_init(&rsa, 0, SC_RSA_KEY_BITS_2048);
+
+  rsa_ctx.padding_type = SC_RSA_PADDING_MODE_PKCS1;
+  rsa_ctx.n = n;
+  rsa_ctx.e = e;
+  rsa_ctx.hash_type = SC_RSA_HASH_TYPE_SHA256;
+  rsa_ctx.is_crt = SC_RSA_CRT_DISABLE;
+  rsa_ctx.is_hash = SC_RSA_HASH_DISABLE;
+
+  success = sc_rsa_verify(&rsa, &rsa_ctx, (void *)hash, hash_num_bytes, (void *)sig, sig_num_bytes, SC_RSA_HASH_TYPE_SHA256);
+  sc_rsa_uninit(&rsa);
+
+out:
+  if (parsed_key != NULL) {
+    iavb_free_parsed_key(parsed_key);
+  }
+  if (e != NULL) {
+    avb_free(e);
+  }
+
+  return success;
+#else
   uint8_t* buf = NULL;
   IAvbKey* parsed_key = NULL;
   bool success = false;
@@ -272,4 +365,5 @@ out:
     avb_free(buf);
   }
   return success;
+#endif
 }

@@ -20,7 +20,10 @@
 #include "sec_crypto_sha.h"
 #include "sec_crypto_sm2.h"
 #include "sec_crypto_sm4.h"
-
+#include "sec_crypto_des.h"
+#include "sec_crypto_dsa.h"
+#include "sec_crypto_ecc.h"
+#include "sec_crypto_ecdh.h"
 #define SC_lOG(...)
 
 #endif

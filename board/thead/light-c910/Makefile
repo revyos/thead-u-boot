@@ -68,4 +68,5 @@ endif
 obj-y += light-sv/pll_io_test.o
 obj-y += light-sv/adc_test.o
 obj-y += version_rollback.o
+obj-$(CONFIG_AVB_VERIFY) += secimg_load.o
 endif

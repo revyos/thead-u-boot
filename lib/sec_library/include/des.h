@@ -25,17 +25,17 @@ extern "C" {
 \brief DES data transfer mode config
 */
 typedef enum {
-    DES_SLAVE_MODE = 0U,         ///< slave mode
-    DES_DMA_MODE,                ///< dma mode
+    DES_SLAVE_MODE = 0U,         /*slave mode*/
+    DES_DMA_MODE,                /*dma mode*/
 } csi_des_trans_mode_t;
 
 /**
 \brief DES key-len-bits type
 */
 typedef enum {
-    DES_KEY_LEN_BITS_64        = 0,        ///< 64 Data bits
-    DES_KEY_LEN_BITS_128,                  ///< 128 Data bits
-    DES_KEY_LEN_BITS_192,                  ///< 192 Data bits
+    DES_KEY_LEN_BITS_64        = 0,        /*64 Data bits*/
+    DES_KEY_LEN_BITS_128,                  /*128 Data bits*/
+    DES_KEY_LEN_BITS_192,                  /*192 Data bits*/
 } csi_des_key_bits_t;
 
 typedef enum{
@@ -51,7 +51,7 @@ typedef enum{
 #define DES_KEY_LEN_BYTES_24    (24)
 #define DES_KEY_LEN_BYTES_8     (8)
 
-#define DES_BLOCK_IV_SIZE       (16)
+#define DES_BLOCK_IV_SIZE       (8)
 #define DES_BLOCK_CRYPTO_SIZE   (8)
 #define TDES_BLOCK_CRYPTO_SIZE  (16)
 
@@ -65,8 +65,8 @@ typedef enum{
 \brief DES State
 */
 typedef struct {
-    uint32_t busy             : 1;        ///< Calculate busy flag
-    uint32_t error            : 1;        ///< Calculate error flag
+    uint32_t busy             : 1;        /*Calculate busy flag*/
+    uint32_t error            : 1;        /*Calculate error flag*/
 } csi_des_state_t;
 
 /**
@@ -74,7 +74,7 @@ typedef struct {
 */
 typedef struct {
     uint32_t            key_len_byte;
-    uint8_t             key[32];          ///< Data block being processed
+    uint8_t             key[32];          /*Data block being processed*/
     uint32_t            sca;
     uint32_t            is_kdf;
     uint32_t            is_dma;
@@ -212,7 +212,7 @@ csi_error_t csi_tdes_cbc_decrypt(csi_des_t *des, void *in, void *out, uint32_t s
   \param[in]   mode    \ref csi_des_trans_mode_t 
   \return      None
 */
-void csi_des_trans_config(csi_des_t *des, csi_des_trans_mode_t mode);
+csi_error_t csi_des_trans_config(csi_des_t *des, csi_des_trans_mode_t mode);
 
 #ifdef __cplusplus
 }

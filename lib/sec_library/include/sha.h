@@ -42,49 +42,58 @@ extern "C" {
 #define CSI_MD5_NEW_MODE        (0x00000003)
 #define CSI_SHA1_NEW_MODE       (0x00000005)
 
+/**
+\brief SHA data transfer mode config
+*/
+typedef enum {
+    SHA_SLAVE_MODE = 0U,         /*slave mode*/
+    SHA_DMA_MODE,                /*dma mode*/
+} csi_sha_trans_mode_t;
+
 /****** SHA mode ******/
 typedef enum {
-    SHA_MODE_SHA1                 = 1U,   ///< SHA_1 mode
-    SHA_MODE_256,                         ///< SHA_256 mode
-    SHA_MODE_224,                         ///< SHA_224 mode
-    SHA_MODE_512,                         ///< SHA_512 mode
-    SHA_MODE_384,                         ///< SHA_384 mode
-    SHA_MODE_512_256,                     ///< SHA_512_256 mode
-    SHA_MODE_512_224,                     ///< SHA_512_224 mode
-    SHA_MODE_MD5                          ///< MD5 mode
+    SHA_MODE_SHA1                 = 1U,   /*SHA_1 mode*/
+    SHA_MODE_256,                         /*SHA_256 mode*/
+    SHA_MODE_224,                         /*SHA_224 mode*/
+    SHA_MODE_512,                         /*SHA_512 mode*/
+    SHA_MODE_384,                         /*SHA_384 mode*/
+    SHA_MODE_512_256,                     /*SHA_512_256 mode*/
+    SHA_MODE_512_224,                     /*SHA_512_224 mode*/
+    SHA_MODE_MD5                          /*MD5 mode*/
 } csi_sha_mode_t;
 
 /****** SHA State ******/
 typedef struct {
-    uint32_t busy             : 1;        ///< Calculate busy flag
-    uint32_t error            : 1;        ///< Calculate error flag
+    uint32_t busy             : 1;        /*Calculate busy flag*/
+    uint32_t error            : 1;        /*Calculate error flag*/
 } csi_sha_state_t;
 
 typedef struct {
-    csi_sha_mode_t  mode;                 ///< SHA mode
-    uint32_t        total[2];             ///< Number of bytes processed
-    uint32_t        state[16];            ///< Intermediate digest state
-    uint8_t         buffer[128];          ///< Data block being processed
-    uint8_t         result[64];           ///< Data block has processed
+    csi_sha_mode_t  mode;                 /*SHA mode*/
+    uint32_t        total[2];             /*Number of bytes processed*/
+    uint32_t        state[16];            /*Intermediate digest state*/
+    uint8_t         buffer[128];          /*Data block being processed*/
+    uint8_t         result[64];           /*Data block has processed*/
     uint32_t        process_len;
     uint32_t        digest_len;
+    uint32_t        is_dma;
 } csi_sha_context_t;
 
 /****** SHA Event ******/
 typedef enum {
-    SHA_EVENT_COMPLETE    = 0U,           ///< Calculate completed
+    SHA_EVENT_COMPLETE    = 0U,           /*Calculate completed*/
     SHA_EVENT_UPDATE,
     SHA_EVENT_START,
-    SHA_EVENT_ERROR                       ///< Calculate error
+    SHA_EVENT_ERROR                       /*Calculate error*/
 } csi_sha_event_t;
 
 typedef struct csi_sha csi_sha_t;
 
 struct csi_sha {
-    csi_dev_t               dev;                                          ///< SHA hw-device info
-    void (*callback)(csi_sha_t *sha, csi_sha_event_t event, void *arg);   ///< SHA event callback for user
-    void                    *arg;                                         ///< SHA custom designed param passed to evt_cb
-    csi_sha_state_t         state;                                        ///< SHA state
+    csi_dev_t               dev;                                          /*SHA hw-device info*/
+    void (*callback)(csi_sha_t *sha, csi_sha_event_t event, void *arg);   /*SHA event callback for user*/
+    void                    *arg;                                         /*SHA custom designed param passed to evt_cb*/
+    csi_sha_state_t         state;                                        /*SHA state*/
     void                    *priv;
 };
 
@@ -179,6 +188,13 @@ csi_error_t csi_sha_enable_pm(csi_sha_t *sha);
   \return      None
 */
 void csi_sha_disable_pm(csi_sha_t *sha);
+
+/**
+  \brief       Config SHA data transfer mode
+  \param[in]   mode    \ref csi_des_trans_mode_t 
+  \return      None
+*/
+csi_error_t csi_sha_trans_config(csi_sha_t *sha, csi_sha_context_t *context, csi_sha_trans_mode_t mode);
 
 #ifdef __cplusplus
 }

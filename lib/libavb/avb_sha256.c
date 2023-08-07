@@ -10,6 +10,7 @@
 
 #include "avb_sha.h"
 
+#if !defined(CONFIG_AVB_HW_ENGINE_ENABLE)
 #define SHFR(x, n) (x >> n)
 #define ROTR(x, n) ((x >> n) | (x << ((sizeof(x) << 3) - n)))
 #define ROTL(x, n) ((x << n) | (x >> ((sizeof(x) << 3) - n)))
@@ -83,9 +84,19 @@ static const uint32_t sha256_k[64] = {
     0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
     0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
     0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2};
+#endif
 
 /* SHA-256 implementation */
 void avb_sha256_init(AvbSHA256Ctx* ctx) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  if (ctx == NULL) {
+    return;
+  }
+
+  sc_sha_init(&ctx->sha_t, 0);
+  sc_sha_start(&ctx->sha_t, &ctx->sha_context, SC_SHA_MODE_256);
+  sc_sha_trans_config(&ctx->sha_t, &ctx->sha_context, 1);
+#else
 #ifndef UNROLL_LOOPS
   int i;
   for (i = 0; i < 8; i++) {
@@ -104,8 +115,10 @@ void avb_sha256_init(AvbSHA256Ctx* ctx) {
 
   ctx->len = 0;
   ctx->tot_len = 0;
+#endif
 }
 
+#if !defined(CONFIG_AVB_HW_ENGINE_ENABLE)
 static void SHA256_transform(AvbSHA256Ctx* ctx,
                              const uint8_t* message,
                              size_t block_nb) {
@@ -304,8 +317,16 @@ static void SHA256_transform(AvbSHA256Ctx* ctx,
 #endif /* !UNROLL_LOOPS */
   }
 }
+#endif
 
 void avb_sha256_update(AvbSHA256Ctx* ctx, const uint8_t* data, size_t len) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  if (ctx == NULL || data == NULL) {
+    return;
+  }
+
+  sc_sha_update(&ctx->sha_t, &ctx->sha_context, data, len);
+#else
   size_t block_nb;
   size_t new_len, rem_len, tmp_len;
   const uint8_t* shifted_data;
@@ -334,9 +355,25 @@ void avb_sha256_update(AvbSHA256Ctx* ctx, const uint8_t* data, size_t len) {
 
   ctx->len = rem_len;
   ctx->tot_len += (block_nb + 1) << 6;
+#endif
 }
 
 uint8_t* avb_sha256_final(AvbSHA256Ctx* ctx) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  uint32_t len = 0;
+  uint32_t ret = 0;
+  
+  if (ctx == NULL) {
+    return NULL;
+  }
+
+  ret = sc_sha_finish(&ctx->sha_t, &ctx->sha_context, ctx->buf, &len);
+  if (ret != 0) {
+    return NULL;
+  }
+
+  return ctx->buf;
+#else
   size_t block_nb;
   size_t pm_len;
   uint64_t len_b;
@@ -372,4 +409,5 @@ uint8_t* avb_sha256_final(AvbSHA256Ctx* ctx) {
 #endif /* !UNROLL_LOOPS */
 
   return ctx->buf;
+#endif
 }

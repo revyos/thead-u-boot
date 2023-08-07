@@ -40,24 +40,52 @@ extern "C" {
 #define RSA_SHA384_OID_LEN      (6 + 9 + 4)
 #define RSA_SHA512_OID_LEN      (6 + 9 + 4)
 
+#define RSA_192_A_LEN_WORDS     (0x03)
+#define RSA_192_B_LEN_WORDS     (0x03)
+#define RSA_192_D_LEN_WORDS     (0x18)
+
+#define RSA_256_A_LEN_WORDS     (0x04)
+#define RSA_256_B_LEN_WORDS     (0x04)
+#define RSA_256_D_LEN_WORDS     (0x20)
+
+#define RSA_512_A_LEN_WORDS     (0x08)
+#define RSA_512_B_LEN_WORDS     (0x08)
+#define RSA_512_D_LEN_WORDS     (0x40)
+
+#define RSA_1024_A_LEN_WORDS    (0x10)
+#define RSA_1024_B_LEN_WORDS    (0x10)
+#define RSA_1024_D_LEN_WORDS    (0x80)
+
+#define RSA_2048_A_LEN_WORDS    (0x20)
+#define RSA_2048_B_LEN_WORDS    (0x20)
+#define RSA_2048_D_LEN_WORDS    (0x100)
+
+#define RSA_3072_A_LEN_WORDS    (0x30)
+#define RSA_3072_B_LEN_WORDS    (0x30)
+#define RSA_3072_D_LEN_WORDS    (0x180)
+
+#define RSA_4096_A_LEN_WORDS    (0x40)
+#define RSA_4096_B_LEN_WORDS    (0x40)
+#define RSA_4096_D_LEN_WORDS    (0x200)
+
 /*----- RSA Control Codes: Mode Parameters: Key Bits -----*/
 typedef enum {
-    RSA_KEY_BITS_192             = 0,  ///< 192 Key bits
-    RSA_KEY_BITS_256,                  ///< 256 Key bits
-    RSA_KEY_BITS_512,                  ///< 512 Key bits
-    RSA_KEY_BITS_1024,                 ///< 1024 Key bits
-    RSA_KEY_BITS_2048,                 ///< 2048 Key bits
-    RSA_KEY_BITS_3072,                 ///< 3072 Key bits
-    RSA_KEY_BITS_4096                  ///< 4096 Key bits
+    RSA_KEY_BITS_192             = 0,  /*192 Key bits*/
+    RSA_KEY_BITS_256,                  /*256 Key bits*/
+    RSA_KEY_BITS_512,                  /*512 Key bits*/
+    RSA_KEY_BITS_1024,                 /*1024 Key bits*/
+    RSA_KEY_BITS_2048,                 /*2048 Key bits*/
+    RSA_KEY_BITS_3072,                 /*3072 Key bits*/
+    RSA_KEY_BITS_4096                  /*4096 Key bits*/
 } csi_rsa_key_bits_t;
 
 typedef enum {
-    RSA_PADDING_MODE_NO           = 0, ///< RSA NO Padding Mode
-    RSA_PADDING_MODE_PKCS1,            ///< RSA PKCS1 Padding Mode
-    RSA_PADDING_MODE_PKCS1_OAEP,       ///< RSA PKCS1 OAEP Padding Mode
-    RSA_PADDING_MODE_SSLV23,           ///< RSA SSLV23 Padding Mode
-    RSA_PADDING_MODE_X931,             ///< RSA X931 Padding Mode
-    RSA_PADDING_MODE_PSS               ///< RSA PSS Padding Mode
+    RSA_PADDING_MODE_NO           = 0, /*RSA NO Padding Mode*/
+    RSA_PADDING_MODE_PKCS1,            /*RSA PKCS1 Padding Mode*/
+    RSA_PADDING_MODE_PKCS1_OAEP,       /*RSA PKCS1 OAEP Padding Mode*/
+    RSA_PADDING_MODE_SSLV23,           /*RSA SSLV23 Padding Mode*/
+    RSA_PADDING_MODE_X931,             /*RSA X931 Padding Mode*/
+    RSA_PADDING_MODE_PSS               /*RSA PSS Padding Mode*/
 } csi_rsa_padding_type_t;
 
 typedef enum {
@@ -69,6 +97,30 @@ typedef enum {
     RSA_HASH_TYPE_SHA512
 } csi_rsa_hash_type_t;
 
+typedef enum {
+    RSA_CRT_DISABLE            = 0,
+    RSA_CRT_ENABLE = 1,
+} csi_rsa_crt_t;
+
+typedef enum {
+    RSA_HASH_DISABLE            = 0,
+    RSA_HASH_ENABLE = 1,
+} csi_rsa_hash_t;
+
+typedef struct {
+    csi_rsa_key_bits_t  type;
+    uint32_t        rsa_pka_dp_offset;
+    uint32_t        rsa_pka_dq_offset;
+    uint32_t        rsa_pka_p_offset;
+    uint32_t        rsa_pka_q_offset;
+    uint32_t        rsa_pka_qinv_offset;
+    uint32_t        rsa_pka_m_offset;
+    uint32_t        rsa_pka_r_offset;
+    uint32_t        rsa_pka_A_len;
+    uint32_t        rsa_pka_B_len;
+    uint32_t        rsa_pka_D_len;
+} csi_rsa_pka_offset_t;
+
 typedef struct {
     csi_rsa_hash_type_t hash_type;
     uint32_t            oid_len;
@@ -76,19 +128,26 @@ typedef struct {
 }RSA_OID;
 
 typedef struct {
-    void *n;                                ///< Pointer to the public modulus
-    void *e;                                ///< Pointer to the public exponent
-    void *d;                                ///< Pointer to the private exponent
-    csi_rsa_key_bits_t     key_bits;        ///< RSA KEY BITS
-    csi_rsa_padding_type_t padding_type;    ///< RSA PADDING TYPE
+    void *n;                                /*Pointer to the public modulus*/
+    void *e;                                /*Pointer to the public exponent*/
+    void *d;                                /*Pointer to the private exponent*/
+    void *p;
+    void *q;
+    void *dp;
+    void *dq;
+    void *qinv;
+    csi_rsa_crt_t          is_crt;
+    csi_rsa_hash_t         is_hash;
+    csi_rsa_key_bits_t     key_bits;        /*RSA KEY BITS*/
+    csi_rsa_padding_type_t padding_type;    /*RSA PADDING TYPE*/
 } csi_rsa_context_t;
 
 /**
 \brief RSA State
 */
 typedef struct {
-    uint8_t busy             : 1;        ///< Calculate busy flag
-    uint8_t error            : 1;        ///< Calculate error flag
+    uint8_t busy             : 1;        /*Calculate busy flag*/
+    uint8_t error            : 1;        /*Calculate error flag*/
 } csi_rsa_state_t;
 
 typedef struct {
@@ -113,13 +172,13 @@ typedef struct {
 
 /****** RSA Event *****/
 typedef enum {
-    RSA_EVENT_COMPLETE    = 0,   ///< rsa event completed
+    RSA_EVENT_COMPLETE    = 0,   /*rsa event completed*/
     RSA_EVENT_VERIFY_SUCCESS,
     RSA_EVENT_VERIFY_FAILED,
-    RSA_EVENT_ERROR,             ///< error event
+    RSA_EVENT_ERROR,             /*error event*/
 } csi_rsa_event_t;
 
-typedef void (*csi_rsa_callback_t)(csi_rsa_t *rsa, csi_rsa_event_t event, void *arg);   ///< Pointer to \ref csi_rsa_callback_t : RSA Event call back.
+typedef void (*csi_rsa_callback_t)(csi_rsa_t *rsa, csi_rsa_event_t event, void *arg);   /*Pointer to \ref csi_rsa_callback_t : RSA Event call back.*/
 
 /**
   \brief       Initialize RSA Interface. 1. Initializes the resources needed for the RSA interface 2.registers event callback function

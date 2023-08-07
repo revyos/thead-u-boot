@@ -37,7 +37,7 @@ extern "C" {
 csi_error_t csi_ecdh_calc_secret(csi_ecc_t *ecc, uint8_t privkey[32], uint8_t pubkey[65], uint8_t shareKey[32], uint32_t *len);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif

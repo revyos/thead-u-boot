@@ -24,7 +24,28 @@ extern "C" {
 #define SM4_KEY_LEN_BYTES_24 (24)
 #define SM4_KEY_LEN_BYTES_16 (16)
 
-#define SM4_IV_LEN_BYTES_16  (16)
+#define SM4_KEY_128_BITS     (0x08)
+#define SM4_KEY_192_BITS     (0x10)
+#define SM4_KEY_256_BITS     (0x18)
+
+#define SM4_IV_LEN_BYTES_16   (16)
+#define SM4_BLOCK_CRYPTO_SIZE (16)
+
+#define SM4_DIR_ENCRYPT       (1)
+#define SM4_DIR_DECRYPT       (0)
+
+/**
+\brief SM4 data transfer mode config
+*/
+typedef enum {
+    SM4_SLAVE_MODE = 0U,         /*slave mode*/
+    SM4_DMA_MODE,                /*dma mode*/
+} csi_sm4_trans_mode_t;
+
+typedef enum{
+    SM4_MODE_ECB = 0,
+    SM4_MODE_CBC = 0x20000020,
+} csi_sm4_mode_t;
 
 typedef enum {
     SM4_KEY_LEN_BITS_128        = 0,       /*128 Data bits*/
@@ -32,14 +53,15 @@ typedef enum {
 } csi_sm4_key_bits_t;
 
 typedef struct {
-    uint32_t busy             : 1;        ///< Calculate busy flag
-    uint32_t error            : 1;        ///< Calculate error flag
+    uint32_t busy             : 1;        /*Calculate busy flag*/
+    uint32_t error            : 1;        /*Calculate error flag*/
 } csi_sm4_state_t;
 
 typedef struct {
     uint32_t            key_len_byte;
-    uint8_t             key[32];          ///< Data block being processed
+    uint8_t             key[32];          /*Data block being processed*/
     uint32_t            sca;
+    uint32_t            is_dma;
 } csi_sm4_context_t;
 
 /**
@@ -53,7 +75,7 @@ typedef struct {
     uint32_t          is_kdf;
 } csi_sm4_t;
 
-// Function documentation
+/*Function documentation*/
 /**
   \brief       Initialize sm4 Interface. Initializes the resources needed for the sm4 interface
   \param[in]   sm4    operate handle
@@ -68,6 +90,13 @@ csi_error_t csi_sm4_init(csi_sm4_t *sm4, uint32_t idx);
   \return      None
 */
 void csi_sm4_uninit(csi_sm4_t *sm4);
+
+/**
+  \brief       Config SM4 data transfer mode
+  \param[in]   mode    \ref csi_sm4_trans_mode_t 
+  \return      error code \ref csi_error_t
+*/
+csi_error_t csi_sm4_trans_config(csi_sm4_t *aes, csi_sm4_trans_mode_t mode);
 
 /**
   \brief       Set encrypt key
@@ -266,7 +295,7 @@ csi_error_t csi_sm4_enable_pm(csi_sm4_t *sm4);
 void csi_sm4_disable_pm(csi_sm4_t *sm4);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif // _DRV_SM4_H_

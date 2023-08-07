@@ -10,6 +10,7 @@
 
 #include "avb_sha.h"
 
+#if !defined(CONFIG_AVB_HW_ENGINE_ENABLE)
 #define SHFR(x, n) (x >> n)
 #define ROTR(x, n) ((x >> n) | (x << ((sizeof(x) << 3) - n)))
 #define ROTL(x, n) ((x << n) | (x >> ((sizeof(x) << 3) - n)))
@@ -101,10 +102,20 @@ static const uint64_t sha512_k[80] = {
     0x28db77f523047d84ULL, 0x32caab7b40c72493ULL, 0x3c9ebe0a15c9bebcULL,
     0x431d67c49c100d4cULL, 0x4cc5d4becb3e42b6ULL, 0x597f299cfc657e2aULL,
     0x5fcb6fab3ad6faecULL, 0x6c44198c4a475817ULL};
+#endif
 
 /* SHA-512 implementation */
 
 void avb_sha512_init(AvbSHA512Ctx* ctx) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  if (ctx == NULL) {
+    return;
+  }
+
+  sc_sha_init(&ctx->sha_t, 0);
+  sc_sha_start(&ctx->sha_t, &ctx->sha_context, SC_SHA_MODE_512);
+  sc_sha_trans_config(&ctx->sha_t, &ctx->sha_context, 1);
+#else
 #ifdef UNROLL_LOOPS_SHA512
   ctx->h[0] = sha512_h0[0];
   ctx->h[1] = sha512_h0[1];
@@ -123,8 +134,10 @@ void avb_sha512_init(AvbSHA512Ctx* ctx) {
 
   ctx->len = 0;
   ctx->tot_len = 0;
+#endif
 }
 
+#if !defined(CONFIG_AVB_HW_ENGINE_ENABLE)
 static void SHA512_transform(AvbSHA512Ctx* ctx,
                              const uint8_t* message,
                              size_t block_nb) {
@@ -290,8 +303,16 @@ static void SHA512_transform(AvbSHA512Ctx* ctx,
 #endif /* UNROLL_LOOPS_SHA512 */
   }
 }
+#endif
 
 void avb_sha512_update(AvbSHA512Ctx* ctx, const uint8_t* data, size_t len) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  if (ctx == NULL || data == NULL) {
+    return;
+  }
+
+  sc_sha_update(&ctx->sha_t, &ctx->sha_context, data, len);
+#else
   size_t block_nb;
   size_t new_len, rem_len, tmp_len;
   const uint8_t* shifted_data;
@@ -320,9 +341,25 @@ void avb_sha512_update(AvbSHA512Ctx* ctx, const uint8_t* data, size_t len) {
 
   ctx->len = rem_len;
   ctx->tot_len += (block_nb + 1) << 7;
+#endif
 }
 
 uint8_t* avb_sha512_final(AvbSHA512Ctx* ctx) {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  uint32_t len = 0;
+  uint32_t ret = 0;
+  
+  if (ctx == NULL) {
+    return NULL;
+  }
+
+  ret = sc_sha_finish(&ctx->sha_t, &ctx->sha_context, ctx->buf, &len);
+  if (ret != 0) {
+    return NULL;
+  }
+
+  return ctx->buf;
+#else
   size_t block_nb;
   size_t pm_len;
   uint64_t len_b;
@@ -358,4 +395,5 @@ uint8_t* avb_sha512_final(AvbSHA512Ctx* ctx) {
 #endif /* UNROLL_LOOPS_SHA512 */
 
   return ctx->buf;
+#endif
 }

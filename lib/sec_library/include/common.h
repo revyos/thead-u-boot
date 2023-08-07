@@ -134,6 +134,8 @@ typedef struct {
 
 csi_error_t target_get(csi_dev_tag_t dev_tag, uint32_t idx, csi_dev_t *dev);
 csi_error_t target_get_optimal_dma_channel(void *dma_list, uint32_t ctrl_num, csi_dev_t *parent_dev, void *ch_info);
+// void mdelay(uint32_t ms);
+// void udelay(uint32_t us);
 void msleep(uint32_t ms);
 
 #ifdef __cplusplus

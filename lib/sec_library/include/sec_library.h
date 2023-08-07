@@ -23,6 +23,10 @@
 #include "sec_crypto_kdf.h"
 #include "csi_efuse_api.h"
 #include "csi_efuse_api.h"
+#include "sec_crypto_des.h"
+#include "sec_crypto_dsa.h"
+#include "sec_crypto_ecc.h"
+#include "sec_crypto_ecdh.h"
 #include "csi_sec_img_verify.h"
 /* NOTE add more header */
 

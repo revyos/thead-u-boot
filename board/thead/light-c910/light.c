@@ -912,14 +912,14 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO1_2,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_3,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(GPIO1_4,PIN_SPEED_NORMAL,PIN_PN,2);
-#ifndef defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
+#if ! defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
 	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PN,2); //soc_vdd18_lcd0_en_reg --backup regulator
 #else
 	light_pin_cfg(GPIO1_9,PIN_SPEED_NORMAL,PIN_PU,2); //soc_vdd18_lcd0_en_reg
 #endif
 	light_pin_cfg(GPIO1_10,PIN_SPEED_NORMAL,PIN_PN,2);//soc_lcd0_bias_en_reg
 	light_pin_cfg(GPIO1_11,PIN_SPEED_NORMAL,PIN_PN,2);
-#ifndef defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
+#if ! defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER)
 	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PN,2);//reg_tp_pwr_en --touch pannel
 #else
 	light_pin_cfg(GPIO1_12,PIN_SPEED_NORMAL,PIN_PU,2);//reg_tp_pwr_en --touch pannel

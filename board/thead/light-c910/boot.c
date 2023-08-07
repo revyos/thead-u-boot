@@ -42,6 +42,7 @@ static unsigned int upgrade_image_version = 0;
 #define RPMB_EMMC_CID_SIZE 16
 #define RPMB_CID_PRV_OFFSET             9
 #define RPMB_CID_CRC_OFFSET             15
+#ifdef LIGHT_KDF_RPMB_KEY
 static int tee_rpmb_key_gen(uint8_t* key, uint32_t * length)
 {
 	uint32_t data[RPMB_EMMC_CID_SIZE / 4];
@@ -107,17 +108,17 @@ func_exit:
 	return ret;
 
 }
+#endif
 
 int csi_rpmb_write_access_key(void) 
 {
+#ifdef LIGHT_KDF_RPMB_KEY
     unsigned long *temp_rpmb_key_addr = NULL;
     char runcmd[64] = {0};
     uint8_t blkdata[256] = {0};
     __attribute__((__aligned__(8))) uint8_t kdf_rpmb_key[32];
-	uint32_t kdf_rpmb_key_length = 0;
+    uint32_t kdf_rpmb_key_length = 0;
 	int ret = 0;
-
-#ifdef LIGHT_KDF_RPMB_KEY
     /* Step1: retrive RPMB key from KDF function */
 	ret = tee_rpmb_key_gen(kdf_rpmb_key, &kdf_rpmb_key_length);
 	if (ret != 0) {
@@ -294,7 +295,7 @@ int csi_uboot_get_image_version(unsigned int *ver)
 	unsigned int ver_x = 0;
 	int ret = 0;
 
-	ret = csi_efuse_api_int();
+	ret = csi_efuse_api_init();
 	if (ret) {
 		printf("efuse api init fail \n");
 		return -1;
@@ -320,7 +321,6 @@ int csi_uboot_set_image_version(unsigned int ver)
 	//TODO
 	unsigned long long uboot_ver = 0;
 	unsigned char ver_x = (ver & 0xff00) >> 8;
-    char ver_str[32] = {0};
 
 	uboot_ver = env_get_hex("uboot_version", 0xffffffffffffffff);
 
@@ -343,7 +343,7 @@ int csi_uboot_set_image_version(unsigned int ver)
 		return 0;
 	}
 
-	ret = csi_efuse_api_int();
+	ret = csi_efuse_api_init();
 	if (ret) {
 		printf("efuse api init fail \n");
 		return -1;
@@ -410,6 +410,9 @@ int check_image_version_rule(unsigned int new_ver, unsigned int cur_ver)
 	new_ver_y = new_ver & 0xFF;
 	cur_ver_x = (cur_ver & 0xFF00) >> 8;
 	cur_ver_y = cur_ver & 0xFF;
+
+    (void)new_ver_y;
+    (void)cur_ver_y;
 
 	/* Ensure image version must be less than expected version */
 	if (new_ver_x < cur_ver_x) {
@@ -588,10 +591,8 @@ int light_secboot(int argc, char * const argv[])
 	int ret = 0;
 	unsigned long tf_addr = LIGHT_TF_FW_ADDR;
 	unsigned long tee_addr = LIGHT_TEE_FW_ADDR;
-    unsigned long kernel_addr = LIGHT_KERNEL_ADDR;
 	unsigned int tf_image_size = 0;
 	unsigned int tee_image_size = 0;
-	unsigned int kernel_image_size = 0;
 
 	printf("\n\n");
 	printf("Now, we start to verify all trust firmware before boot kernel !\n");
@@ -759,7 +760,7 @@ void sec_upgrade_thread(void)
 		} else {
             image_buffer = image_malloc_buffer;
         }
-        memcpy(image_buffer, temp_addr, upgrade_file_size);
+        memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
 
 		/* STEP 2: verify its authentiticy here */
 		sprintf(runcmd, "vimage 0x%p tf", (void *)temp_addr);
@@ -820,7 +821,7 @@ _upgrade_tf_exit:
 		} else {
             image_buffer = image_malloc_buffer;
         }
-        memcpy(image_buffer, temp_addr, upgrade_file_size);
+        memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
 
 		/* STEP 2: verify its authentiticy here */
 		sprintf(runcmd, "vimage 0x%p tee", (void *)temp_addr);

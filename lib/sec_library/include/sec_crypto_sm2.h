@@ -26,7 +26,7 @@ extern "C" {
 
 
 typedef struct {
-        uint32_t sm2_curve : 1; ///< supports 256bits curve
+        uint32_t sm2_curve : 1; /*supports 256bits curve*/
 } sc_sm2_capabilities_t;
 
 /**
@@ -38,15 +38,15 @@ typedef enum {
 } sc_sm2_cipher_order_e;
 
 typedef enum {
-        SC_SM2_ENDIAN_LITTLE = 0, ///< Little Endian
-        SC_SM2_ENDIAN_BIG         ///< Big Endian
+        SC_SM2_ENDIAN_LITTLE = 0, /*Little Endian*/
+        SC_SM2_ENDIAN_BIG         /*Big Endian*/
 } sc_sm2_endian_mode_e;
 
 /**
 \brief SM2 status
 */
 typedef struct {
-        uint32_t busy : 1; ///< Calculate busy flag
+        uint32_t busy : 1; /*Calculate busy flag*/
 } sc_sm2_state_t;
 
 /**
@@ -56,12 +56,12 @@ typedef enum { SC_SM2_Role_Sponsor = 0, SC_SM2_Role_Responsor } sc_sm2_exchange_
 
 /****** SM2 Event *****/
 typedef enum {
-        SC_SM2_EVENT_MAKE_KEY_COMPLETE = 0, ///< Make key completed
-        SC_SM2_EVENT_ENCRYPT_COMPLETE,      ///< Encrypt completed
-        SC_SM2_EVENT_DECRYPT_COMPLETE,      ///< Decrypt completed
-        SC_SM2_EVENT_SIGN_COMPLETE,         ///< Sign completed
-        SC_SM2_EVENT_VERIFY_COMPLETE,       ///< Verify completed
-        SC_SM2_EVENT_EXCHANGE_KEY_COMPLETE, ///< Exchange key completed
+        SC_SM2_EVENT_MAKE_KEY_COMPLETE = 0, /*Make key completed*/
+        SC_SM2_EVENT_ENCRYPT_COMPLETE,      /*Encrypt completed*/
+        SC_SM2_EVENT_DECRYPT_COMPLETE,      /*Decrypt completed*/
+        SC_SM2_EVENT_SIGN_COMPLETE,         /*Sign completed*/
+        SC_SM2_EVENT_VERIFY_COMPLETE,       /*Verify completed*/
+        SC_SM2_EVENT_EXCHANGE_KEY_COMPLETE, /*Exchange key completed*/
 } sc_sm2_event_e;
 
 typedef struct {
@@ -70,7 +70,7 @@ typedef struct {
 #endif
 } sc_sm2_t;
 
-///< Pointer to \ref sc_sm2_callback_t : SM2 Event call back.
+/*Pointer to \ref sc_sm2_callback_t : SM2 Event call back.*/
 typedef void (*sc_sm2_callback_t)(sc_sm2_event_e event);
 
 /**
@@ -239,7 +239,7 @@ uint32_t sc_sm2_getE(sc_sm2_t *sm2, uint8_t *m, uint32_t len, uint8_t z[32], uin
 uint32_t sc_sm2_get_state(sc_sm2_t *sm2, sc_sm2_state_t *state);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif

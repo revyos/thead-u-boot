@@ -40,26 +40,26 @@ extern "C" {
 #include "sec_crypto_errcode.h"
 
 
-//TODO Del this file after updating to sc2.0
+/*TODO Del this file after updating to sc2.0*/
 
 /*----- RSA Control Codes: Mode Parameters: Key Bits -----*/
 typedef enum {
-    SC_RSA_KEY_BITS_192 = 0, ///< 192 Key bits
-    SC_RSA_KEY_BITS_256,     ///< 256 Key bits
-    SC_RSA_KEY_BITS_512,     ///< 512 Key bits
-    SC_RSA_KEY_BITS_1024,    ///< 1024 Key bits
-    SC_RSA_KEY_BITS_2048,    ///< 2048 Key bits
-    SC_RSA_KEY_BITS_3072,    ///< 3072 Key bits
-    SC_RSA_KEY_BITS_4096     ///< 4096 Key bits
+    SC_RSA_KEY_BITS_192 = 0, /*192 Key bits*/
+    SC_RSA_KEY_BITS_256,     /*256 Key bits*/
+    SC_RSA_KEY_BITS_512,     /*512 Key bits*/
+    SC_RSA_KEY_BITS_1024,    /*1024 Key bits*/
+    SC_RSA_KEY_BITS_2048,    /*2048 Key bits*/
+    SC_RSA_KEY_BITS_3072,    /*3072 Key bits*/
+    SC_RSA_KEY_BITS_4096     /*4096 Key bits*/
 } sc_rsa_key_bits_t;
 
 typedef enum {
-    SC_RSA_PADDING_MODE_NO = 0,     ///< RSA NO Padding Mode
-    SC_RSA_PADDING_MODE_PKCS1,      ///< RSA PKCS1 Padding Mode
-    SC_RSA_PADDING_MODE_PKCS1_OAEP, ///< RSA PKCS1 OAEP Padding Mode
-    SC_RSA_PADDING_MODE_SSLV23,     ///< RSA SSLV23 Padding Mode
-    SC_RSA_PADDING_MODE_X931,       ///< RSA X931 Padding Mode
-    SC_RSA_PADDING_MODE_PSS         ///< RSA PSS Padding Mode
+    SC_RSA_PADDING_MODE_NO = 0,     /*RSA NO Padding Mode*/
+    SC_RSA_PADDING_MODE_PKCS1,      /*RSA PKCS1 Padding Mode*/
+    SC_RSA_PADDING_MODE_PKCS1_OAEP, /*RSA PKCS1 OAEP Padding Mode*/
+    SC_RSA_PADDING_MODE_SSLV23,     /*RSA SSLV23 Padding Mode*/
+    SC_RSA_PADDING_MODE_X931,       /*RSA X931 Padding Mode*/
+    SC_RSA_PADDING_MODE_PSS         /*RSA PSS Padding Mode*/
 } sc_rsa_padding_type_t;
 
 typedef enum {
@@ -71,25 +71,40 @@ typedef enum {
     SC_RSA_HASH_TYPE_SHA512
 } sc_rsa_hash_type_t;
 
+typedef enum {
+    SC_RSA_CRT_DISABLE = 0,
+    SC_RSA_CRT_ENABLE,
+} sc_rsa_crt_t;
+
+typedef enum {
+    SC_RSA_HASH_DISABLE = 0,
+    SC_RSA_HASH_ENABLE,
+} sc_rsa_hash_t;
+
+
+/* the private key is the quintuplet(p, q, qinv, dp, dq) with CRT */
 typedef struct {
-// #if (defined(CONFIG_SYSTEM_SECURE) && defined(CONFIG_CSI_V2))
-//   csi_rsa_context_t rsa_ctx;
-// #else
-    void *                 n;            ///< Pointer to the public modulus
-    void *                 e;            ///< Pointer to the public exponent
-    void *                 d;            ///< Pointer to the private exponent
-    sc_rsa_key_bits_t     key_bits;     ///< RSA KEY BITS
-    sc_rsa_padding_type_t padding_type; ///< RSA PADDING TYPE
-    sc_rsa_hash_type_t hash_type;
-// #endif
+    void *                 n;            /*Pointer to the public modulus*/
+    void *                 e;            /*Pointer to the public exponent*/
+    void *                 d;            /*Pointer to the private exponent*/
+    void *                 p;            /*Pointer to the private key param p with CRT*/ 
+    void *                 q;            /*Pointer to the private key param q with CRT*/
+    void *                 dp;           /*Pointer to the private key param dp with CRT*/
+    void *                 dq;           /*Pointer to the private key param dq with CRT*/
+    void *                 qinv;         /*Pointer to the private key param qinv with CRT*/
+    sc_rsa_crt_t           is_crt;       /*Enable RSA with CRT*/
+    sc_rsa_hash_t          is_hash;      /*Enable RSA with HASH*/
+    sc_rsa_key_bits_t      key_bits;     /*RSA KEY BITS*/
+    sc_rsa_padding_type_t  padding_type; /*RSA PADDING TYPE*/
+    sc_rsa_hash_type_t     hash_type;
 } sc_rsa_context_t;
 
 /**
 \brief RSA State
 */
 typedef struct {
-    uint8_t busy : 1;  ///< Calculate busy flag
-    uint8_t error : 1; ///< Calculate error flag
+    uint8_t busy : 1;  /*Calculate busy flag*/
+    uint8_t error : 1; /*Calculate error flag*/
 } sc_rsa_state_t;
 
 typedef struct {
@@ -109,17 +124,17 @@ typedef struct {
 
 /****** RSA Event *****/
 typedef enum {
-    SC_RSA_EVENT_COMPLETE = 0, ///< rsa event completed
+    SC_RSA_EVENT_COMPLETE = 0, /*rsa event completed*/
     SC_RSA_EVENT_VERIFY_SUCCESS,
     SC_RSA_EVENT_VERIFY_FAILED,
-    SC_RSA_EVENT_ERROR, ///< error event
+    SC_RSA_EVENT_ERROR, /*error event*/
 } sc_rsa_event_t;
 
 typedef void (*sc_rsa_callback_t)(
     sc_rsa_t *rsa, sc_rsa_event_t event,
-    void *arg); ///< Pointer to \ref sc_rsa_callback_t : RSA Event call back.
+    void *arg); /*Pointer to \ref sc_rsa_callback_t : RSA Event call back.*/
 
-// Function documentation
+/*Function documentation*/ 
 
 /**
   \brief       Initialize RSA Interface. 1. Initializes the resources needed for the RSA interface 2.registers event callback function

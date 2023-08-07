@@ -165,6 +165,7 @@ static const struct regulator_t g_apcpu_regu_id_list[] = {
 	}
 };
 #else
+#if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
 /**
  * board for EB064A10/EB064A11
  *
@@ -183,6 +184,7 @@ static const struct regulator_t g_regu_id_list[] = {
 		REGU_ID_DEF(IIC_IDX_AONIIC,DDR_VDD_REGU_1V1,0x5A,0xA7,0,1,CONFIG_DDR_REGU_1V1,800000,1500000,20000,0),
 	}
 };
+#endif
 
 static const struct regulator_t g_apcpu_regu_id_list[] = {
 	{
@@ -236,7 +238,7 @@ static int wait_iic_receive(dw_iic_regs_t *iic_base, uint32_t wait_data_num, uin
 }
 
 
-unsigned long soc_get_iic_freq(uint32_t idx)
+static unsigned long soc_get_iic_freq(uint32_t idx)
 {
 	if (idx == IIC_IDX_AONIIC){
 		return 49152000U;
@@ -651,6 +653,7 @@ int32_t csi_iic_mem_receive_sr(csi_iic_t *iic, uint32_t devaddr, uint16_t memadd
     return read_count;
 }
 
+#if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_A) ||defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
 static int pmic_read_reg_sr(csi_iic_t *iic_handle,uint16_t dev_addr,uint32_t offset, uint32_t *val)
 {
 	int32_t num;
@@ -662,6 +665,7 @@ static int pmic_read_reg_sr(csi_iic_t *iic_handle,uint16_t dev_addr,uint32_t off
 	*val = temp[0];
 	return 0;
 }
+#endif
 
 static int pmic_write_reg(csi_iic_t *iic_handle,uint16_t dev_addr,uint32_t offset, uint32_t val)
 {
@@ -688,6 +692,7 @@ static int pmic_write_reg(csi_iic_t *iic_handle,uint16_t dev_addr,uint32_t offse
 	return 0;
 }
 
+#if !defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_A) && !defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
 static int pmic_read_reg(csi_iic_t *iic_handle,uint16_t dev_addr,uint32_t offset, uint32_t *val)
 {
 	int32_t num;
@@ -716,6 +721,7 @@ static int pmic_read_reg(csi_iic_t *iic_handle,uint16_t dev_addr,uint32_t offset
 	*val = temp[0];
 	return 0;
 }
+#endif 
 
 static int _pmic_ddr_regu_init(uint32_t idx)
 {
@@ -818,13 +824,14 @@ int pmic_ddr_regu_init(void)
 int pmic_ddr_set_voltage(void)
 {
 	int ret = 0;
+
+#if 0 //currently,no need to modify ddr regulator voltage
 	uint32_t val = 0;
 	uint32_t regu_num = ARRAY_SIZE(g_regu_id_list);
 	uint32_t i;
 	struct regulator_t *pregu;
 	csi_iic_t          *dev_handle;
 
-#if 0 //currently,no need to modify ddr regulator voltage
 	pregu = (struct regulator_t*)g_regu_id_list;
 	for (i = 0; i < regu_num; i++, pregu++) {
 		if (pregu->regu_vol_target < pregu->regu_vol_min || pregu->regu_vol_target > pregu->regu_vol_max)
@@ -838,6 +845,10 @@ int pmic_ddr_set_voltage(void)
 #endif
 
 #if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B)
+	uint32_t val = 0;
+	struct regulator_t *pregu;
+	csi_iic_t          *dev_handle;
+
 	/*enable lcd0_en ldo*/
 	pregu = (struct regulator_t*)&g_regu_id_list[LCD0_EN];
 	dev_handle = pmic_get_iic_handle(pregu->iic_id);

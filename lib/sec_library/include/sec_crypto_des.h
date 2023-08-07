@@ -35,17 +35,17 @@ extern "C" {
 \brief DES data transfer mode config
 */
 typedef enum {
-    SC_DES_SLAVE_MODE = 0U,         ///< slave mode
-    SC_DES_DMA_MODE,                ///< dma mode
+    SC_DES_SLAVE_MODE = 0U,         /*slave mode*/
+    SC_DES_DMA_MODE,                /*dma mode*/
 } sc_des_trans_mode_t;
 
 /**
 \brief DES key-len-bits type
 */
 typedef enum {
-    SC_DES_KEY_LEN_BITS_64 = 0U,    ///< 64 Data bits
-    SC_DES_KEY_LEN_BITS_128,        ///< 128 Data bits
-    SC_TDES_KEY_LEN_BITS_192,       ///< 192 Data bits
+    SC_DES_KEY_LEN_BITS_64 = 0U,    /*64 Data bits*/
+    SC_TDES_KEY_LEN_BITS_128,       /*128 Data bits*/
+    SC_TDES_KEY_LEN_BITS_192,       /*192 Data bits*/
 } sc_des_key_bits_t;
 
 /**
@@ -60,7 +60,6 @@ typedef struct {
 #endif
 #ifdef CONFIG_CSI_V2
     csi_des_t     csi_des;
-    //unsigned char sc_ctx[SC_DES_CTX_SIZE];
 #endif
 #endif
 #if defined(CONFIG_TEE_CA)
@@ -70,7 +69,6 @@ typedef struct {
 #if defined(CONFIG_SEC_CRYPTO_DES_SW)
     sc_mbedtls_des_context des_ctx;
 #endif
-    //void *ctx;
 } sc_des_t;
 
 // Function documentation
@@ -196,7 +194,7 @@ uint32_t sc_tdes_cbc_decrypt(sc_des_t *des, void *in, void *out, uint32_t size, 
   \param[in]   mode    \ref sc_des_trans_mode_t 
   \return      None
 */
-void sc_des_trans_config(sc_des_t *des, sc_des_trans_mode_t mode) ;
+uint32_t sc_des_trans_config(sc_des_t *des, sc_des_trans_mode_t mode) ;
 
 #ifdef __cplusplus
 }
