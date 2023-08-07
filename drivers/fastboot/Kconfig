@@ -2,7 +2,7 @@ menu "Fastboot support"
 
 config FASTBOOT
 	bool
-	imply ANDROID_BOOT_IMAGE
+	# imply ANDROID_BOOT_IMAGE
 	imply CMD_FASTBOOT
 
 config USB_FUNCTION_FASTBOOT

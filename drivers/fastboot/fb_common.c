@@ -118,7 +118,11 @@ void fastboot_boot(void)
 #ifdef THEAD_LIGHT_FASTBOOT
 	char cmdbuf[32];
 
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+	sprintf(cmdbuf, "run bootcmd");
+#else
 	sprintf(cmdbuf, "bootslave; run set_bootargs; booti %s - %s", LIGHT_KERNEL_ADDR_CMD, LIGHT_DTB_ADDR_CMD);
+#endif
 	printf("fastboot bootcmd %s\n", cmdbuf);
 	run_command(cmdbuf, 0);
 

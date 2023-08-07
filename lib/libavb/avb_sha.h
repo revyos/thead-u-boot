@@ -20,6 +20,9 @@ extern "C" {
 
 #include "avb_crypto.h"
 #include "avb_sysdeps.h"
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+#include "sec_library.h"
+#endif
 
 /* Block size in bytes of a SHA-256 digest. */
 #define AVB_SHA256_BLOCK_SIZE 64
@@ -30,19 +33,29 @@ extern "C" {
 
 /* Data structure used for SHA-256. */
 typedef struct {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  sc_sha_t sha_t;
+  sc_sha_context_t sha_context;
+#else
   uint32_t h[8];
   uint64_t tot_len;
   size_t len;
   uint8_t block[2 * AVB_SHA256_BLOCK_SIZE];
+#endif
   uint8_t buf[AVB_SHA256_DIGEST_SIZE]; /* Used for storing the final digest. */
 } AvbSHA256Ctx;
 
 /* Data structure used for SHA-512. */
 typedef struct {
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+  sc_sha_t sha_t;
+  sc_sha_context_t sha_context;
+#else
   uint64_t h[8];
   uint64_t tot_len;
   size_t len;
   uint8_t block[2 * AVB_SHA512_BLOCK_SIZE];
+#endif
   uint8_t buf[AVB_SHA512_DIGEST_SIZE]; /* Used for storing the final digest. */
 } AvbSHA512Ctx;
 

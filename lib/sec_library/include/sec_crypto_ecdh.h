@@ -45,7 +45,7 @@ uint32_t sc_ecdh_calc_secret(sc_ecc_t *ecc, uint8_t privkey[32],
                             uint32_t *len, sc_ecc_curve_type type) ;
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif

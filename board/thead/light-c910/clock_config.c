@@ -1146,6 +1146,7 @@ void ap_mipi_dsi1_clk_endisable(bool en)
 	writel(cfg1, (void __iomem *)AP_DPU1_PLL_CFG1);
 }
 
+#if defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_DISCRETE) || defined (CONFIG_TARGET_LIGHT_FM_C910_BEAGLE) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_ANT_REF) || defined (CONFIG_TARGET_LIGHT_FM_C910_B_POWER) || defined (CONFIG_TARGET_LIGHT_FM_C910_VAL_B) || defined (CONFIG_TARGET_LIGHT_FM_C910_LPI4A)
 static void ap_multimedia_div_num_set(enum multimedia_div_type type, unsigned int div_num)
 {
 	unsigned long div_reg;
@@ -1209,6 +1210,7 @@ static void ap_multimedia_div_num_set(enum multimedia_div_type type, unsigned in
 	div_cfg |= div_en;
 	writel(div_cfg, (void __iomem *)div_reg);
 }
+#endif
 
 int clk_config(void)
 {

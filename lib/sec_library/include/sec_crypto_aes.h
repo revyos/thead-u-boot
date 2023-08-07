@@ -35,17 +35,17 @@ extern "C" {
 \brief AES data transfer mode config
 */
 typedef enum {
-    SC_AES_SLAVE_MODE = 0U,         ///< slave mode
-    SC_AES_DMA_MODE,                ///< dma mode
+    SC_AES_SLAVE_MODE = 0U,         /*slave mode*/
+    SC_AES_DMA_MODE,                /*dma mode*/
 } sc_aes_trans_mode_t;
 
 /**
 \brief AES key-len-bits type
 */
 typedef enum {
-    SC_AES_KEY_LEN_BITS_128 = 0U, ///< 128 Data bits
-    SC_AES_KEY_LEN_BITS_192,      ///< 192 Data bits
-    SC_AES_KEY_LEN_BITS_256       ///< 256 Data bits
+    SC_AES_KEY_LEN_BITS_128 = 0U, /*128 Data bits*/
+    SC_AES_KEY_LEN_BITS_192,      /*192 Data bits*/
+    SC_AES_KEY_LEN_BITS_256       /*256 Data bits*/
 } sc_aes_key_bits_t;
 
 /**
@@ -60,7 +60,6 @@ typedef struct {
 #endif
 #ifdef CONFIG_CSI_V2
     csi_aes_t     csi_aes;
-    //unsigned char sc_ctx[SC_AES_CTX_SIZE];
 #endif
 #endif
 #if defined(CONFIG_TEE_CA)
@@ -70,10 +69,9 @@ typedef struct {
 #if defined(CONFIG_SEC_CRYPTO_AES_SW)
     sc_mbedtls_aes_context aes_ctx;
 #endif
-    //void *ctx;
 } sc_aes_t;
 
-// Function documentation
+/*Function documentation*/
 /**
   \brief       Initialize AES Interface. Initializes the resources needed for the AES interface
   \param[in]   aes    operate handle
@@ -311,7 +309,7 @@ uint32_t sc_aes_ccm_decrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, ui
 /**
   \brief       Aes data transfer config
 */
-void sc_aes_trans_config(sc_aes_t *aes, sc_aes_trans_mode_t mode) ;
+uint32_t sc_aes_trans_config(sc_aes_t *aes, sc_aes_trans_mode_t mode) ;
 
 #ifdef __cplusplus
 }

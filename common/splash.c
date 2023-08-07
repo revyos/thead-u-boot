@@ -71,7 +71,7 @@ static int splash_video_logo_load(void)
 		return -EFAULT;
 	}
 
-	memcpy((void *)bmp_load_addr, bmp_logo_bitmap,
+	memcpy((void *)(u64)bmp_load_addr, bmp_logo_bitmap,
 	       ARRAY_SIZE(bmp_logo_bitmap));
 
 	return 0;

@@ -43,9 +43,9 @@ void cpu_clk_config(uint32_t cpu_freq)
 	udelay(11);
 
 	/* config bus: cpu clk ratio to 1:1 */
-	writel((readl(LIGHT_APCLK_ADDRBASE + 0x100) & (~(0x7<<8))) | (0x0<<8), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // ratio=0
-	writel(readl(LIGHT_APCLK_ADDRBASE + 0x100) & (~(0x1<<11)), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=0
-	writel(readl(LIGHT_APCLK_ADDRBASE + 0x100) | (0x1<<11), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=1
+	writel((readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) & (~(0x7<<8))) | (0x0<<8), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // ratio=0
+	writel(readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) & (~(0x1<<11)), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=0
+	writel(readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) | (0x1<<11), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=1
 
 	/* switch c910_cclk to cpu_pll1_foutpostdiv */
 	tmp = readl((void *)LIGHT_APCLK_ADDRBASE + 0x100);

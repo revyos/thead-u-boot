@@ -10,6 +10,7 @@
 #define __ASM_RISCV_DMA_MAPPING_H
 
 #include <linux/dma-direction.h>
+#include "common.h"
 
 #define dma_mapping_error(x, y)	0
 

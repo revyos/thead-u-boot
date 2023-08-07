@@ -24,6 +24,8 @@ int csi_sec_set_boot_stage(boot_stage_t boot_stage);
 
 int csi_sec_get_lib_version(char ** p_version);
 
+int csi_sec_library_init(void);
+
 #ifdef __cplusplus
 }
 #endif

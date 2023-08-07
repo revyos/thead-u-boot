@@ -13,6 +13,7 @@
 #include <version.h>
 
 static void getvar_version(char *var_parameter, char *response);
+static void getvar_dynamic_partition(char *var_parameter, char *response);
 static void getvar_version_bootloader(char *var_parameter, char *response);
 static void getvar_downloadsize(char *var_parameter, char *response);
 static void getvar_serialno(char *var_parameter, char *response);
@@ -41,6 +42,9 @@ static const struct {
 	}, {
 		.variable = "version-bootloader",
 		.dispatch = getvar_version_bootloader
+	}, {
+		.variable = "dynamic-partition",
+		.dispatch = getvar_dynamic_partition
 	}, {
 		.variable = "downloadsize",
 		.dispatch = getvar_downloadsize
@@ -132,6 +136,17 @@ static void getvar_version(char *var_parameter, char *response)
 static void getvar_version_bootloader(char *var_parameter, char *response)
 {
 	fastboot_okay(U_BOOT_VERSION, response);
+}
+
+static void getvar_dynamic_partition(char *var_parameter, char *response)
+{
+	char *part_name="super";
+
+	int r = getvar_get_part_info(part_name, response, NULL);
+	if (r >= 0)
+		fastboot_okay("true", response); /* part exists */
+	else
+		fastboot_okay("false", response);
 }
 
 static void getvar_downloadsize(char *var_parameter, char *response)
@@ -247,7 +262,11 @@ static void getvar_partition_size(char *part_name, char *response)
 
 static void getvar_is_userspace(char *var_parameter, char *response)
 {
+#ifdef CONFIG_ANDROID_BOOT_IMAGE
+	fastboot_okay("yes", response);
+#else
 	fastboot_okay("no", response);
+#endif
 }
 
 /**

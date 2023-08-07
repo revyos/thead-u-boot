@@ -24,39 +24,39 @@ extern "C" {
 #define SM3_DIGEST_OUT_SIZE   (32)
 
 typedef struct {
-    uint32_t total[2];                      ///< Number of bytes processed
-    uint32_t state[16];                     ///< Intermediate digest state
-    uint8_t  buffer[SM3_DATAIN_BLOCK_SIZE]; ///< Data block  beingprocessed
-    uint8_t  result[SM3_DIGEST_OUT_SIZE];   ///< Data block has processed
+    uint32_t total[2];                      /*Number of bytes processed*/
+    uint32_t state[16];                     /*Intermediate digest state*/
+    uint8_t  buffer[SM3_DATAIN_BLOCK_SIZE]; /*Data block  beingprocessed*/
+    uint8_t  result[SM3_DIGEST_OUT_SIZE];   /*Data block has processed*/
 } csi_sm3_context_t;
 
 /****** SM3 State ******/
 typedef struct {
-    uint32_t busy             : 1;          ///< Calculate busy flag
-    uint32_t error            : 1;          ///< Calculate error flag
+    uint32_t busy             : 1;          /*Calculate busy flag*/
+    uint32_t error            : 1;          /*Calculate error flag*/
 } csi_sm3_state_t;
 
 
 /****** SM3 Event ******/
 typedef enum {
-    SM3_EVENT_COMPLETE = 0U,        ///< Calculate completed
+    SM3_EVENT_COMPLETE = 0U,        /*Calculate completed*/
     SM3_EVENT_UPDATE,
     SM3_EVENT_START,
-    SM3_EVENT_ERROR                 ///< Calculate error
+    SM3_EVENT_ERROR                 /*Calculate error*/
 } csi_sm3_event_t;
 
 typedef struct csi_sm3_t csi_sm3_t;
 
 struct csi_sm3_t {
-    csi_dev_t dev;                  ///< SM3 hw-device info
+    csi_dev_t dev;                  /*SM3 hw-device info*/
     void (*callback)(csi_sm3_t *sm3, csi_sm3_event_t event,
-                        void *arg); ///< SM3 event callback for user
-    void *          arg;            ///< SM3 custom designed param passed to evt_cb
-    csi_sm3_state_t state;          ///< SM3 state
+                        void *arg); /*SM3 event callback for user*/
+    void *          arg;            /*SM3 custom designed param passed to evt_cb*/
+    csi_sm3_state_t state;          /*SM3 state*/
     void *          priv;
 };
 
-// Function documentation
+/*Function documentation*/
 
 /**
   \brief       Initialize SM3 Interface. Initializes the resources needed for the SM3 interface
@@ -150,7 +150,7 @@ csi_error_t csi_sm3_enable_pm(csi_sm3_t *sm3);
 void csi_sm3_disable_pm(csi_sm3_t *sm3);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif //_DRV_SM3_H

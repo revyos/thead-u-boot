@@ -23,7 +23,7 @@ extern "C" {
 #define CSI_SM2_PUBKEY_LEN      (65-1)
 #define CSI_SM2_PRIVKEY_LEN     (32)
 #define CSI_SM2_PUBKEYTMP_LEN   (65)
-#define CSI_SM2_RK_LEN          (32) //random
+#define CSI_SM2_RK_LEN          (32) /*random*/
 #define CSI_SM2_SIGNATURE_LEN   (64)
 #define CSI_SM2_DIGEST_LEN      (32)
 
@@ -31,7 +31,7 @@ extern "C" {
 #define SM2_PRIME_CURVE_N_BYTES (32)
 
 typedef struct {
-        uint32_t sm2_curve : 1; ///< supports 256bits curve
+        uint32_t sm2_curve : 1; /*supports 256bits curve*/
 } sm2_capabilities_t;
 
 /**
@@ -43,15 +43,15 @@ typedef enum {
 } sm2_cipher_order_e;
 
 typedef enum {
-        SM2_ENDIAN_LITTLE = 0, ///< Little Endian
-        SM2_ENDIAN_BIG         ///< Big Endian
+        SM2_ENDIAN_LITTLE = 0, /*Little Endian*/
+        SM2_ENDIAN_BIG         /*Big Endian*/
 } sm2_endian_mode_e;
 
 /**
 \brief SM2 status
 */
 typedef struct {
-        uint32_t busy : 1; ///< Calculate busy flag
+        uint32_t busy : 1; /*Calculate busy flag*/
 } csi_sm2_state_t;
 
 /**
@@ -61,12 +61,12 @@ typedef enum { SM2_Role_Sponsor = 0, SM2_Role_Responsor } sm2_exchange_role_e;
 
 /****** SM2 Event *****/
 typedef enum {
-        SM2_EVENT_MAKE_KEY_COMPLETE = 0, ///< Make key completed
-        SM2_EVENT_ENCRYPT_COMPLETE,      ///< Encrypt completed
-        SM2_EVENT_DECRYPT_COMPLETE,      ///< Decrypt completed
-        SM2_EVENT_SIGN_COMPLETE,         ///< Sign completed
-        SM2_EVENT_VERIFY_COMPLETE,       ///< Verify completed
-        SM2_EVENT_EXCHANGE_KEY_COMPLETE, ///< Exchange key completed
+        SM2_EVENT_MAKE_KEY_COMPLETE = 0, /*Make key completed*/
+        SM2_EVENT_ENCRYPT_COMPLETE,      /*Encrypt completed*/
+        SM2_EVENT_DECRYPT_COMPLETE,      /*Decrypt completed*/
+        SM2_EVENT_SIGN_COMPLETE,         /*Sign completed*/
+        SM2_EVENT_VERIFY_COMPLETE,       /*Verify completed*/
+        SM2_EVENT_EXCHANGE_KEY_COMPLETE, /*Exchange key completed*/
 } sm2_event_e;
 
 typedef struct {
@@ -77,7 +77,7 @@ typedef struct {
         void *          prim;
 } csi_sm2_t;
 
-///< Pointer to \ref csi_sm2_callback_t : SM2 Event call back.
+/*Pointer to \ref csi_sm2_callback_t : SM2 Event call back.*/
 typedef void (*csi_sm2_callback_t)(sm2_event_e event);
 
 /**
@@ -263,7 +263,7 @@ csi_error_t csi_sm2_enable_pm(csi_sm2_t *sm2);
 void csi_sm2_disable_pm(csi_sm2_t *sm2);
 
 #ifdef __cplusplus
-extern "C" {
+}
 #endif
 
 #endif
