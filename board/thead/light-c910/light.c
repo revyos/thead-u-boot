@@ -1859,6 +1859,9 @@ int board_init(void)
 
 static void light_usb_boot_check(void)
 {
+	uchar env_enetaddr[6];
+	uchar env_enet1addr[6];
+	int env_ethaddr_flag,env_eth1addr_flag;
 	int boot_mode;
 	boot_mode = readl((void *)SOC_OM_ADDRBASE) & 0x7;
 	if (boot_mode & BIT(2))
@@ -1868,7 +1871,15 @@ static void light_usb_boot_check(void)
 	env_set("usb_fastboot", "yes");
 #endif
 
+	/* ensure flashing img not to lose mac address on ramfs mode */
+	env_ethaddr_flag  = eth_env_get_enetaddr_by_index("eth", 0, env_enetaddr);
+	env_eth1addr_flag = eth_env_get_enetaddr_by_index("eth", 1, env_enet1addr);
+
 	run_command("env default -a -f", 0);
+	if (env_ethaddr_flag)
+		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);
+	if (env_eth1addr_flag)
+		eth_env_set_enetaddr_by_index("eth", 1, env_enetaddr);
 	env_save();
 	run_command("run gpt_partition", 0);
 	run_command("fastboot usb 0", 0);
