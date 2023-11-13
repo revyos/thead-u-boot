@@ -73,7 +73,6 @@ extern ulong mem_test_quick(vu_long *buf, ulong start_addr, ulong end_addr,
 #endif
 extern void flush_dcache_range(unsigned long start, unsigned long end);
 extern void invalidate_dcache_range(unsigned long start, unsigned long end);
-extern void invalid_dcache_range(unsigned long start, unsigned long end);
 
 #ifdef CONFIG_CMD_MEMTEST
 int test_stuck_address(ulv *bufa, ulong count);
