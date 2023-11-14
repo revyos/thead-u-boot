@@ -15,7 +15,7 @@
 #define RPMB_BLOCK_SIZE 256
 #define RPMB_ROLLBACK_BLOCK_START 1
 
-#ifndef LIGHT_KDF_RPMB_KEYs
+#ifndef LIGHT_KDF_RPMB_KEY
 static const unsigned char emmc_rpmb_key_sample[32] = {0x33, 0x22, 0x11, 0x00, 0x77, 0x66, 0x55, 0x44, \
 												0xbb, 0xaa, 0x99, 0x88, 0xff, 0xee, 0xdd, 0xcc, \
 												0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
@@ -121,7 +121,7 @@ bool get_system_boot_type(void)
 	int lc = 0;
 	sboot_st_t sb_flag = SECURE_BOOT_DIS;
 	int ret = 0;
-
+# if 0
 	ret = csi_efuse_get_lc(&lc);
 	/* 0: LC_INIT, 1: LC_DEV, 2: LC_OEM, 3: LC_PRO */
 	if ((ret == 0) && (lc != 0)) {
@@ -134,7 +134,7 @@ bool get_system_boot_type(void)
 
 		csi_efuse_api_uninit();
 	}
-
+#endif
 	return btype;
 }
 
