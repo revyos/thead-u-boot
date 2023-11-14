@@ -60,6 +60,7 @@ obj-$(CONFIG_THEAD_LIGHT_DIGITAL_SENSOR) += digital_sensor.o digital_sensor_test
 obj-y += clock_config.o
 obj-y += sec_check.o
 obj-y += boot.o
+obj-y += sbmeta/sbmeta.o
 ifndef CONFIG_TARGET_LIGHT_FPGA_FM_C910
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/ddr_common_func.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/common_lib.o

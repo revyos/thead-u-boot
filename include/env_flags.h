@@ -70,11 +70,18 @@ enum env_flags_varaccess {
 #define SERIAL_FLAGS ""
 #endif
 
+#ifndef CONFIG_ENV_OVERWRITE
+#define BOARD_FLAGS "board#:so,"
+#else
+#define BOARD_FLAGS ""
+#endif
+
 #define ENV_FLAGS_LIST_STATIC \
 	ETHADDR_FLAGS \
 	NET_FLAGS \
 	SERIAL_FLAGS \
-	CONFIG_ENV_FLAGS_LIST_STATIC
+	CONFIG_ENV_FLAGS_LIST_STATIC \
+    BOARD_FLAGS
 
 #ifdef CONFIG_CMD_ENV_FLAGS
 /*
