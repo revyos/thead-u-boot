@@ -31,6 +31,7 @@
 #define GMAC0_APB3S_BADDR	0xffec003000
 #define GMAC1_APB3S_BADDR	0xffec004000
 static uint64_t apb3s_baddr;
+extern int check_image_board_id(uint8_t *image_data);
 
 typedef enum {
 	UART0_TXD = PAD_GRP_BASE_SET(SOC_PIN_AP_RIGHT_TOP),
@@ -1862,9 +1863,17 @@ static void light_usb_boot_check(void)
 	uchar env_enetaddr[6]={0};
 	uchar env_enet1addr[6]={0};
 	int env_ethaddr_flag,env_eth1addr_flag;
+    int ret = 0;
+
 	boot_mode = readl((void *)SOC_OM_ADDRBASE) & 0x7;
 	if (boot_mode & BIT(2))
 		return;
+
+    /*check board id of uboot image*/
+	ret = check_image_board_id((uint8_t*)SRAM_BASE_ADDR);
+	if (ret != 0) {
+	    while(1);
+	}
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG
 	env_set("usb_fastboot", "yes");

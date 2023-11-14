@@ -14,6 +14,7 @@
 #include <stdlib.h>
 
 #define BLOCK_SIZE 512
+#define BOARD_ID_OFFSET 0x26
 
 /**
  * image_size - final fastboot image size
@@ -42,6 +43,7 @@ static void reboot_bootloader(char *, char *);
 static void oem_format(char *, char *);
 #endif
 static void oem_command(char *, char *);
+int image_have_head(unsigned long img_src_addr);
 
 static const struct {
 	const char *command;
@@ -263,6 +265,41 @@ void fastboot_data_complete(char *response)
 	fastboot_bytes_received = 0;
 }
 
+/**
+ * check_image_board_id() - check if board id in image matched with board id in env 
+ *
+ * @image_data: Image data
+ *
+ * 0 if success otherwise failed
+ */
+int check_image_board_id(uint8_t *image_data)
+{
+	char *env_board_id = NULL;
+    char board_id[3] = {0};
+
+	env_board_id = env_get("board#");
+
+	/*if current board id is null or image has no header,skip check*/
+	if (env_board_id == NULL || env_board_id[0] == 0 || image_have_head((unsigned long)image_data) == 0) {
+		return 0;
+	}
+
+	memcpy(board_id, image_data + BOARD_ID_OFFSET,sizeof(uint16_t));
+
+    /*if image board id is null,skip check*/
+    if (*(uint16_t*)board_id == 0) {
+        return 0;
+	}
+
+    /*check if current board id match with board id in image*/
+	if (strncmp(env_board_id, board_id, sizeof(board_id)) != 0) {
+	    printf("U-BOOT image download via fastboot is interrupted due to the U-BOOT for board %s does not work in the board %s\r\n",board_id,env_board_id);
+		return -1;
+	}
+
+	return 0;
+}
+
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH)
 /**
  * flash() - write the downloaded image to the indicated partition.
@@ -279,8 +316,15 @@ static void flash(char *cmd_parameter, char *response)
 	char cmdbuf[32];
 	u32 block_cnt;
 	struct blk_desc *dev_desc;
+    int ret = 0;
 
 	if (strcmp(cmd_parameter, "uboot") == 0) {
+        ret = check_image_board_id(fastboot_buf_addr);
+		if (ret != 0) {
+            fastboot_fail("U-BOOT image does not match the type of BOARD", response);
+			return;
+		}
+
 		dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
 		if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
 			fastboot_fail("invalid mmc device", response);
@@ -298,7 +342,6 @@ static void flash(char *cmd_parameter, char *response)
 
 		run_command(cmdbuf, 0);
 		run_command("mmc partconf 0 1 0 0", 0);
-
 	} else if ((strcmp(cmd_parameter, "fw") == 0)) {
 		memcpy((void *)LIGHT_FW_ADDR, fastboot_buf_addr, image_size);
 	} else if ((strcmp(cmd_parameter, "uImage") == 0)) {
