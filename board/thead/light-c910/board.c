@@ -9,6 +9,7 @@
 #include <dwc3-uboot.h>
 #include <usb.h>
 #include <cpu_func.h>
+#include <asm/gpio.h>
 
 #ifdef CONFIG_USB_DWC3
 static struct dwc3_device dwc3_device_data = {
@@ -111,3 +112,32 @@ int do_bootslave(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 	return 0;
 }
 #endif
+
+static void light_c910_set_gpio_output_high(void)
+{
+	ofnode node;
+	struct gpio_desc select_gpio;
+
+	printf("%s: trying to set gpio output high\n", __func__);
+
+	node = ofnode_path("/config");
+	if (!ofnode_valid(node)) {
+		printf("%s: no /config node?\n", __func__);
+		return;
+	}
+
+	if (gpio_request_by_name_nodev(node, "select-gpio", 0,
+				       &select_gpio, GPIOD_IS_OUT)) {
+		printf("%s: could not find a /config/select-gpio\n", __func__);
+		return;
+	}
+
+	dm_gpio_set_value(&select_gpio, 1);
+}
+
+int misc_init_r(void)
+{
+	light_c910_set_gpio_output_high();
+
+	return 0;
+}
