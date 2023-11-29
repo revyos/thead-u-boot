@@ -120,6 +120,8 @@
 #define ENV_STR_BOOT_DELAY	"bootdelay=0\0"
 #endif
 
+#define CONFIG_MISC_INIT_R
+
 #define CONFIG_EXTRA_ENV_SETTINGS \
 	"scriptaddr=0x00500000\0" \
 	"pxefile_addr_r=0x00600000\0" \
