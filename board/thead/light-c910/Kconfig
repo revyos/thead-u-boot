@@ -126,6 +126,10 @@ config TARGET_LIGHT_FM_C910_B_POWER
     bool "light fullmask for light-b-power board "
     default n
 
+config TARGET_LIGHT_FM_C910_MILKV_MELES
+    bool "light fullmask for Milk-V Meles board "
+    default n
+
 config SYS_TEXT_BASE
     default 0xc0000000 if RISCV_MMODE
     default 0x00200000 if RISCV_SMODE
