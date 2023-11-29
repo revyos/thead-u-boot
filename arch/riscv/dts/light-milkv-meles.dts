@@ -5,6 +5,10 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	config {
+		select-gpio = <&gpio1_porta 16 0>;
+	};
+
 	memory@0 {
 		device_type = "memory";
 		reg = <0x0 0xc0000000 0x0 0x40000000>;
