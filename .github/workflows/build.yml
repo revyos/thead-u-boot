@@ -68,6 +68,14 @@ jobs:
                 make light_a_val_defconfig
                 make -j$(nproc)
                 find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-vala.bin
+                make clean
+                make light_milkv_meles_dualrank_defconfig
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-meles.bin
+                make clean
+                make light_milkv_meles_singlerank_defconfig
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-meles-4g.bin
               popd
               tree ${GITHUB_WORKSPACE}/output
 
