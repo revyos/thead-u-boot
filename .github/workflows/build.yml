@@ -8,24 +8,22 @@ on:
     - cron: "0 2 * * *"
 
 env:
-  xuetie_toolchain: https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1663142514282
-  toolchain_file_name: Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1-20220906.tar.gz
+  xuantie_toolchain: https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1698113812618
+  toolchain_file_name: Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.0-20231018.tar.gz
+  mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2023.10.18
+  mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2023.10.18-nightly.tar.gz
+  wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
   ARCH: riscv
+  CROSS_COMPILE: riscv64-unknown-linux-gnu-
 
 jobs:
   build:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: thead-gcc
-            toolchain_tripe: riscv64-unknown-linux-gnu-
-          - name: gcc-12
-            toolchain_tripe: riscv64-linux-gnu-
+        name: [thead-gcc, gcc-13]
 
     runs-on: ubuntu-22.04
-    env:
-      CROSS_COMPILE: ${{ matrix.toolchain_tripe }}
 
     steps:
       - name: Install software
@@ -34,23 +32,23 @@ jobs:
               sudo apt install -y gdisk dosfstools g++-12-riscv64-linux-gnu build-essential \
                                   libncurses-dev gawk flex bison openssl libssl-dev tree \
                                   dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf device-tree-compiler
-              sudo update-alternatives --install \
-                  /usr/bin/riscv64-linux-gnu-gcc riscv64-gcc /usr/bin/riscv64-linux-gnu-gcc-12 10
-              sudo update-alternatives --install \
-                  /usr/bin/riscv64-linux-gnu-g++ riscv64-g++ /usr/bin/riscv64-linux-gnu-g++-12 10
 
       - name: Checkout uboot
-        uses: actions/checkout@v3
-
-      - name: Configure toolchains
-        run: |
-              mkdir output
-              wget ${xuetie_toolchain}/${toolchain_file_name}
-              tar -xvf ${toolchain_file_name} -C /opt
+        uses: actions/checkout@v4
 
       - name: uboot compile
         run: |
-              export PATH="/opt/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.6.1/bin:$PATH"
+              mkdir output
+              if [[ ${{ matrix.name }} = "thead-gcc" ]]; then
+                ${wget_alias} ${xuantie_toolchain}/${toolchain_file_name}
+                tar -xvf ${toolchain_file_name} -C /opt
+                export PATH="/opt/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.0/bin:$PATH"
+              else
+                ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
+                tar -xvf ${mainline_toolchain_file_name} -C /opt
+                export PATH="/opt/riscv/bin:$PATH"
+              fi
+              ${CROSS_COMPILE}gcc -v
 
               pushd $PWD
                 make light_lpi4a_16g_defconfig
