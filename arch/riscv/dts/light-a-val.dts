@@ -306,8 +306,8 @@
 			spi-max-frequency = <100000000>;
 			#address-cells = <1>;
 			#size-cells = <0>;
-			flash@0 {
-				compatible = "jedec,spi-nor";
+			tpm@0{
+				compatible = "z32h330tc,z32h330tc-spi";
 				reg = <0>;
 				spi-max-frequency = <40000000>;
 			};

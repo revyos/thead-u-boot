@@ -1575,7 +1575,7 @@ static void light_iopin_init(void)
 	light_pin_mux(CLK_OUT_2, 0);
 	light_pin_cfg(CLK_OUT_2, PIN_SPEED_NORMAL, PIN_PU, 2);
 	light_pin_mux(CLK_OUT_3, 0);
-	light_pin_cfg(CLK_OUT_3, PIN_SPEED_NORMAL, PIN_PU, 2);    
+	light_pin_cfg(CLK_OUT_3, PIN_SPEED_NORMAL, PIN_PU, 2);
 
 	// light_pin_mux(GPIO1_21,3);
 	light_pin_mux(GPIO1_22, 3);
@@ -1595,7 +1595,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GPIO1_30, PIN_SPEED_NORMAL, PIN_PN, 2);                         ///<DBB2LEDDRIVER_EN
 
 	light_pin_cfg(UART0_TXD, PIN_SPEED_NORMAL, PIN_PN, 2);
-	light_pin_cfg(UART0_RXD, PIN_SPEED_NORMAL, PIN_PN, 2);            
+	light_pin_cfg(UART0_RXD, PIN_SPEED_NORMAL, PIN_PN, 2);
 
 	/*ap-pdmux on righ/top*/
 	// light_pin_mux(QSPI0_SCLK,3);            ///NC
@@ -2432,10 +2432,10 @@ static void light_usb_boot_check(void)
 	if (boot_mode & BIT(2))
 		return;
 
-    /*check board id of uboot image*/
+	/*check board id of uboot image*/
 	ret = check_image_board_id((uint8_t*)SRAM_BASE_ADDR);
 	if (ret != 0) {
-	    while(1);
+		while(1);
 	}
 
 #ifdef CONFIG_ENV_VARS_UBOOT_RUNTIME_CONFIG

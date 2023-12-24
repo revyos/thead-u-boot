@@ -77,11 +77,13 @@
 #define TF_IMG_UPD_NAME		"stashtf"
 #define TEE_IMG_UPD_NAME	"stashtee"
 #define UBOOT_IMG_UPD_NAME	"stashuboot"
+#define SBMETA_IMG_UPD_NAME	"stashsbmeta"
 #define TF_PART_NAME		"tf"
 #define TEE_PART_NAME		"tee"
 #define UBOOT_PART_NAME		"uboot"
 #define STASH_PART_NAME 	"stash"
 #define KERNEL_PART_NAME	"kernel"
+#define SBMETA_PART_NAME	"sbmeta"
 
 #define UBOOT_STAGE_ADDR	SRAM_BASE_ADDR
 
@@ -96,6 +98,7 @@
 #define TF_SEC_UPGRADE_FLAG	0x5555aaaa
 #define TEE_SEC_UPGRADE_FLAG 0x5a5aa5a5
 #define UBOOT_SEC_UPGRADE_FLAG	0xa5a5aa55
+#define SBMETA_SEC_UPGRADE_FLAG 0xaaaa5555
 
 /* Define secure debug log level */
 #define LOG_LEVEL	1
@@ -116,9 +119,13 @@
 #define ENV_KERNEL_LOGLEVEL "kernel_loglevel=7\0"
 #define ENV_STR_BOOT_DELAY
 #define CONFIG_ENV_OVERWRITE
+#define ENV_STR_SERIAL 		"serial#=1234567890\0"
+#define ENV_KERNEL_KDUMP	"kdump_buf=180M\0"
 #else
 #define ENV_KERNEL_LOGLEVEL "kernel_loglevel=4\0"
 #define ENV_STR_BOOT_DELAY	"bootdelay=0\0"
+#define ENV_STR_SERIAL 		"serial#=\0"
+#define ENV_KERNEL_KDUMP	"kdump_buf=0M\0"
 #endif
 
 #define CONFIG_MISC_INIT_R
@@ -129,19 +136,19 @@
 	"scriptaddr=0x00500000\0" \
 	"pxefile_addr_r=0x00600000\0" \
 	"dtb_addr=0x03800000\0" \
-    "fdt_addr=0x03800000\0" \
+	"fdt_addr_r=0x03800000\0" \
 	"kernel_addr_r=0x00200000\0" \
 	"ramdisk_addr_r=0x06000000\0" \
 	"boot_conf_addr_r=0xc0000000\0" \
 	"aon_ram_addr=0xffffef8000\0" \
 	"audio_ram_addr=0x32000000\0" \
-    "str_ram_addr=0xffe0000000\0" \
+	"str_ram_addr=0xffe0000000\0" \
 	"opensbi_addr=0x0\0" \
 	"fwaddr=0x10000000\0" \
 	"splashimage=0x30000000\0" \
 	"splashpos=m,m\0" \
 	"fdt_high=0xffffffffffffffff\0" \
-    ENV_STR_BOARD \
+	ENV_STR_BOARD \
 	"kernel_addr_r=0x00200000\0" \
 	"kdump_buf=180M\0" \
 	"mmcdev=0\0" \

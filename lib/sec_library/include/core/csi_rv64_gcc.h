@@ -14,6 +14,7 @@
 #define _CSI_RV64_GCC_H_
 
 #include <stdlib.h>
+#include <linux/kernel.h>
 
 #ifndef __ASM
 #define __ASM                   __asm     /*!< asm keyword for GNU Compiler */

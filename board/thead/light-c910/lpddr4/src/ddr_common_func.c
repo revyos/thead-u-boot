@@ -14,7 +14,7 @@ unsigned long get_ddr_density() {
 #ifdef CONFIG_DDR_DUAL_RANK
 	mul = 2;
 #endif
-#ifdef CONFIG_DDR_ROW16
+#ifdef CONFIG_DDR_DDP
 	mul *= 2;
 #endif
 #ifdef CONFIG_DDR_H32_MODE
@@ -876,7 +876,7 @@ if(bits==64) {
 #endif
   wr(ADDRMAP0,0x0004001f);  // +2
   if(rank_num==2) {
-#ifdef CONFIG_DDR_ROW16
+#ifdef CONFIG_DDR_DDP
   wr(ADDRMAP0,0x00040019);//16GB
 #else
   wr(ADDRMAP0,0x00040018);//8GB
@@ -888,7 +888,7 @@ if(bits==64) {
   wr(ADDRMAP4,0x00001f1f); //col b11~ col b10
   wr(ADDRMAP5,0x080f0808); //row_b11 row b2_10 row b1 row b0  +6
   wr(ADDRMAP6,0x08080808);
-#ifdef CONFIG_DDR_ROW16
+#ifdef CONFIG_DDR_DDP
   wr(ADDRMAP7,0x00000f08);
 #else
   wr(ADDRMAP7,0x00000f0f);

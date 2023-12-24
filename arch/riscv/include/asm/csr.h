@@ -104,15 +104,23 @@
 #define CSR_CYCLEH		0xc80
 #define CSR_TIMEH		0xc81
 #define CSR_INSTRETH		0xc82
+#define CSR_MVENDORID		0xf11
+#define CSR_MARCHID		0xf12
+#define CSR_MIMPID		0xf13
 #define CSR_MHARTID		0xf14
+#define CSR_MCPUID		0xfc0
 
-#define CSR_SMPEN			0x7f3
-#define CSR_MTEE			0x7f4
+#define CSR_SMPEN        0x7f3
+#define CSR_MTEE         0x7f4
 #define CSR_MCOR         0x7c2
 #define CSR_MHCR         0x7c1
 #define CSR_MCCR2        0x7c3
 #define CSR_MHINT        0x7c5
+#define CSR_MHINT2       0x7cc
+#define CSR_MHINT3       0x7cd
+#define CSR_MHINT4       0x7ce
 #define CSR_MXSTATUS     0x7c0
+#define CSR_MSMPR        0x7f3
 #define CSR_PLIC_BASE    0xfc1
 
 #define sync_is()   asm volatile (".long 0x01b0000b")
