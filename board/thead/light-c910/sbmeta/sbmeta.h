@@ -17,8 +17,7 @@
 #if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A)
 #define LIGHT_SBMETA_ADDR   0x10000000
 #endif
-#define SBMETA_DEV          0
-#define SBMETA_PART         6
+#define SBMETA_PART         5
 #define ENTRY_SIZE          128
 #define PLAIN_SBMETA_TEXT   4096
 #define SBMETA_SIZE         4736  /* 4K SMBETA image + 640 footer */
@@ -26,23 +25,10 @@
 #define IMAGE_TYPE_NUM      7
 #define DIGEST_TYPE_NUM     8
 #define SIGN_TYPE_NUM       6
-#define T_USER              7
 #define SBMETA_FILENAME     "sbmeta.bin"
 
-typedef struct {
-    int         magiccode;
-    uint8_t     dev;
-    uint8_t     part;
-    uint8_t     image_type;
-    uint8_t     digest_scheme;
-    uint8_t     sign_scheme;
-    uint8_t     isencrypted;
-    uint8_t     medium_type;
-    uint8_t     reserve0;
-    char        filename[MAX_NAME_SIZE];
-    uint8_t     digest[MAX_DIGEST_SIZE];
-    uint32_t    relocated_addr;
-    uint32_t    reserved[4];
-} sbmeta_info_t;
+#define SBMETA_SECURITY_LEVEL_H      3   /* verify signature and hash */
+#define SBMETA_SECURITY_LEVEL_M      2   /* verify checksum */
+#define SBMETA_SECURITY_LEVEL_L      1   /* no verification */
 
 #endif

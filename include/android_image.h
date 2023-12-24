@@ -136,4 +136,18 @@ struct andr_img_hdr {
  *    else: jump to kernel_addr
  */
 
+#define VENDOR_RAMDISK_NAME_SIZE 32
+#define VENDOR_RAMDISK_TABLE_ENTRY_BOARD_ID_SIZE 16
+
+#define VENDOR_RAMDISK_TYPE_RECOVERY 2
+struct vendor_ramdisk_table_entry {
+    u32 ramdisk_size; /* size in bytes for the ramdisk image */
+    u32 ramdisk_offset; /* offset to the ramdisk image in vendor ramdisk section */
+    u32 ramdisk_type; /* type of the ramdisk */
+    u8 ramdisk_name[VENDOR_RAMDISK_NAME_SIZE]; /* asciiz ramdisk name */
+
+    // Hardware identifiers describing the board, soc or platform which this
+    // ramdisk is intended to be loaded on.
+    u32 board_id[VENDOR_RAMDISK_TABLE_ENTRY_BOARD_ID_SIZE];
+} __attribute__((packed));
 #endif

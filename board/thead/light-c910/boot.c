@@ -31,7 +31,7 @@
 //#define LIGHT_IMG_VERSION_CHECK_IN_BOOT	1
 
 /* the sample rpmb key is only used for testing */
-#ifndef LIGHT_KDF_RPMB_KEY 
+#ifndef LIGHT_KDF_RPMB_KEY
 static const unsigned char emmc_rpmb_key_sample[32] = {0x33, 0x22, 0x11, 0x00, 0x77, 0x66, 0x55, 0x44, \
 												0xbb, 0xaa, 0x99, 0x88, 0xff, 0xee, 0xdd, 0xcc, \
 												0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, \
@@ -110,7 +110,7 @@ func_exit:
 }
 #endif
 
-int csi_rpmb_write_access_key(void) 
+int csi_rpmb_write_access_key(void)
 {
 #ifdef LIGHT_KDF_RPMB_KEY
     unsigned long *temp_rpmb_key_addr = NULL;
@@ -162,7 +162,7 @@ int csi_tf_get_image_version(unsigned int *ver)
 	if (ret == 0) {
 		*ver = (blkdata[16] << 8) + blkdata[17];
 	}
-	
+
 	return ret;
 }
 
@@ -179,9 +179,9 @@ int csi_tf_set_image_version(unsigned int ver)
 	blkdata[17] = ver & 0xFF;
 
 	/* tf version reside in RPMB block#0, offset#16*/
-#ifndef LIGHT_KDF_RPMB_KEY 
+#ifndef LIGHT_KDF_RPMB_KEY
 	temp_rpmb_key_addr = (unsigned long *)emmc_rpmb_key_sample;
-#else 
+#else
 	uint8_t kdf_rpmb_key[32];
 	uint32_t kdf_rpmb_key_length = 0;
 	int ret = 0;
@@ -245,9 +245,9 @@ int csi_tee_set_image_version(unsigned int ver)
 	blkdata[1] = ver & 0xFF;
 
 	/* tf version reside in RPMB block#0, offset#16*/
-#ifndef LIGHT_KDF_RPMB_KEY 
+#ifndef LIGHT_KDF_RPMB_KEY
 	temp_rpmb_key_addr = (unsigned long *)emmc_rpmb_key_sample;
-#else 
+#else
 	uint8_t kdf_rpmb_key[32];
 	uint32_t kdf_rpmb_key_length = 0;
 	int ret = 0;
@@ -266,6 +266,57 @@ int csi_tee_set_image_version(unsigned int ver)
 int csi_tee_set_upgrade_version(void)
 {
 	return csi_tee_set_image_version(upgrade_image_version);
+}
+
+int csi_sbmeta_get_image_version(unsigned int *ver)
+{
+	char runcmd[64] = {0};
+	unsigned char blkdata[256];
+	int ret = 0;
+
+	/* sbmeta version reside in RPMB block#0, offset#48*/
+	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
+	ret = run_command(runcmd, 0);
+	if (ret == 0) {
+		*ver = (blkdata[48] << 8) + blkdata[49];
+	}
+
+	return ret;
+}
+
+int csi_sbmeta_set_image_version(unsigned int ver)
+{
+	char runcmd[64] = {0};
+	unsigned char blkdata[256];
+	unsigned long *temp_rpmb_key_addr = NULL;
+
+	/* sbmeta version reside in RPMB block#0, offset#48*/
+	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
+	run_command(runcmd, 0);
+	blkdata[48] = (ver & 0xFF00) >> 8;
+	blkdata[49] = ver & 0xFF;
+	/* sbmeta version reside in RPMB block#0, offset#48*/
+#ifndef LIGHT_KDF_RPMB_KEY
+	temp_rpmb_key_addr = (unsigned long *)emmc_rpmb_key_sample;
+#else
+	uint8_t kdf_rpmb_key[32];
+	uint32_t kdf_rpmb_key_length = 0;
+	int ret = 0;
+	ret = csi_kdf_gen_hmac_key(kdf_rpmb_key, &kdf_rpmb_key_length);
+	if (ret != 0) {
+		return -1;
+	}
+	temp_rpmb_key_addr = (unsigned long *)kdf_rpmb_key;
+#endif
+	sprintf(runcmd, "mmc rpmb write 0x%lx 0 1 0x%lx", (unsigned long)blkdata, (unsigned long)temp_rpmb_key_addr);
+	run_command(runcmd, 0);
+
+	return 0;
+}
+
+int csi_sbmeta_set_upgrade_version(void)
+{
+	return csi_sbmeta_set_image_version(upgrade_image_version);
 }
 
 int csi_uboot_get_image_version(unsigned int *ver)
@@ -476,6 +527,33 @@ int check_tee_version_in_boot(unsigned long tee_addr)
 	return 0;
 }
 
+int check_sbmeta_version_in_boot(unsigned long sbmeta_addr)
+{
+	int ret = 0;
+	unsigned int img_version = 0;
+	unsigned int expected_img_version = 0;
+
+	img_version = get_image_version(sbmeta_addr);
+	if (img_version == 0) {
+		printf("get sbmeta image version fail\n");
+		return -1;
+	}
+
+	ret = csi_sbmeta_get_image_version(&expected_img_version);
+	if (ret != 0) {
+		printf("Get sbmeta expected img version fail\n");
+		return -1;
+	}
+
+	ret = check_image_version_rule(img_version, expected_img_version);
+	if (ret != 0) {
+		printf("Image version breaks the rule\n");
+		return -1;
+	}
+
+	return 0;
+}
+
 int light_vimage(int argc, char *const argv[])
 {
 	int ret = 0;
@@ -483,14 +561,14 @@ int light_vimage(int argc, char *const argv[])
 	unsigned int new_img_version = 0;
 	unsigned int cur_img_version = 0;
     char imgname[32] = {0};
-    
-	if (argc < 3) 
+
+	if (argc < 3)
 		return CMD_RET_USAGE;
-	
+
 	/* Parse input parameters */
 	vimage_addr = simple_strtoul(argv[1], NULL, 16);
 	strcpy(imgname, argv[2]);
-	
+
 	/* Retrieve desired information from image header */
 	new_img_version = get_image_version(vimage_addr);
 	if (new_img_version == 0) {
@@ -524,13 +602,20 @@ int light_vimage(int argc, char *const argv[])
 			printf("Get kernel img version fail\n");
 			return CMD_RET_FAILURE;
 		}
-	} else if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
+	} else if (strcmp(imgname, SBMETA_PART_NAME) == 0){
+
+		ret = csi_sbmeta_get_image_version(&cur_img_version);
+		if (ret != 0) {
+			printf("Get sbmeta img version fail\n");
+			return CMD_RET_FAILURE;
+		}
+	}  else if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
 		ret = csi_uboot_get_image_version(&cur_img_version);
 		if (ret != 0) {
 			printf("Get uboot img version fail\n");
 			return CMD_RET_FAILURE;
-		} 
-		
+		}
+
 		// Check uboot maximization version > 64
 		if (((new_img_version & 0xFF00) >> 8) > UBOOT_MAX_VER) {
 			printf("UBOOT Image version has reached to max-version\n");
@@ -575,6 +660,11 @@ int light_vimage(int argc, char *const argv[])
 		}
 	} else if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
 		ret = verify_customer_image(T_UBOOT, vimage_addr);
+		if (ret != 0) {
+			return CMD_RET_FAILURE;
+		}
+	} else if (strcmp(imgname, SBMETA_PART_NAME) == 0) {
+		ret = verify_customer_image(T_SBMETA, vimage_addr);
 		if (ret != 0) {
 			return CMD_RET_FAILURE;
 		}
@@ -698,15 +788,19 @@ void sec_firmware_version_dump(void)
 	unsigned int tf_ver = 0;
 	unsigned int tee_ver = 0;
 	unsigned int uboot_ver = 0;
+	unsigned int sbmeta_ver = 0;
 	unsigned int tf_ver_env = 0;
 	unsigned int tee_ver_env = 0;
+	unsigned int sbmeta_ver_env = 0;
 
 	csi_uboot_get_image_version(&uboot_ver);
 	csi_tf_get_image_version(&tf_ver);
 	csi_tee_get_image_version(&tee_ver);
+	csi_sbmeta_get_image_version(&sbmeta_ver);
 	/* Keep sync with version in RPMB, the Following version could be leveraged by OTA client */
 	tee_ver_env = env_get_hex("tee_version", 0);
 	tf_ver_env = env_get_hex("tf_version", 0);
+	sbmeta_ver_env = env_get_hex("sbmeta_version", 0);
 	if ((tee_ver_env != tee_ver) && (tee_ver != 0)) {
 		env_set_hex("tee_version", tee_ver);
 		run_command("saveenv", 0);
@@ -717,11 +811,17 @@ void sec_firmware_version_dump(void)
 		run_command("saveenv", 0);
 	}
 
+	if ((sbmeta_ver_env != sbmeta_ver) && (sbmeta_ver != 0)) {
+		env_set_hex("sbmeta_version", sbmeta_ver);
+		run_command("saveenv", 0);
+	}
+
 	printf("\n\n");
 	printf("Secure Firmware image version info: \n");
 	printf("uboot Firmware v%d.0\n", (uboot_ver & 0xff00) >> 8);
 	printf("Trust Firmware v%d.%d\n", (tf_ver & 0xff00) >> 8, tf_ver & 0xff);
 	printf("TEE OS v%d.%d\n", (tee_ver & 0xff00) >> 8, tee_ver & 0xff);
+	printf("SBMETA v%d.%d\n", (sbmeta_ver & 0xff00) >> 8, sbmeta_ver & 0xff);
 	printf("\n\n");
 }
 
@@ -738,13 +838,11 @@ void sec_upgrade_thread(void)
 	sec_upgrade_flag = env_get_hex("sec_upgrade_mode", 0);
 	if (sec_upgrade_flag == 0)
 		return;
-	
 	printf("bootstrap: sec_upgrade_flag: %x\n", sec_upgrade_flag);
 	if (sec_upgrade_flag == TF_SEC_UPGRADE_FLAG) {
-		
 		/* STEP 1: read upgrade image (trust_firmware.bin) from stash partition */
 		printf("read upgrade image (trust_firmware.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:5 0x%p trust_firmware.bin", (void *)temp_addr);
+		sprintf(runcmd, "ext4load mmc 0:4 0x%p trust_firmware.bin", (void *)temp_addr);
 		printf("runcmd:%s\n", runcmd);
 		ret = run_command(runcmd, 0);
 		if (ret != 0) {
@@ -805,7 +903,7 @@ _upgrade_tf_exit:
 
  		/* STEP 1: read upgrade image (tee.bin) from stash partition */
 		printf("read upgrade image (tee.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:5 0x%p tee.bin", (void *)temp_addr);
+		sprintf(runcmd, "ext4load mmc 0:4 0x%p tee.bin", (void *)temp_addr);
 		printf("runcmd:%s\n", runcmd);
 		ret = run_command(runcmd, 0);
 		if (ret != 0) {
@@ -815,7 +913,7 @@ _upgrade_tf_exit:
 		/* Fetch the total file size after read out operation end */
 		upgrade_file_size = env_get_hex("filesize", 0);
 		printf("TEE upgrade file size: %d\n", upgrade_file_size);
-        
+
         /*store image to temp buffer as temp_addr may be decrypted*/
         image_malloc_buffer = malloc(upgrade_file_size);
         if ( image_malloc_buffer == NULL ) {
@@ -835,8 +933,8 @@ _upgrade_tf_exit:
 		}
 
 		/* STEP 3: update tee partition */
-		printf("read upgrade image (tee.bin) into tf partition \n");
-		sprintf(runcmd, "ext4write mmc 0:4 0x%p /tee.bin 0x%x", (void *)image_buffer, upgrade_file_size);
+		printf("read upgrade image (tee.bin) into sbmeta partition \n");
+		sprintf(runcmd, "ext4write mmc 0:3 0x%p /tee.bin 0x%x", (void *)image_buffer, upgrade_file_size);
 		printf("runcmd:%s\n", runcmd);
 		ret = run_command(runcmd, 0);
 		if (ret != 0) {
@@ -857,12 +955,73 @@ _upgrade_tee_exit:
 		run_command("env set sec_upgrade_mode 0", 0);
 		run_command("saveenv", 0);
 		run_command("reset", 0);
-        
+
         if ( image_malloc_buffer != NULL ) {
             free(image_malloc_buffer);
             image_malloc_buffer = NULL;
         }
-	} else if (sec_upgrade_flag == UBOOT_SEC_UPGRADE_FLAG) { 
+	} else if (sec_upgrade_flag == SBMETA_SEC_UPGRADE_FLAG) {
+
+ 		/* STEP 1: read upgrade image (sbmeta.bin) from stash partition */
+		printf("read upgrade image (sbmeta.bin) from stash partition \n");
+		sprintf(runcmd, "ext4load mmc 0:4 0x%p sbmeta.bin", (void *)temp_addr);
+		printf("runcmd:%s\n", runcmd);
+		ret = run_command(runcmd, 0);
+		if (ret != 0) {
+			printf("SBMETA Upgrade process is terminated due to some reason\n");
+			goto _upgrade_sbmeta_exit;
+		}
+		/* Fetch the total file size after read out operation end */
+		upgrade_file_size = env_get_hex("filesize", 0);
+		printf("SBMETA upgrade file size: %d\n", upgrade_file_size);
+
+        /*store image to temp buffer as temp_addr may be decrypted*/
+        image_malloc_buffer = malloc(upgrade_file_size);
+        if ( image_malloc_buffer == NULL ) {
+			image_buffer = (uint8_t*)temp_addr + upgrade_file_size;
+		} else {
+            image_buffer = image_malloc_buffer;
+        }
+        memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
+
+		/* STEP 2: verify its authentiticy here */
+		sprintf(runcmd, "vimage 0x%p sbmeta", (void *)temp_addr);
+		printf("runcmd:%s\n", runcmd);
+		ret = run_command(runcmd, 0);
+		if (ret != 0) {
+			printf("SBMETA Image verification fail and upgrade process terminates\n");
+			goto _upgrade_sbmeta_exit;
+		}
+
+		/* STEP 3: update sbmeta partition */
+		printf("read upgrade image (SBMETA.bin) into sbmeta partition \n");
+		sprintf(runcmd, "ext4write mmc 0:3 0x%p /sbmeta.bin 0x%x", (void *)image_buffer, upgrade_file_size);
+		printf("runcmd:%s\n", runcmd);
+		ret = run_command(runcmd, 0);
+		if (ret != 0) {
+			printf("SBMETA upgrade process is terminated due to some reason\n");
+			goto _upgrade_sbmeta_exit;
+		}
+
+		/* STEP 4: update sbmeta version */
+		ret = csi_sbmeta_set_upgrade_version();
+		if (ret != 0) {
+			printf("Set sbmeta upgrade version fail\n");
+			goto _upgrade_sbmeta_exit;
+		}
+
+		printf("\n\nSBMETA image ugprade process is successful\n\n");
+_upgrade_sbmeta_exit:
+		/* set secure upgrade flag to 0 that indicate upgrade over */
+		run_command("env set sec_upgrade_mode 0", 0);
+		run_command("saveenv", 0);
+		run_command("reset", 0);
+
+        if ( image_malloc_buffer != NULL ) {
+            free(image_malloc_buffer);
+            image_malloc_buffer = NULL;
+        }
+	} else if (sec_upgrade_flag == UBOOT_SEC_UPGRADE_FLAG) {
 		unsigned int block_cnt;
 		struct blk_desc *dev_desc;
 		const unsigned long uboot_temp_addr=0x80000000;
@@ -871,7 +1030,7 @@ _upgrade_tee_exit:
 
 		/* STEP 1: read upgrade image (u-boot-with-spl.bin) from stash partition */
 		printf("read upgrade image (u-boot-with-spl.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:5 0x%p u-boot-with-spl.bin", (void *)temp_addr);
+		sprintf(runcmd, "ext4load mmc 0:4 0x%p u-boot-with-spl.bin", (void *)temp_addr);
 		printf("runcmd:%s\n", runcmd);
 		ret = run_command(runcmd, 0);
 		if (ret != 0) {

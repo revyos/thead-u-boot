@@ -9,6 +9,8 @@
 #include <dwc3-uboot.h>
 #include <usb.h>
 #include <cpu_func.h>
+#include <abuf.h>
+#include "sec_library.h"
 
 #ifdef CONFIG_USB_DWC3
 static struct dwc3_device dwc3_device_data = {
@@ -50,9 +52,11 @@ int g_dnl_board_usb_cable_connected(void)
 
 #define C906_RST_ADDR_L		0xfffff48048
 #define C906_RST_ADDR_H		0xfffff4804C
+
 #define C906_START_ADDRESS_L	0x32000000
 #define C906_START_ADDRESS_H	0x00
 #define C910_C906_START_ADDRESS	0x0032000000
+
 #define C906_CPR_IPCG_ADDRESS   0xFFCB000010
 #define C906_IOCTL_GPIO_SEL_ADDRESS     0xFFCB01D000
 #define C906_IOCTL_AF_SELH_ADDRESS      0xFFCB01D008
@@ -108,6 +112,50 @@ int do_bootslave(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 	boot_aon();
 	mdelay(100);
 	boot_audio();
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_BOARD_RNG_SEED
+const char pre_gen_seed[128] = {211, 134, 226, 116, 1, 13, 224, 196, 88, 213, 188, 219, 128, 41, 231, 228, 129, 123, 173, 234, 219, 79, 152, 154, 169, 27, 183, 166, 52, 21, 118, 7, 155, 89, 124, 156, 102, 92, 96, 190, 49, 28, 154, 177, 69, 129, 149, 199, 253, 66, 177, 216, 146, 73, 114, 59, 100, 41, 225, 152, 62, 88, 160, 217, 177, 28, 117, 23, 120, 213, 213, 169, 242, 111, 90, 55, 241, 239, 254, 238, 50, 175, 198, 196, 248, 56, 255, 92, 97, 224, 245, 160, 56, 149, 121, 233, 177, 239, 0, 41, 196, 214, 210, 182, 69, 44, 238, 54, 27, 236, 36, 77, 156, 234, 17, 148, 34, 16, 241, 132, 241, 230, 36, 41, 123, 157, 19, 44};
+/* Use hardware rng to seed Linux random. */
+int board_rng_seed(struct abuf *buf)
+{
+	size_t len = 128;
+	uint8_t *data = NULL;
+	int sc_err = SC_FAIL;
+
+	/* abuf is working up in asynchronization mode, so the memory usage for random data storage must
+	   be allocated first. */
+	data = malloc(len);
+	if (!data) {
+		printf("Fail to allocate memory, using pre-defined entropy\n");
+		return -1;
+	}
+
+#if defined(CONFIG_AVB_HW_ENGINE_ENABLE)
+	/* We still use pre-define entropy data in case hardware random engine does not work */
+	sc_err = csi_sec_library_init();
+	if (sc_err != SC_OK) {
+		printf("Fail to initialize sec library, using pre-defined entropy\n");
+		goto _err;
+	}
+
+	sc_err = sc_rng_get_random_bytes(data, len);
+	if (sc_err != SC_OK) {
+		printf("Fail to retrieve random data, using pre-defined entropy\n");
+		goto _err;
+	}
+
+	abuf_init_set(buf, data, len);
+	return 0;
+
+_err:
+#endif
+	/* use pre-defined random data in case of the random engine is disable */
+	memcpy(data, pre_gen_seed, len);
+	abuf_init_set(buf, data, len);
+
 	return 0;
 }
 #endif

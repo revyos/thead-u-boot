@@ -7,6 +7,7 @@
  */
 
 #include <common.h>
+#include <abuf.h>
 #include <env.h>
 #include <mapmem.h>
 #include <stdio_dev.h>
@@ -274,6 +275,7 @@ int fdt_initrd(void *fdt, ulong initrd_start, ulong initrd_end)
 
 int fdt_chosen(void *fdt)
 {
+        struct abuf buf = {};
 	int   nodeoffset;
 	int   err;
 	char  *str;		/* used to set string properties */
@@ -288,6 +290,17 @@ int fdt_chosen(void *fdt)
 	nodeoffset = fdt_find_or_add_subnode(fdt, 0, "chosen");
 	if (nodeoffset < 0)
 		return nodeoffset;
+
+        if (IS_ENABLED(CONFIG_BOARD_RNG_SEED) && !board_rng_seed(&buf)) {
+                err = fdt_setprop(fdt, nodeoffset, "rng-seed",
+                                  abuf_data(&buf), abuf_size(&buf));
+                abuf_uninit(&buf);
+                if (err < 0) {
+                        printf("WARNING: could not set rng-seed %s.\n",
+                               fdt_strerror(err));
+                        return err;
+                }
+        }
 
 	str = env_get("bootargs");
 	if (str) {

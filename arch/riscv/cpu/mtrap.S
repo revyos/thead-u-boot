@@ -104,3 +104,45 @@ trap_entry:
 	LREG x2,   2 * REGBYTES(sp)
 	addi sp, sp, 32 * REGBYTES
 	MODE_PREFIX(ret)
+
+	/* trap secondary_entry */
+	.align 10
+	.global secondary_entry
+secondary_entry:
+	/*
+	 * Clear L1 cache & BTB & BHT ...
+	 */
+	li      t0, 0x70013
+	csrw    CSR_MCOR, t0
+
+	/*
+	 * Enable cache coherency
+	 */
+	li	t0, 1
+	csrw	CSR_MSMPR, t0
+
+	/*
+	 *Prepare percpu stack
+	 */
+	csrr	t0, mhartid
+	li	t1, 0x100
+	mul	t1, t1, t0
+	lla	sp, stacks
+	add	sp, sp, t1
+
+	/*
+	 * Call C routine
+	 */
+	call	setup_features
+	call	next_stage
+
+	/*
+	 * Never get here, dead loop
+	 */
+	j .
+
+	.align 10
+stacks:
+	.rept 0x1000
+	.long
+	.endr

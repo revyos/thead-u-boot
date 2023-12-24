@@ -81,7 +81,7 @@ enum env_flags_varaccess {
 	NET_FLAGS \
 	SERIAL_FLAGS \
 	CONFIG_ENV_FLAGS_LIST_STATIC \
-    BOARD_FLAGS
+	BOARD_FLAGS
 
 #ifdef CONFIG_CMD_ENV_FLAGS
 /*

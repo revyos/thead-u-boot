@@ -130,16 +130,18 @@ void dump_image_header_info(long addr)
 int verify_customer_image(img_type_t type, long addr)
 {
 	int ret;
-    
+
 	/* Double check image number */
-	if (image_have_head(addr) == 0)
+	if (image_have_head(addr) == 0) {
+		printf("error: image has no secure header\r\n");
 		return -1;
+	}
 
 	/* Dump image header information here */
 	dump_image_header_info(addr);
 
 	/* Call customer image verification function */
-	if ((type == T_TF) || (type == T_TEE) || (type == T_KRLIMG)) {
+	if ((type == T_TF) || (type == T_TEE) || (type == T_KRLIMG) || (type == T_DTB) || (type == T_SBMETA)) {
 		ret = csi_sec_custom_image_verify(addr, UBOOT_STAGE_ADDR);
 		if (ret) {
 			printf("Image(%d) is verified fail, Please go to check!\n\n", type);
