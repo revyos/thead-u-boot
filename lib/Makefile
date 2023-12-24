@@ -121,6 +121,7 @@ else
 obj-y += vsprintf.o strto.o
 endif
 
+obj-y += abuf.o
 obj-y += date.o
 
 #

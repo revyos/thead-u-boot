@@ -67,7 +67,6 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 int do_booti(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 	int ret;
-
 	/* Consume 'booti' */
 	argc--; argv++;
 
@@ -127,15 +126,14 @@ int do_secboot(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[])
 {
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
     if (light_secboot(argc, argv) != 0) {
-        run_command("reset", 0);
         return -1;
     }
 #endif
 	return 0;
 }
 U_BOOT_CMD(
-	secboot, CONFIG_SYS_MAXARGS, 1, do_secboot, 
-	"verify image file with known pubkey which reside in father image or itself!", 
+	secboot, CONFIG_SYS_MAXARGS, 1, do_secboot,
+	"verify image file with known pubkey which reside in father image or itself!",
 	"vimage addr imgname[[tee/tf]	- verify specifed image resides in addr\n"
 );
 

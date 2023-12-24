@@ -266,7 +266,7 @@ void fastboot_data_complete(char *response)
 }
 
 /**
- * check_image_board_id() - check if board id in image matched with board id in env 
+ * check_image_board_id() - check if board id in image matched with board id in env
  *
  * @image_data: Image data
  *
@@ -275,28 +275,22 @@ void fastboot_data_complete(char *response)
 int check_image_board_id(uint8_t *image_data)
 {
 	char *env_board_id = NULL;
-    char board_id[3] = {0};
-
+	char board_id[3] = {0};
 	env_board_id = env_get("board#");
-
 	/*if current board id is null or image has no header,skip check*/
 	if (env_board_id == NULL || env_board_id[0] == 0 || image_have_head((unsigned long)image_data) == 0) {
 		return 0;
 	}
-
 	memcpy(board_id, image_data + BOARD_ID_OFFSET,sizeof(uint16_t));
-
-    /*if image board id is null,skip check*/
-    if (*(uint16_t*)board_id == 0) {
-        return 0;
+	/*if image board id is null,skip check*/
+	if (*(uint16_t*)board_id == 0) {
+		return 0;
 	}
-
-    /*check if current board id match with board id in image*/
+	/*check if current board id match with board id in image*/
 	if (strncmp(env_board_id, board_id, sizeof(board_id)) != 0) {
-	    printf("U-BOOT image download via fastboot is interrupted due to the U-BOOT for board %s does not work in the board %s\r\n",board_id,env_board_id);
+		printf("U-BOOT image download via fastboot is interrupted due to the U-BOOT for board %s does not work in the board %s\r\n",board_id,env_board_id);
 		return -1;
 	}
-
 	return 0;
 }
 
@@ -316,12 +310,12 @@ static void flash(char *cmd_parameter, char *response)
 	char cmdbuf[32];
 	u32 block_cnt;
 	struct blk_desc *dev_desc;
-    int ret = 0;
+	int ret = 0;
 
 	if (strcmp(cmd_parameter, "uboot") == 0) {
-        ret = check_image_board_id(fastboot_buf_addr);
+		ret = check_image_board_id(fastboot_buf_addr);
 		if (ret != 0) {
-            fastboot_fail("U-BOOT image does not match the type of BOARD", response);
+			fastboot_fail("U-BOOT image does not match the type of BOARD", response);
 			return;
 		}
 
@@ -342,6 +336,7 @@ static void flash(char *cmd_parameter, char *response)
 
 		run_command(cmdbuf, 0);
 		run_command("mmc partconf 0 1 0 0", 0);
+
 	} else if ((strcmp(cmd_parameter, "fw") == 0)) {
 		memcpy((void *)LIGHT_FW_ADDR, fastboot_buf_addr, image_size);
 	} else if ((strcmp(cmd_parameter, "uImage") == 0)) {
@@ -356,7 +351,7 @@ static void flash(char *cmd_parameter, char *response)
 		memcpy((void *)LIGHT_TF_FW_ADDR, fastboot_buf_addr, image_size);
 	} else if ((strcmp(cmd_parameter, TEE_PART_NAME) == 0)) {
 		memcpy((void *)LIGHT_TEE_FW_ADDR, fastboot_buf_addr, image_size);
-	} 
+	}
 
 	if(strcmp(cmd_parameter, "uboot") == 0 || (strcmp(cmd_parameter, "fw") == 0) ||
 	   (strcmp(cmd_parameter, "uImage") == 0) || (strcmp(cmd_parameter, "dtb") == 0) ||
@@ -375,7 +370,7 @@ static void flash(char *cmd_parameter, char *response)
 		#endif
 		/* Send ACK to host */
 		fastboot_okay(NULL, response);
-		
+
 		/* set secure upgrade flag to indicate it is TF image upgrade*/
 		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", TF_SEC_UPGRADE_FLAG);
 		run_command(cmdbuf, 0);
@@ -391,9 +386,25 @@ static void flash(char *cmd_parameter, char *response)
 
 		/* Send ACK to host */
 		fastboot_okay(NULL, response);
-		
+
 		/* set secure upgrade flag to indicate it is TEE image upgrade*/
 		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", TEE_SEC_UPGRADE_FLAG);
+		run_command(cmdbuf, 0);
+		run_command("saveenv", 0);
+		run_command("reset", 0);
+		return;
+	} else if (strcmp(cmd_parameter, SBMETA_IMG_UPD_NAME) == 0) {
+		#if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
+		/* tee/tf/uboot image must be written into stash partition */
+		sprintf(cmdbuf, "%s", STASH_PART_NAME);
+		fastboot_mmc_flash_write(cmdbuf, fastboot_buf_addr, image_size, response);
+		#endif
+
+		/* Send ACK to host */
+		fastboot_okay(NULL, response);
+
+		/* set secure upgrade flag to indicate it is TEE image upgrade*/
+		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", SBMETA_SEC_UPGRADE_FLAG);
 		run_command(cmdbuf, 0);
 		run_command("saveenv", 0);
 		run_command("reset", 0);
@@ -409,14 +420,14 @@ static void flash(char *cmd_parameter, char *response)
 
 		/* Send ACK to host */
 		fastboot_okay(NULL, response);
-		
+
 		/* set secure upgrade flag to indicate it is UBOOT image upgrade*/
 		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", UBOOT_SEC_UPGRADE_FLAG);
 		run_command(cmdbuf, 0);
 		run_command("saveenv", 0);
 		run_command("reset", 0);
 		return;
-	} 
+	}
 #endif
 
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)

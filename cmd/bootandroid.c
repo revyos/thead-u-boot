@@ -1,4 +1,3 @@
-
 /*
  * (C) Copyright 2018, Linaro Limited
  *
@@ -33,14 +32,14 @@
 
 
 /*
- * Knowing secure boot is enable or disable dependents on 
+ * Knowing secure boot is enable or disable dependents on
  * special data field in efuse and efuse control register.
  */
 extern bool get_system_boot_type(void);
 /*
  * The suffix for partition name is from the value of ENV_BOOTAB
  */
-static const char *slot_name_suffix = NULL;;
+static const char *slot_name_suffix = NULL;
 
 /*
  * BOOT IMAGE HEADER V3/V4 PAGESIZE
@@ -99,7 +98,7 @@ static int get_number_of_pages(int image_size, int page_size)
  * and append bootconfig to the end of ramdisk(initrd)
  * doc:https://www.kernel.org/doc/html/next/translations/zh_CN/admin-guide/bootconfig.html#initrd
  */
-static int prepare_data_from_vendor_boot(struct andr_img_hdr *hdr, int dtb_start, uint8_t** buf_bootconfig, int* vendor_bootconfig_size)
+static int prepare_data_from_vendor_boot(struct andr_img_hdr *hdr, int dtb_start, uint8_t** buf_bootconfig, int* vendor_bootconfig_size, bool isRecovery)
 {
 	int ret;
 	disk_partition_t part_info;
@@ -133,7 +132,15 @@ static int prepare_data_from_vendor_boot(struct andr_img_hdr *hdr, int dtb_start
     if (part_info.size * part_info.blksz > CONFIG_FASTBOOT_BUF_SIZE) {
         return -1;
     }
-    vendor_boot_data = (uint8_t*)CONFIG_FASTBOOT_BUF_ADDR;
+    //vendor_boot_data = (uint8_t*)CONFIG_FASTBOOT_BUF_ADDR;
+
+	printf("vendor_boot_data part_info.size = %ld, part_info.blksz = %lu", part_info.size, part_info.blksz);
+	// reuse kernel start address to load vendor boot data
+	// because av_malloc(32M) failed in 2G devices
+	// TODO: why av_malloc failed
+	// ATTATION: If the vendor_boot partition size > boot partition size, it is error.
+	// avb_malloc(part_info.size * part_info.blksz);
+	vendor_boot_data = (uint8_t*)env_get_hex(ENV_KERNEL_ADDR, DEFAULT_KERNEL_ADDR);
 
 	ret = blk_dread(dev_desc, part_info.start, part_info.size, vendor_boot_data);
 	// vendor_boot.img
@@ -216,10 +223,44 @@ static int prepare_data_from_vendor_boot(struct andr_img_hdr *hdr, int dtb_start
 	}
 #endif
 
+	if (isRecovery) {
+		int i = 0;
+		struct vendor_ramdisk_table_entry *ramdisk_entry = NULL;
+		int vendor_ramdisk_table_offset = vendor_boot_pagesize * (o + p + q);
+		int vendor_ramdisk_table_entry_num = byteToInt(vendor_boot_data,2116);//offset 2116
+		printf("vendor_boot vendor_ramdisk_table_entry_num:%d\n",vendor_ramdisk_table_entry_num);
+		int vendor_ramdisk_table_entry_size = byteToInt(vendor_boot_data,2120);//offset 2116
+		printf("vendor_boot vendor_ramdisk_table_entry_size:%d\n",vendor_ramdisk_table_entry_size);
+		for (i = 0; i < vendor_ramdisk_table_entry_num; i++) {
+			ramdisk_entry = (struct vendor_ramdisk_table_entry*)(vendor_boot_data + vendor_ramdisk_table_offset
+											 + ( i * vendor_ramdisk_table_entry_size ));
+			if (ramdisk_entry->ramdisk_type != VENDOR_RAMDISK_TYPE_RECOVERY) {
+				continue;
+			}
+			printf("find recovery from ramdisk table.");
+			int ramdisk_start = env_get_hex(ENV_RAMDISK_ADDR, DEFAULT_RAMDISK_ADDR);
+			int recovery_ramdisk_offset = vendor_boot_pagesize * o + ramdisk_entry->ramdisk_offset;
+			memcpy((void *)(uint64_t)ramdisk_start, vendor_boot_data + recovery_ramdisk_offset,
+													 ramdisk_entry->ramdisk_size);//ramdisk
+			//get bootconfig form vendor_boot.img and append bootconfig to ramdisk
+			char* bootconfig_params = (char*)*buf_bootconfig;
+			int ret = addBootConfigParameters(bootconfig_params, *vendor_bootconfig_size,
+						ramdisk_start + ramdisk_entry->ramdisk_size , 0);
+			if (ret == -1) {
+				printf("\nadd BootConfig Parameters error!!!\n");
+			} else {
+				printf("\nramdisk size is changed,new value is:%d\n",ramdisk_entry->ramdisk_size + ret);
+				//set ramdisk size for bootm
+				env_set_hex(ENV_RAMDISK_SIZE, ramdisk_entry->ramdisk_size + ret);
+			}
+			break;
+		}
+	}
+
 	return 0;
 }
 
-static void prepare_loaded_parttion_data(const uint8_t* data)
+static void prepare_loaded_parttion_data(const uint8_t* data, bool isRecovery)
 {
 	struct andr_img_hdr *hdr = (struct andr_img_hdr *)map_sysmem((phys_addr_t)data, 0);
 
@@ -234,7 +275,7 @@ static void prepare_loaded_parttion_data(const uint8_t* data)
 			hdr->kernel_size = byteToInt((uint8_t *)data, 8);
 			hdr->ramdisk_size = byteToInt((uint8_t *)data, 12);
 			hdr->page_size = BOOT_IMAGE_HEADER_V3_PAGESIZE;
-			prepare_data_from_vendor_boot(hdr,dtb_start,&buf_bootconfig,&size_bootconfig);
+			prepare_data_from_vendor_boot(hdr,dtb_start,&buf_bootconfig,&size_bootconfig,isRecovery);
 		}
 
 		int kernel_start = env_get_hex(ENV_KERNEL_ADDR, DEFAULT_KERNEL_ADDR);
@@ -257,12 +298,15 @@ static void prepare_loaded_parttion_data(const uint8_t* data)
 			printf("boot.img kernel space and ramdis space are overlaped !!!\n");
 		} else {
 			memcpy((void *)(uint64_t)kernel_start, data + kernel_offset, hdr->kernel_size);
-			memcpy((void *)(uint64_t)ramdisk_start, data + ramdisk_offset, hdr->ramdisk_size);
+			if (!isRecovery) {
+				memcpy((void *)(uint64_t)ramdisk_start, data + ramdisk_offset, hdr->ramdisk_size);
+			}
+
 			if( hdr->header_version < 3) {
 				//set ramdisk size for bootm
 				env_set_hex(ENV_RAMDISK_SIZE, hdr->ramdisk_size);
 				memcpy((void *)(uint64_t)dtb_start, data + dtb_offset, hdr->dtb_size);
-			} else {
+			} else if (!isRecovery) {
 				//get bootconfig form vendor_boot.img and append bootconfig to ramdisk
 				char* bootconfig_params=(char*)buf_bootconfig;
 				int ret = addBootConfigParameters(bootconfig_params, size_bootconfig,
@@ -283,7 +327,7 @@ static void prepare_loaded_parttion_data(const uint8_t* data)
 	unmap_sysmem(hdr);
 }
 
-static int prepare_boot_data(const AvbSlotVerifyData *out_data)
+static int prepare_boot_data(const AvbSlotVerifyData *out_data, bool isRecovery)
 {
 	int res = CMD_RET_FAILURE;
 	int i = 0;
@@ -296,13 +340,13 @@ static int prepare_boot_data(const AvbSlotVerifyData *out_data)
 		if (loaded_partition->partition_name != NULL) {
 			printf("partition_name=%s, data_size=%ld\n", \
 					loaded_partition->partition_name, loaded_partition->data_size);
-			prepare_loaded_parttion_data(loaded_partition->data);
+			prepare_loaded_parttion_data(loaded_partition->data, isRecovery);
 		}
 	}
 	return res;
 }
 
-static void prepare_partition_data(const char *name)
+static void prepare_partition_data(const char *name, bool isRecovery)
 {
 	int ret = 0;
 	disk_partition_t part_info;
@@ -328,7 +372,7 @@ static void prepare_partition_data(const char *name)
 	}
 
 	ret = blk_dread(dev_desc, part_info.start, part_info.size, data);
-	prepare_loaded_parttion_data(data);
+	prepare_loaded_parttion_data(data, isRecovery);
 	
 	printf("prepare_partition_data %s, read=%d, start:%lx, size:%ld, blksize:%lx\n", \
 			name, ret, part_info.start, part_info.size, part_info.blksz);
@@ -360,11 +404,17 @@ static void clear_bcb(void)
 	printf("BootAndriod bcb info :clear_bcb write=%d, %ld,%ld,%ld\n", ret, part_info.start, part_info.size, part_info.blksz);
 }
 
-static int do_andriod_bcb_business(void)
+static int do_andriod_bcb_business(int *boot_recovery)
 {
 	AvbIOResult ret = AVB_IO_RESULT_OK;
 	size_t bytes_read = 0;
 	int res = CMD_RET_FAILURE;
+
+#ifdef CONFIG_ANDROID_AB
+	char *slot_suffix = "_a";
+#else
+	char *slot_suffix = "";
+#endif
 
     if (avb_ops != NULL) {
         avb_ops_free(avb_ops);
@@ -410,12 +460,17 @@ static int do_andriod_bcb_business(void)
 	}
 
 	/* Enter into fastboot mode if bcb string is bootonce or bootrecovery */
-	if (0 == strncmp(s_bcb->message.command, BCB_BOOTONCE, strlen(BCB_BOOTONCE))|| \
-	    0 == strncmp(s_bcb->message.command, BCB_BOOTRECOVERY, strlen(BCB_BOOTRECOVERY))) {
+	if (0 == strncmp(s_bcb->message.command, "bootonce-bootloader", strlen("bootonce-bootloader")))
+		{
 		printf("BootAndriod Info: Bcb read %ld bytes, %s\n", bytes_read, s_bcb->message.command);
 		printf("BootAndriod Info: Enter fastboot mode\n");
 		clear_bcb();
 		run_command("fastboot usb 0", 0);
+	}
+	else if (0 == strncmp(s_bcb->message.command, "boot-recovery", strlen("boot-recovery")))
+	{
+		printf("recovery slot_suffix = %s\n", slot_suffix);
+		*boot_recovery = 1;
 	}
 
     memset(boot_ctl, 0, sizeof(struct bootloader_control));
@@ -455,8 +510,9 @@ static int do_bootandroid(struct cmd_tbl_s *cmdtp, int flag, int argc,
 	AvbHashtreeErrorMode htflags = AVB_HASHTREE_ERROR_MODE_RESTART_AND_INVALIDATE;
 	int res = CMD_RET_FAILURE;
     char bp_name[32] = {0};
+	int boot_recovery = 0;
 
-    res = do_andriod_bcb_business();
+    res = do_andriod_bcb_business(&boot_recovery);
     if (res != CMD_RET_SUCCESS) {
         goto exit;
     }
@@ -477,7 +533,7 @@ static int do_bootandroid(struct cmd_tbl_s *cmdtp, int flag, int argc,
 		if (slot_result == AVB_SLOT_VERIFY_RESULT_OK) {
 			printf("BootAndriod Info: Request Partition are verified successfully\n");
 			printf("BootAndriod cmdline: slot_data.cmdline:%s\n", slot_data->cmdline);
-			prepare_boot_data(slot_data);
+			prepare_boot_data(slot_data, boot_recovery ? true:false);
 			if (ret == 0) {
 				if (slot_data != NULL)
 					avb_slot_verify_data_free(slot_data);
@@ -487,13 +543,18 @@ static int do_bootandroid(struct cmd_tbl_s *cmdtp, int flag, int argc,
 			run_command("reset", 0);
 		}
 	} else {
-	/* Go to load BOOT partition directly in non-secure boot */		
+	/* Go to load BOOT partition directly in non-secure boot */
         get_partition_name(BOOT_PARTITION, bp_name);
-		prepare_partition_data(bp_name);
+		prepare_partition_data(bp_name, boot_recovery ? true:false);
 	}
-    
+
 exit:
 	return res;
+}
+
+const char * get_slot_name_suffix(void)
+{
+	return slot_name_suffix;
 }
 
 U_BOOT_CMD(
