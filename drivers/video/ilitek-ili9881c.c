@@ -368,12 +368,12 @@ static int ili9881c_panel_prepare(struct udevice *panel)
 	ret = dm_gpio_set_value(&priv->reset, true);
 	if (ret)
 		return ret;
-	mdelay(1);
+	mdelay(500);
 
 	ret = dm_gpio_set_value(&priv->reset, false);
 	if (ret)
 		return ret;
-	mdelay(10);
+	mdelay(100);
 
 	return 0;
 }
@@ -464,6 +464,20 @@ static int ili9881c_panel_ofdata_to_platdata(struct udevice *dev)
 		dev_err(dev, "Warning: cannot get reset GPIO\n");
 		if (ret != -ENOENT)
 			return ret;
+	} else {
+		/* not a bug, but uboot's regulator is buggy,
+		I haven't more time to fix it, so put it here
+		*/
+		/* reset panel */
+		ret = dm_gpio_set_value(&priv->reset, false);
+		if (ret)
+			return ret;
+		mdelay(100);
+
+		ret = dm_gpio_set_value(&priv->reset, true);
+		if (ret)
+			return ret;
+		mdelay(100);
 	}
 
 	/* power gpios */
