@@ -472,7 +472,7 @@
 			default-brightness-level = <7>;
 		};
 
-		ili9881c_panel {
+		panel0: dsi_panel0 {
 			compatible      = "ilitek,ili9881c";
 			backlight       = <&lcd_backlight>;
 			reset-gpios     = <&gpio1_porta 5 1>;   /* active low  */
