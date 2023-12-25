@@ -1,0 +1,45 @@
+#include "light-lpi4a.dts"
+
+/ {
+};
+
+&i2c1 {
+	clock-frequency = <400000>;
+        status = "okay";
+
+        pcal6408ahk_c: gpio@20 {
+                compatible = "nxp,pca9557";
+                reg = <0x18>;
+                gpio-controller;
+                #gpio-cells = <2>;
+        };
+};
+
+&i2c3 {
+	clock-frequency = <400000>;
+	status = "okay";
+	pcal6408ahk_d: gpio@20 {
+		compatible = "nxp,pca9557";
+		reg = <0x18>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
+
+&lcd_backlight {
+	pwms = <&pwm 0 50000>;
+	brightness-levels = <0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
+	36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75
+	76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100>;
+	default-brightness-level = <2>;
+};
+
+&panel0 {
+	status = "okay";
+	backlight = <&lcd_backlight>;
+	// 5v power cycle
+	// TODO: move into regulator
+	reset-gpios     = <&pcal6408ahk_c 0 0>; /* active low  */
+	/delete-property/ lcd-en-gpios;
+	/delete-property/ lcd-bias-en-gpios;
+};
