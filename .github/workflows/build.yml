@@ -90,6 +90,19 @@ jobs:
                 make light_milkv_meles_singlerank_defconfig
                 make -j$(nproc)
                 find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-meles-4g.bin
+
+                # mainline support
+                make clean
+                make light_lpi4a_defconfig
+                sed -i 's#thead/light-lpi4a.dtb#thead/th1520-lichee-pi-4a.dtb#' .config
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lpi4a-main.bin
+
+                make clean
+                make light_lpi4a_16g_defconfig
+                sed -i 's#thead/light-lpi4a-16gb.dtb#thead/th1520-lichee-pi-4a-16g.dtb#' .config
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lpi4a-16g-main.bin
               popd
               tree ${GITHUB_WORKSPACE}/output
 
