@@ -2450,7 +2450,7 @@ static void light_usb_boot_check(void)
 	if (env_ethaddr_flag)
 		eth_env_set_enetaddr_by_index("eth", 0, env_enetaddr);
 	if (env_eth1addr_flag)
-		eth_env_set_enetaddr_by_index("eth", 1, env_enetaddr);
+		eth_env_set_enetaddr_by_index("eth", 1, env_enet1addr);
 	env_save();
 	run_command("run gpt_partition", 0);
 	run_command("fastboot usb 0", 0);
