@@ -93,6 +93,16 @@ config TPM_ST33ZP24_SPI
 	  to the device using the standard TPM Interface Specification (TIS)
 	  protocol
 
+config TPM_Z32H330TC_SPI
+	bool "STMicroelectronics Z32H330TC SPI TPM"
+	depends on TPM_V1 && DM_SPI
+	---help---
+	  This driver supports STMicroelectronics TPM devices connected on the SP
+	  I bus.
+	  The usual tpm operations and the 'tpm' command can be used to talk
+	  to the device using the standard TPM Interface Specification (TIS)
+	  protocol
+
 config TPM_FLUSH_RESOURCES
 	bool "Enable TPM resource flushing support"
 	depends on TPM_V1

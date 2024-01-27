@@ -1616,7 +1616,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(I2C3_SCL, PIN_SPEED_NORMAL, PIN_PN, 4);
 	light_pin_cfg(I2C3_SDA, PIN_SPEED_NORMAL, PIN_PN, 4);
 
-	// light_pin_mux(SPI_CSN,3);                                                /// W_DISABLE_CATE1
+	light_pin_mux(SPI_CSN,3);                                                /// W_DISABLE_CATE1
 	// light_pin_mux(SPI_MOSI,3);                                               /// NC
 	// light_pin_mux(SPI_MISO,3);                                               /// RERST1_N_CAT1
 	// light_pin_mux(SPI_SCLK,3);
