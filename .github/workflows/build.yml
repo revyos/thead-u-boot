@@ -2,6 +2,10 @@ name: thead-u-boot-build
 
 on:
   push:
+    tags:
+      - '*'
+    branches:
+      - '*'
   pull_request:
   workflow_dispatch:
   schedule:
@@ -124,3 +128,10 @@ jobs:
           name: thead-u-uboot-${{ matrix.name }}
           path: output/*.bin
           retention-days: 30
+
+      - name: 'Create release by tag'
+        uses: softprops/action-gh-release@v1
+        if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.name == 'thead-gcc' }}
+        with:
+          files: output/*.bin
+          token: ${{ secrets.GITHUB_TOKEN }}
