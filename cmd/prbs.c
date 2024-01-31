@@ -50,6 +50,7 @@ u64 t_end;
 
 extern void flush_dcache_range(unsigned long start, unsigned long end);
 extern void invalidate_dcache_range(unsigned long start, unsigned long end);
+extern void invalid_dcache_range(unsigned long start, unsigned long end);
 
 extern unsigned long get_ddr_density(void);
 extern int riscv_get_time(u64 *time);
@@ -304,7 +305,7 @@ int prbs_test(struct PRBS_ELE *prbs, unsigned int *buf, int pos, bool random_dq,
     // compare result
     // invalid cache before read
     mdelay(100);
-    invalidate_dcache_range((ulong)buf, (ulong)buf+(bit_len*4*2*2));
+    invalid_dcache_range((ulong)buf, (ulong)buf+(bit_len*4*2*2));
     p1 = buf;
     bit_cnt = 0;
     for (i = 0; i < bit_len; i++) {
