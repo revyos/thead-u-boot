@@ -155,7 +155,8 @@
 	"mmcbootpart=2\0" \
 	"boot_conf_file=/extlinux/extlinux.conf\0" \
 	"uuid_rootfsA=80a5a8e9-c744-491a-93c1-4f4194fd690a\0" \
-	"partitions=name=table,size=2031KB;name=boot,size=500MiB,type=boot;name=root,size=-,type=linux,uuid=${uuid_rootfsA}\0" \
+	"uuid_swap=5ebcaaf0-e098-43b9-beef-1f8deedd135e\0" \
+	"partitions=name=table,size=2031KB;name=boot,size=500MiB,type=boot;name=swap,size=4096MiB,type=swap,uuid=${uuid_swap};name=root,size=-,type=linux,uuid=${uuid_rootfsA}\0" \
 	"gpt_partition=gpt write mmc ${mmcdev} $partitions\0" \
 	"load_aon=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize\0" \
 	"load_c906_audio=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_c906_audio.bin;cp.b $fwaddr $audio_ram_addr $filesize\0" \
