@@ -906,7 +906,8 @@ static void dwc3_ep0_xfer_complete(struct dwc3 *dwc,
 	dep->resource_index = 0;
 	dwc->setup_packet_pending = false;
 #ifdef CONFIG_TARGET_LIGHT_C910
-	invalidate_dcache_range((unsigned long)dwc->ctrl_req, (dmaaddr_t)dwc->ctrl_req + ROUND(sizeof(*dwc->ctrl_req), CACHELINE_SIZE));
+	extern void invalid_dcache_range(unsigned long start, unsigned long end);
+	invalid_dcache_range((unsigned long)dwc->ctrl_req, (dmaaddr_t)dwc->ctrl_req + ROUND(sizeof(*dwc->ctrl_req), CACHELINE_SIZE));
 #endif
 
 	switch (dwc->ep0state) {

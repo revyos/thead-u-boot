@@ -247,9 +247,10 @@ static int sdhci_transfer_data(struct sdhci_host *host, struct mmc_data *data)
 		}
 	} while (!(stat & SDHCI_INT_DATA_END));
 #ifdef CONFIG_TARGET_LIGHT_C910	
+	extern void invalid_dcache_range(unsigned long start, unsigned long end);
 	/*After read ,invalid dcache range again to avoid cache filled during read tranfer*/
 	if(data->flags == MMC_DATA_READ){
-		invalidate_dcache_range(host->start_addr,host->start_addr+ROUND(data->blocks*data->blocksize, ARCH_DMA_MINALIGN));
+		invalid_dcache_range(host->start_addr,host->start_addr+ROUND(data->blocks*data->blocksize, ARCH_DMA_MINALIGN));
 	}
 #endif
 	return 0;
