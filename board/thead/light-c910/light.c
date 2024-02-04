@@ -2504,6 +2504,15 @@ int board_late_init(void)
 	light_usb_boot_check();
 	light_mac_vaild_check();
 	ap_peri_clk_disable();
+
+#ifdef CONFIG_MCU_HC32fX
+	mcu_poweron();
+#endif
+
+#ifdef CONFIG_DM_CHARGE_DISPLAY
+	charge_display();
+#endif
+
 	return 0;
 }
 

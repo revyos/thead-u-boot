@@ -115,7 +115,9 @@ enum uclass_id {
 	UCLASS_W1,		/* Dallas 1-Wire bus */
 	UCLASS_W1_EEPROM,	/* one-wire EEPROMs */
 	UCLASS_WDT,		/* Watchdog Timer driver */
-
+	UCLASS_FG,		/* Fuel gauge */
+	UCLASS_CHARGE_DISPLAY,	/* Charge display */
+	UCLASS_MCU,		/* MCU device */
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };

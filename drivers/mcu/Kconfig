@@ -1,0 +1,15 @@
+menu "MCU Support"
+
+config DM_MCU
+	bool "Enable driver model for mcu device support"
+	depends on DM
+	help
+	  This adds a simple uclass for mcu device.
+	  
+config MCU_HC32fX
+	bool "Enable HC32fX MCU support"
+	depends on DM_MCU
+	help
+	  This adds a driver for the HC32fX MCU support.
+
+endmenu

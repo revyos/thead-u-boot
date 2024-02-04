@@ -1,0 +1,11 @@
+config DM_FUEL_GAUGE
+	bool "Enable driver model fuel gauge support"
+	depends on DM
+	help
+	  This adds a simple uclass for fuel gauge.
+
+config POWER_FG_CW201X
+	bool "CW201X Fuel gauge support"
+	depends on DM_FUEL_GAUGE
+	help
+	  This adds support for CW201X fuel gauge support.

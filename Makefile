@@ -757,6 +757,8 @@ libs-y += drivers/net/phy/
 libs-y += drivers/power/ \
 	drivers/power/domain/ \
 	drivers/power/fuel_gauge/ \
+	drivers/power/charge/ \
+	drivers/mcu/ \
 	drivers/power/mfd/ \
 	drivers/power/pmic/ \
 	drivers/power/battery/ \

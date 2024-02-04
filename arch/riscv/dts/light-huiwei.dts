@@ -8,6 +8,28 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	charge-animation {
+		compatible = "rockchip,uboot-charge";
+		uboot-low-power-voltage = <7300>;
+		status = "okay";
+	};
+
+	leds {
+		status = "okay";
+		compatible = "gpio-leds";
+		red-led {
+			gpios = <&gpio1_porta 14 0>; // GPIO_ACTIVE_HIGH: 0
+			label = "battery_charging";
+			default-state = "off";
+		};
+
+		green-led {
+			gpios = <&gpio1_porta 13 0>; // GPIO_ACTIVE_HIGH: 0
+			label = "battery_full";
+			default-state = "off";
+		};
+	};
+
 	memory@0 {
 		device_type = "memory";
 		reg = <0x0 0xc0000000 0x0 0x40000000>;
@@ -120,6 +142,35 @@
 
 			#address-cells = <1>;
 			#size-cells = <0>;
+
+			cw2015@62 {
+				clock-frequency = <100000>;
+				status = "okay";
+				compatible = "cellwise,cw2015";
+				reg = <0x62>;
+				cellwise,battery-profile = /bits/ 8
+					<0x17 0x67 0x66 0x65 0x64 0x63 0x61 0x5E
+					0x52 0x6D 0x4D 0x58 0x5B 0x51 0x44 0x3B
+					0x33 0x2C 0x26 0x23 0x24 0x29 0x34 0x42
+					0x49 0x16 0x0E 0xB8 0x3D 0x5D 0x68 0x7D
+					0x78 0x75 0x7B 0x7A 0x3F 0x18 0x82 0x48
+					0x09 0x4A 0x1A 0x47 0x86 0x93 0x97 0x15
+					0x49 0x71 0x9A 0xC3 0x80 0x41 0x4F 0xCB
+					0x2F 0x00 0x64 0xA5 0xB5 0x0D 0xB8 0x91>;
+				cellwise,monitor-interval-ms = <5000>;
+				cellwise,dual-cell = <1>;
+				// monitored-battery = <&battery>;
+				// power-supplies = <&bq25703>;
+			};
+
+			bq25703: bq25703@6b {
+				status = "okay";
+				compatible = "ti,bq25703";
+				reg = <0x6b>;
+				ti,charge-current = <2500000>;
+				ti,max-input-voltage = <5000000>;
+				ti,input-current = <2000000>;
+			};
 		};
 
 		i2c1: i2c@ffe7f24000{
@@ -130,6 +181,12 @@
 
 			#address-cells = <1>;
 			#size-cells = <0>;
+
+			mcu_hc32fx:mcu-hc32fx@0x4c {
+				status = "okay";
+				compatible = "mcu_hc32fx";
+				reg = <0x4c>;
+			};
 		};
 
 		i2c2: i2c@ffec00c000{
