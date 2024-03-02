@@ -5,6 +5,7 @@
  */
 
 #include <asm/io.h>
+#include <asm/gpio.h>
 #include <common.h>
 #include <console.h>
 #include <dm.h>
@@ -32,6 +33,7 @@ DECLARE_GLOBAL_DATA_PTR;
 
 #define LED_CHARGING_NAME			"battery_charging"
 #define LED_CHARGING_FULL_NAME			"battery_full"
+#define LED_CHARGING_START_NAME			"battery_start"
 
 struct charge_image {
 	const char *name;
@@ -46,6 +48,7 @@ struct charge_animation_priv {
 #ifdef CONFIG_LED
 	struct udevice *led_charging;
 	struct udevice *led_full;
+	struct udevice *led_start;
 #endif
 	const struct charge_image *image;
 	int image_num;
@@ -54,6 +57,9 @@ struct charge_animation_priv {
 	ulong auto_screen_off_timeout;	/* ms */
 	ulong suspend_delay_timeout;	/* ms */
 };
+
+struct gpio_desc powerkey_gpio;
+static int leds_switch = 0;
 
 #ifdef CONFIG_LED
 static int leds_update(struct udevice *dev, int soc)
@@ -88,8 +94,66 @@ static int leds_update(struct udevice *dev, int soc)
 
 	return 0;
 }
+
+static int leds_charge_on(struct udevice *dev, int soc)
+{
+	struct charge_animation_priv *priv = dev_get_priv(dev);
+	int ret, ledst;
+
+	ledst = LEDST_ON;
+	ret = led_set_state(priv->led_full, ledst);
+		if (ret) {
+			printf("set charging full led %s failed, ret=%d\n",
+			       ledst == LEDST_ON ? "ON" : "OFF", ret);
+			return ret;
+		}
+	return 0;
+}
+
+static int leds_charge_off(struct udevice *dev, int soc)
+{
+	struct charge_animation_priv *priv = dev_get_priv(dev);
+	int ret, ledst;
+	ledst = LEDST_OFF;
+	ret = led_set_state(priv->led_charging, ledst);
+		if (ret) {
+			printf("set charging full led %s failed, ret=%d\n",
+			       ledst == LEDST_ON ? "ON" : "OFF", ret);
+			return ret;
+		}
+	ret = led_set_state(priv->led_full, ledst);
+		if (ret) {
+			printf("set charging full led %s failed, ret=%d\n",
+			       ledst == LEDST_ON ? "ON" : "OFF", ret);
+			return ret;
+		}
+	return 0;
+}
+
+static int leds_charge_update(struct udevice *dev, int soc)
+{
+	struct charge_animation_priv *priv = dev_get_priv(dev);
+	int ret, ledst;
+	if (leds_switch > 5){
+		leds_charge_on(dev, soc);
+	} else {
+		leds_charge_off(dev, soc);
+	}
+	leds_switch++;
+	if (leds_switch > 10)
+		leds_switch = 0;
+	return 0;
+}
+
+
 #else
 static int leds_update(struct udevice *dev, int soc) { return 0; }
+
+static int leds_charge_on(struct udevice *dev, int soc) { return 0; }
+
+static int leds_charge_off(struct udevice *dev, int soc) { return 0; }
+
+static int leds_charge_update(struct udevice *dev, int soc) { return 0; }
 #endif
 
 static int charge_animation_ofdata_to_platdata(struct udevice *dev)
@@ -109,6 +173,22 @@ static int fg_charger_get_chrg_online(struct udevice *dev)
 	charger = priv->charger ? : priv->fg;
 
 	return fuel_gauge_get_chrg_online(charger);
+}
+
+static int get_reboot_state(void){
+	const char *var_name = "battery_charge";
+	char *value = env_get(var_name);
+	if (value)
+		if (strcmp(value, "0") == 0) {
+			env_set(var_name, "1");
+			env_save();
+			return 0;
+		}
+
+	env_set(var_name, "1");
+	env_save();
+
+	return 1;
 }
 
 static int charge_animation_show(struct udevice *dev)
@@ -151,6 +231,39 @@ static int charge_animation_show(struct udevice *dev)
 		}
 		mdelay(100);
 	};
+	leds_charge_off(dev, soc);
+
+	ret = get_reboot_state();
+
+	charging = fg_charger_get_chrg_online(dev);
+
+	if (!(charging <= 0) && ret != 0)
+		while(1){
+			ret = dm_gpio_get_value(&powerkey_gpio);
+			if (ret == 0){
+				break;
+			}
+
+			charging = fg_charger_get_chrg_online(dev);
+			if (charging <= 0) {
+				mcu_shutdown(); // shutdown system power
+			}
+
+			soc = fuel_gauge_update_get_soc(fg);
+			if (soc == 100){
+				leds_charge_on(dev, soc);
+			}else if (soc < 100){
+				leds_charge_update(dev, soc);
+			}
+			mdelay(300);
+		}
+
+	leds_charge_off(dev, soc);
+
+	ret = led_set_state(priv->led_start, LEDST_ON);
+	if (!ret)
+		printf("Found Charging-Start LED\n");
+
 	return 0;
 }
 
@@ -221,7 +334,15 @@ static int charge_animation_probe(struct udevice *dev)
 	ret = led_get_by_label(LED_CHARGING_FULL_NAME, &priv->led_full);
 	if (!ret)
 		printf("Found Charging-Full LED\n");
+	
+	ret = led_get_by_label(LED_CHARGING_START_NAME, &priv->led_start);
+	if (!ret)
+		printf("Found Charging-Start LED\n");
 #endif
+	ret = gpio_request_by_name(dev, "powerkey-gpio", 0, &powerkey_gpio, 0);
+	if (dm_gpio_is_valid(&powerkey_gpio)) {
+		dm_gpio_set_dir_flags(&powerkey_gpio, GPIOD_IS_IN);
+	}
 
 	printf("Enable charge animation display\n");
 

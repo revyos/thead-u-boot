@@ -11,6 +11,7 @@
 	charge-animation {
 		compatible = "rockchip,uboot-charge";
 		uboot-low-power-voltage = <7300>;
+		powerkey-gpio= <&ao_gpio_porta 6 0>;
 		status = "okay";
 	};
 
@@ -26,6 +27,12 @@
 		green-led {
 			gpios = <&gpio1_porta 13 0>; // GPIO_ACTIVE_HIGH: 0
 			label = "battery_full";
+			default-state = "off";
+		};
+
+		blue-led {
+			gpios = <&gpio1_porta 15 0>; // GPIO_ACTIVE_HIGH: 0
+			label = "battery_start";
 			default-state = "off";
 		};
 	};
@@ -403,6 +410,22 @@
 			};
 		};
 
+		ao_gpio: gpio@fffff41000 {
+			compatible = "snps,dw-apb-gpio";
+			reg = <0xff 0xfff41000 0x0 0x1000>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			ao_gpio_porta: ao_gpio-controller@0 {
+				compatible = "snps,dw-apb-gpio-port";
+				gpio-controller;
+				#gpio-cells = <2>;
+				nr-gpios-snps = <32>;
+				reg = <0>;
+
+			};
+		};
+
 		gpio1: gpio@ffec006000 {
 			compatible = "snps,dw-apb-gpio";
 			reg = <0xff 0xec006000 0x0 0x1000>;
@@ -550,7 +573,6 @@
 			compatible      = "ilitek,ili9881c";
 			backlight       = <&lcd_backlight>;
 			reset-gpios     = <&gpio1_porta 5 1>;   /* active low  */
-			led-gpio	= <&gpio1_porta 15 0>;
 			lcd-en-gpios    = <&pcal6408ahk_a 2 0>; /* active high */
 			lcd-bias-en-gpios = <&pcal6408ahk_a 4 0>;/* active high */
 		};

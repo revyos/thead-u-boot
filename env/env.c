@@ -243,7 +243,7 @@ int env_save(void)
 		if (!env_has_inited(drv->location))
 			return -ENODEV;
 
-		printf("Saving Environment to %s... ", drv->name);
+		// printf("Saving Environment to %s... ", drv->name);
 		ret = drv->save();
 		if (ret)
 			printf("Failed (%d)\n", ret);

@@ -1430,6 +1430,8 @@ static void light_iopin_init(void)
 	light_pin_cfg(CPU_JTG_TMS, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_mux(CPU_JTG_TDI, 3);
 	light_pin_cfg(CPU_JTG_TDI, PIN_SPEED_NORMAL, PIN_PN, 2);
+	light_pin_mux(CPU_JTG_TRST, 3);
+	light_pin_cfg(CPU_JTG_TRST, PIN_SPEED_NORMAL, PIN_PN, 2);
 
 	light_pin_mux(AOGPIO_7, 1);
 	light_pin_mux(AOGPIO_8, 1);

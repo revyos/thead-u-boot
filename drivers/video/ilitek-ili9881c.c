@@ -12,7 +12,6 @@ enum ili9881c_op {
 	ILI9881C_COMMAND,
 };
 
-struct gpio_desc led_gpio;
 
 struct ili9881c_instr {
 	enum ili9881c_op        op;
@@ -482,13 +481,6 @@ static int ili9881c_panel_ofdata_to_platdata(struct udevice *dev)
 		mdelay(100);
 	}
 
-	ret = gpio_request_by_name(dev, "led-gpio", 0, &led_gpio, 0);
-	if (dm_gpio_is_valid(&led_gpio)) {
-		dm_gpio_set_dir_flags(&led_gpio, GPIOD_IS_OUT);
-		dm_gpio_set_value(&led_gpio, 1);
-	} else {
-		
-	}
 
 	/* power gpios */
 	ret = gpio_request_by_name(dev, "lcd-en-gpios", 0,
