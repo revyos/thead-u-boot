@@ -8,6 +8,7 @@
 #include <asm/io.h>
 #include <dwc3-uboot.h>
 #include <usb.h>
+#include <usb/xhci.h>
 #include <cpu_func.h>
 #include <asm/gpio.h>
 #include <abuf.h>
@@ -29,6 +30,13 @@ int usb_gadget_handle_interrupts(int index)
 int board_usb_init(int index, enum usb_init_type init)
 {
 	dwc3_device_data.base = 0xFFE7040000UL;
+
+	if (init == USB_INIT_DEVICE) {
+		dwc3_device_data.dr_mode = USB_DR_MODE_PERIPHERAL;
+	} else {
+		dwc3_device_data.dr_mode = USB_DR_MODE_HOST;
+	}
+
 	return dwc3_uboot_init(&dwc3_device_data);
 }
 
@@ -36,6 +44,26 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 {
 	dwc3_uboot_exit(index);
 	return 0;
+}
+
+int xhci_hcd_init(int index, struct xhci_hccr **hccr, struct xhci_hcor **hcor)
+{
+	int ret = board_usb_init(index, USB_INIT_HOST);
+	if (ret != 0) {
+		puts("Failed to initialize board for USB\n");
+		return ret;
+	}
+
+	*hccr = (struct xhci_hccr *)dwc3_device_data.base;
+	*hcor = (struct xhci_hcor *)(dwc3_device_data.base +
+			HC_LENGTH(xhci_readl(&(*hccr)->cr_capbase)));;
+
+	return ret;
+}
+
+void xhci_hcd_stop(int index)
+{
+	board_usb_cleanup(index, USB_INIT_HOST);
 }
 
 int g_dnl_board_usb_cable_connected(void)
