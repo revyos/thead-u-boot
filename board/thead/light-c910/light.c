@@ -1476,7 +1476,6 @@ static void light_iopin_init(void)
 	light_pin_cfg(AUDIO_PA29, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_mux(AUDIO_PA30, 0);
 	light_pin_cfg(AUDIO_PA30, PIN_SPEED_NORMAL, PIN_PN, 2);
-	#warning "aon set to 3"
 	light_pin_mux(AUDIO_PA30, 3);
 
 	// light_pin_mux(AUDIO_PA9,3);                         ///AUDIO-PA-RESET

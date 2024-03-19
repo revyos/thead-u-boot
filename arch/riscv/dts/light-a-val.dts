@@ -513,8 +513,6 @@
 			compatible = "thead,light-dialog-pmic";
 			status = "okay";
 
-
-
 			soc_dvdd18_aon_reg: soc_dvdd18_aon {
 				regulator-name = "soc_dvdd18_aon";
 				regulator-boot-on;
@@ -669,6 +667,7 @@
 			status = "okay";
 			#address-cells = <1>;
 			#size-cells = <0>;
+			iic-config = <0 0 2>;
 			pmic_dev_0: pmic-dev@0 {
 			  pmic-name = "dialog,da9063,v1";
 			  pmic-addr = <0x5a 0x5b>;

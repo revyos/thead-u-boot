@@ -31,5 +31,6 @@ typedef struct Ddr_Reg_Config {
 } Ddr_Reg_Config_t;
 
 int dwc_ddrphy_phyinit_regInterface(regInstr myRegInstr);
+void dwc_ddr_misc_regu_save(void);
 
 #endif

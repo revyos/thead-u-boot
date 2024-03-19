@@ -377,7 +377,6 @@ int boundary_verify(unsigned long boundary) {
 
 int setup_ddr_addrmap(void)
 {
-	int ret;
 	unsigned long boundary = (unsigned long)MAXIMAL_DDR_DENSITY_MB * UNIT_MB;
 
 	// verify data accessing result firstly

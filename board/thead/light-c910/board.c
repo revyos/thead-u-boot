@@ -17,6 +17,7 @@
 #ifdef CONFIG_LIGHT_AON_CONF
 #include "../../../drivers/misc/light_regu.h"
 #include "dm/device.h"
+#include "dm/uclass.h"
 #endif
 
 #ifdef CONFIG_USB_DWC3
@@ -141,7 +142,7 @@ void boot_audio(void)
 
 #ifdef CONFIG_LIGHT_AON_CONF
 
-int get_and_set_aon_config_data()
+int get_and_set_aon_config_data(void)
 {
 	int ret =0;
     struct udevice *dev;
@@ -156,12 +157,12 @@ int get_and_set_aon_config_data()
 	config_data = (struct mic_regu_platdata *)(dev->platdata);
 
     volatile aon_config_t* read_config = (aon_config_t* )C910_E902_START_ADDRESS;
-	if(strncmp(read_config->magic , AON_CONFIG_MAGIC, strlen(AON_CONFIG_MAGIC))) {
+	if(strncmp((const char*)read_config->magic , AON_CONFIG_MAGIC, strlen(AON_CONFIG_MAGIC))) {
         printf("No aon config magic found in aon bin, please check the aon bin\n");
 		return -1;
 	}
 
-	if(strncmp(read_config->version, AON_CONFIG_VERSION, strlen(AON_CONFIG_VERSION))) {
+	if(strncmp((const char*)read_config->version, AON_CONFIG_VERSION, strlen(AON_CONFIG_VERSION))) {
        printf("Err aon config version, aon bin is:%s, u-boot is:%s\n", read_config->version, AON_CONFIG_VERSION);
 	   return -1;
 	}
@@ -174,25 +175,28 @@ int get_and_set_aon_config_data()
 	/*set pmic dev info */
 	int pmic_dev_num =  config_data->pmic_list.pmic_num;
     int pmic_dev_list_offset   = sizeof(aon_config_t);
-	uintptr_t pmic_dev_start_addr  =  C910_E902_START_ADDRESS + pmic_dev_list_offset;
+	uint64_t pmic_dev_start_addr  =  C910_E902_START_ADDRESS + pmic_dev_list_offset;
 
 	int  regu_num            = config_data->regu_id_list.regu_id_num;
 	int  regu_id_list_offset = pmic_dev_list_offset + pmic_dev_num * sizeof(pmic_dev_info_t);
-	uintptr_t regu_start_addr  = C910_E902_START_ADDRESS + regu_id_list_offset;
+	uint64_t regu_start_addr  = C910_E902_START_ADDRESS + regu_id_list_offset;
     int aon_bin_size  =  regu_id_list_offset + regu_num* sizeof(csi_regu_id_t);
     if( aon_bin_size > read_config->aon_config_partition_size) {
-         printf("Invalid aon partition size, aon bin support:%d, u-boot is %d\n", read_config->aon_config_partition_size, aon_bin_size);
+         printf("Invalid aon partition size, aon bin support:%lld, u-boot is %d\n", read_config->aon_config_partition_size, aon_bin_size);
 		 return -1;
 	}
 
-	printf("pmic_dev_num:%d offset:%d addr:0x%10x\n",pmic_dev_num, pmic_dev_list_offset, pmic_dev_start_addr);
+	printf("pmic_dev_num:%d offset:%d addr:%lld\n",pmic_dev_num, pmic_dev_list_offset, pmic_dev_start_addr);
 
-	memcpy(pmic_dev_start_addr, config_data->pmic_list.pmic_list, pmic_dev_num * sizeof(pmic_dev_info_t));
-    printf("regu_num:%d offset:%d addr:0x%10x\n",regu_num,regu_id_list_offset, regu_start_addr);
+	memcpy((void*)pmic_dev_start_addr, config_data->pmic_list.pmic_list, pmic_dev_num * sizeof(pmic_dev_info_t));
+    printf("regu_num:%d offset:%d addr:%lld\n",regu_num,regu_id_list_offset, regu_start_addr);
 
-	memcpy(regu_start_addr, config_data->regu_id_list.regu_id_list, regu_num * sizeof(csi_regu_id_t));
+	memcpy((void*)regu_start_addr, config_data->regu_id_list.regu_id_list, regu_num * sizeof(csi_regu_id_t));
     
 	read_config->wakeup_flag = config_data->wakeup_flag;
+	read_config->aon_pmic.iic_config.iic_id = config_data->iic_config.iic_id;
+	read_config->aon_pmic.iic_config.addr_mode = config_data->iic_config.addr_mode;
+	read_config->aon_pmic.iic_config.speed  = config_data->iic_config.speed;
 	read_config->aon_pmic.pmic_dev_num =  pmic_dev_num;
     read_config->aon_pmic.pmic_dev_list_offset   = pmic_dev_list_offset;
 
@@ -200,11 +204,12 @@ int get_and_set_aon_config_data()
 	read_config->aon_pmic.regu_num =  regu_num;
 	read_config->aon_pmic.regu_id_list_offset = regu_id_list_offset;
 
+	memcpy((void*)read_config->uboot_set_magic, UBOOT_CONFIG_MAGIC, strlen(UBOOT_CONFIG_MAGIC));
+
     flush_cache((uintptr_t)C910_E902_START_ADDRESS, aon_bin_size);
 
 	printf("-->pmic_dev_num:%d offset:%d\n",read_config->aon_pmic.pmic_dev_num, read_config->aon_pmic.pmic_dev_list_offset);
 	printf("-->regu_num:%d offset:%d\n",read_config->aon_pmic.regu_num,read_config->aon_pmic.regu_id_list_offset);
-
 	return 0;
 }
 #endif

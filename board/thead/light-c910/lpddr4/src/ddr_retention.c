@@ -988,9 +988,8 @@ static const uint32_t RetRegList_addr[934] =
     0x13840,
 };
 
-void dwc_ddr_misc_regu_save()
+void dwc_ddr_misc_regu_save(void)
 {
-    uint32_t data =  0;
     ddr_Regu_Config->misc_reg_num =  ARRAY_SIZE(MiscRegList);
     Reg_Misc_Addr_Val_t* misc_addr_t =  (Reg_Misc_Addr_Val_t*)((char*)ddr_Regu_Config +  64);
     for(int i = 0; i < ddr_Regu_Config->misc_reg_num; i++) {

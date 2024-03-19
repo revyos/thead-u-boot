@@ -663,8 +663,8 @@
 			compatible = "thead,light-pmic-conf";
 			status = "okay";
 			#address-cells = <1>;
-			#size-cells = <0>;
-
+		    #size-cells = <0>;
+			iic-config = <0 0 2>;
 			pmic_dev_0: pmic-dev@0 {
 			  pmic-name = "ricoh,rn5t567,v0";
 			  pmic-addr = <0x31>;
