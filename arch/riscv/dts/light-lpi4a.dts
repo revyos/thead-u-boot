@@ -5,6 +5,10 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	config {
+		huben-gpio = <&gpio1_porta 16 0>;
+        };
+
 	memory@0 {
 		device_type = "memory";
 		reg = <0x0 0xc0000000 0x0 0x40000000>;
@@ -380,6 +384,20 @@
 		dpu: dc8200@ffef600000 {
 			compatible = "verisilicon,dc8200";
 			reg = <0xff 0xef600000 0x0 0x100>;
+		};
+
+		usb: usb@ffe7040000 {
+			compatible = "snps,dwc3";
+			reg = <0xff 0xe7040000 0x0 0x10000>;
+			interrupts = <68>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			maximum-speed = "super-speed";
+			dr_mode = "host";
+			dma-mask = <0xf 0xffffffff>;
+			snps,usb3_lpm_capable;
+			snps,usb_sofitpsync;
+			status = "okay";
 		};
 
 		axiscr {

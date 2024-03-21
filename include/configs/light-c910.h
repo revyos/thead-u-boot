@@ -151,6 +151,7 @@
 	ENV_STR_BOARD \
 	"kernel_addr_r=0x00200000\0" \
 	"kdump_buf=180M\0" \
+	"boottype=mmc\0" \
 	"mmcdev=0\0" \
 	"mmcbootpart=2\0" \
 	"boot_conf_file=/extlinux/extlinux.conf\0" \
@@ -158,13 +159,14 @@
 	"uuid_swap=5ebcaaf0-e098-43b9-beef-1f8deedd135e\0" \
 	"partitions=name=table,size=2031KB;name=boot,size=500MiB,type=boot;name=swap,size=4096MiB,type=swap,uuid=${uuid_swap};name=root,size=-,type=linux,uuid=${uuid_rootfsA}\0" \
 	"gpt_partition=gpt write mmc ${mmcdev} $partitions\0" \
-	"load_aon=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize\0" \
-	"load_c906_audio=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_c906_audio.bin;cp.b $fwaddr $audio_ram_addr $filesize\0" \
-	"load_str=load mmc ${mmcdev}:${mmcbootpart} $fwaddr str.bin;cp.b $fwaddr $str_ram_addr $filesize\0" \
-	"load_opensbi=load mmc ${mmcdev}:${mmcbootpart} $opensbi_addr fw_dynamic.bin\0" \
-	"finduuid=part uuid mmc ${mmcdev}:${mmcpart} uuid\0" \
-	"bootcmd_load=run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
-	"bootcmd=run bootcmd_load; bootslave; run finduuid; sysboot mmc ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
+	"load_aon=load ${boottype} ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize\0" \
+	"load_c906_audio=load ${boottype} ${mmcdev}:${mmcbootpart} $fwaddr light_c906_audio.bin;cp.b $fwaddr $audio_ram_addr $filesize\0" \
+	"load_str=load ${boottype} ${mmcdev}:${mmcbootpart} $fwaddr str.bin;cp.b $fwaddr $str_ram_addr $filesize\0" \
+	"load_opensbi=load ${boottype} ${mmcdev}:${mmcbootpart} $opensbi_addr fw_dynamic.bin\0" \
+	"finduuid=part uuid ${boottype} ${mmcdev}:${mmcpart} uuid\0" \
+	"load_usb=usb start; load usb ${mmcdev}:${mmcpart} ${boot_conf_addr_r} extlinux/extlinux.conf; if test $? -eq 0; then setenv boottype usb; fi;\0" \
+	"bootcmd_load=run load_usb; run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
+	"bootcmd=run bootcmd_load; bootslave; run finduuid; sysboot ${boottype} ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file; usb stop; fastboot usb 0;\0" \
 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"\0"
 
