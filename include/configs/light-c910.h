@@ -151,8 +151,9 @@
 	ENV_STR_BOARD \
 	"kernel_addr_r=0x00200000\0" \
 	"kdump_buf=180M\0" \
-	"mmcdev=0\0" \
 	"mmcbootpart=2\0" \
+	"default_mmcdev=1\0" \
+	"mmc_select=if test -e mmc ${default_mmcdev}:${mmcbootpart} ${boot_conf_file}; then mmcdev=1; else mmcdev=0; fi;\0" \
 	"boot_conf_file=/extlinux/extlinux.conf\0" \
 	"uuid_rootfsA=80a5a8e9-c744-491a-93c1-4f4194fd690a\0" \
 	"uuid_swap=5ebcaaf0-e098-43b9-beef-1f8deedd135e\0" \
@@ -163,8 +164,8 @@
 	"load_str=load mmc ${mmcdev}:${mmcbootpart} $fwaddr str.bin;cp.b $fwaddr $str_ram_addr $filesize\0" \
 	"load_opensbi=load mmc ${mmcdev}:${mmcbootpart} $opensbi_addr fw_dynamic.bin\0" \
 	"finduuid=part uuid mmc ${mmcdev}:${mmcpart} uuid\0" \
-	"bootcmd_load=run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
-	"bootcmd=run bootcmd_load; bootslave; run finduuid; sysboot mmc ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
+	"bootcmd_load=run mmc_select; run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
+	"bootcmd=run bootcmd_load; bootslave; 、sysboot mmc ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"\0"
 
