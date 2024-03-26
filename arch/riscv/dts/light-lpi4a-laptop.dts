@@ -43,3 +43,8 @@
 	/delete-property/ lcd-en-gpios;
 	/delete-property/ lcd-bias-en-gpios;
 };
+
+&sdhci0 {
+	max-frequency = <35000000>;
+	status = "okay";
+};
