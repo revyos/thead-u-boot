@@ -10,6 +10,7 @@
 #include <dm/uclass.h>
 #include <power/fuel_gauge.h>
 #include <power/pmic.h>
+#include <power/power_delivery/power_delivery.h>
 
 DECLARE_GLOBAL_DATA_PTR;
 
@@ -39,6 +40,9 @@ DECLARE_GLOBAL_DATA_PTR;
 #define BQ25703_CHARGERSTAUS_REG		0x20
 #define BQ25703_INPUTVOLTAGE_REG		0x0A
 #define BQ25703_INPUTCURREN_REG			0x0E
+#define PD_MUN 2
+#define TYPEC0_I2C "i2c@ffe7f20000"
+#define TYPEC1_I2C "i2c@ffe7f24000"
 
 enum bq25700_table_ids {
 	/* range tables */
@@ -56,6 +60,7 @@ struct bq25700 {
 	struct udevice *dev;
 	u32 ichg;
 	u32 chip_id;
+	struct udevice *pd[PD_MUN];
 };
 
 struct bq25700_range {
@@ -72,7 +77,7 @@ static int bq25700_read(struct bq25700 *charger, uint reg)
 	ret = dm_i2c_read(charger->dev, reg, (u8 *)&val, 2);
 	if (ret) {
 		printf("write error to device: %p register: %#x!",
-		      charger->dev, reg);
+			   charger->dev, reg);
 		return ret;
 	}
 
@@ -86,7 +91,7 @@ static int bq25700_write(struct bq25700 *charger, uint reg, u16 val)
 	ret = dm_i2c_write(charger->dev, reg, (u8 *)&val, 2);
 	if (ret) {
 		printf("write error to device: %p register: %#x!",
-		      charger->dev, reg);
+			   charger->dev, reg);
 		return ret;
 	}
 
@@ -94,22 +99,22 @@ static int bq25700_write(struct bq25700 *charger, uint reg, u16 val)
 }
 
 static const union {
-	struct bq25700_range  rt;
+	struct bq25700_range rt;
 } bq25700_tables[] = {
 	/* range tables */
-	[TBL_ICHG] = { .rt = {0, 8128000, 64000} },
+	[TBL_ICHG] = {.rt = {0, 8128000, 64000}},
 	/* uV */
-	[TBL_CHGMAX] = { .rt = {0, 19200000, 16000} },
+	[TBL_CHGMAX] = {.rt = {0, 19200000, 16000}},
 	/* uV  max charge voltage*/
-	[TBL_INPUTVOL] = { .rt = {3200000, 19520000, 64000} },
+	[TBL_INPUTVOL] = {.rt = {3200000, 19520000, 64000}},
 	/* uV  input charge voltage*/
-	[TBL_INPUTCUR] = {.rt = {0, 6350000, 50000} },
+	[TBL_INPUTCUR] = {.rt = {0, 6350000, 50000}},
 	/*uA input current*/
-	[TBL_SYSVMIN] = { .rt = {1024000, 16182000, 256000} },
+	[TBL_SYSVMIN] = {.rt = {1024000, 16182000, 256000}},
 	/* uV min system voltage*/
-	[TBL_OTGVOL] = {.rt = {4480000, 20800000, 64000} },
+	[TBL_OTGVOL] = {.rt = {4480000, 20800000, 64000}},
 	/*uV OTG volage*/
-	[TBL_OTGCUR] = {.rt = {0, 6350000, 50000} },
+	[TBL_OTGCUR] = {.rt = {0, 6350000, 50000}},
 };
 
 static u32 bq25700_find_idx(u32 value, enum bq25700_table_ids id)
@@ -121,8 +126,8 @@ static u32 bq25700_find_idx(u32 value, enum bq25700_table_ids id)
 	rtbl_size = (rtbl->max - rtbl->min) / rtbl->step + 1;
 
 	for (idx = 1;
-	     idx < rtbl_size && (idx * rtbl->step + rtbl->min <= value);
-	     idx++)
+		 idx < rtbl_size && (idx * rtbl->step + rtbl->min <= value);
+		 idx++)
 		;
 
 	return idx - 1;
@@ -174,26 +179,84 @@ static int bq25700_get_usb_type(void)
 #endif
 }
 
+static int bq25700_get_pd_output_val(struct bq25700 *charger,
+									 int *vol, int *cur)
+{
+	struct power_delivery_data pd_data;
+	int ret;
+
+	if (!charger->pd[0] && !charger->pd[1]) {
+		return -EINVAL;
+	}
+
+	memset(&pd_data, 0, sizeof(pd_data));
+	int i = 0;
+	for (i = 0; i < PD_MUN; i++) {
+		if (!charger->pd[i]) {
+			continue;
+		}
+		ret = power_delivery_get_data(charger->pd[i], &pd_data);
+		if (ret) {
+			continue;
+		}
+		if (!pd_data.online || !pd_data.voltage || !pd_data.current) {
+			continue;
+		}
+
+		*vol = pd_data.voltage;
+		*cur = pd_data.current;
+		printf("voltage is %d current is %d\n", *vol, *cur);
+		goto end;
+	}
+	return -EINVAL;
+
+end:
+	return 0;
+}
+
 static void bq25703_charger_current_init(struct bq25700 *charger)
 {
-	u16 vol_idx = 0, cur_idx, chr_idx;
+	u16 charge_current = BQ25700_CHARGE_CURRENT_1500MA;
+	u16 sdp_inputcurrent = BQ25700_SDP_INPUT_CURRENT_500MA;
+	u16 dcp_inputcurrent = BQ25700_DCP_INPUT_CURRENT_1500MA;
+	int pd_inputvol, pd_inputcurrent;
+	u16 vol_idx = 0, cur_idx;
 	u16 temp;
 
 	temp = bq25700_read(charger, BQ25703_CHARGEOPTION0_REG);
 	temp &= (~WATCHDOG_ENSABLE);
 	bq25700_write(charger, BQ25703_CHARGEOPTION0_REG, temp);
 
-	vol_idx = bq25700_find_idx((5000000 - 1280000 - 3200000), TBL_INPUTVOL);
-	vol_idx = vol_idx << 6;
-	cur_idx = bq25700_find_idx(2500000, TBL_INPUTCUR);
-	cur_idx = cur_idx << 8;
-	chr_idx = bq25700_find_idx(2500000, TBL_ICHG);
-	chr_idx = chr_idx << 6;
+	if (!bq25700_get_pd_output_val(charger, &pd_inputvol,
+								   &pd_inputcurrent)) {
+		if (pd_inputvol > 5000000) {
+			vol_idx = bq25700_find_idx(pd_inputvol - 1280000 - 3200000,
+									   TBL_INPUTVOL);
+			vol_idx = vol_idx << 6;
+		}
+		cur_idx = bq25700_find_idx(pd_inputcurrent,
+								   TBL_INPUTCUR);
+		cur_idx = cur_idx << 8;
+		if (pd_inputcurrent != 0)
+		{
+			bq25700_write(charger, BQ25703_INPUTCURREN_REG,
+						  cur_idx);
+			if (vol_idx)
+				bq25700_write(charger, BQ25703_INPUTVOLTAGE_REG,
+							  vol_idx);
+			charge_current = bq25700_find_idx(pd_inputcurrent,
+											  TBL_ICHG);
+			charge_current = charge_current << 6;
+		}
+	} else {
+		bq25700_write(charger, BQ25703_INPUTCURREN_REG,
+					  dcp_inputcurrent);
+	}
 
-	bq25700_write(charger, BQ25703_INPUTCURREN_REG, cur_idx);	//0x0E
-	bq25700_write(charger, BQ25703_INPUTVOLTAGE_REG, vol_idx);  //0x0A
-	bq25700_write(charger, BQ25703_CHARGECURREN_REG, chr_idx);  //0x02
-
+	if (bq25703_charger_status(charger)) {
+		bq25700_write(charger, BQ25703_CHARGECURREN_REG,
+					  charge_current);
+	}
 }
 
 static int bq25700_ofdata_to_platdata(struct udevice *dev)
@@ -218,8 +281,6 @@ static int bq25700_ofdata_to_platdata(struct udevice *dev)
 		charger->chip_id = BQ25700_ID;
 	}
 
-	charger->ichg = fdtdec_get_int(blob, node, "ti,charge-current", 0);
-
 	return 0;
 }
 
@@ -228,15 +289,32 @@ static int bq25700_probe(struct udevice *dev)
 	struct bq25700 *charger = dev_get_priv(dev);
 	int ret;
 
-	if (charger->chip_id == BQ25703_ID)
+	struct udevice *pd_tmp;
+	struct udevice *dev_tmp;
+
+	for (uclass_first_device(UCLASS_PD, &pd_tmp);
+		 pd_tmp;
+		 uclass_next_device(&pd_tmp))
+	{
+		dev_tmp = dev_get_parent(pd_tmp);
+		if (!strncmp(TYPEC0_I2C, dev_tmp->name, strlen(TYPEC0_I2C))) { // Ensure that typec0 has the highest priority
+			charger->pd[0] = pd_tmp;
+		} else if (!strncmp(TYPEC1_I2C, dev_tmp->name, strlen(TYPEC1_I2C))) {
+			charger->pd[1] = pd_tmp;
+		}
+	}
+
+	if (charger->chip_id == BQ25703_ID) {
 		bq25703_charger_current_init(charger);
+	}
 
 	return 0;
 }
 
 static const struct udevice_id charger_ids[] = {
-	{ .compatible = "ti,bq25700" },
-	{ .compatible = "ti,bq25703" },
+	{.compatible = "ti,bq25700"},
+	{.compatible = "ti,bq25703"},
+	{},
 	{ },
 };
 

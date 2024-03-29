@@ -1,6 +1,7 @@
 /dts-v1/;
 
 #include <dt-bindings/pmic/light_pmic.h>
+#include <dt-bindings/usb/pd.h>
 
 / {
 	model = "T-HEAD c910 light";
@@ -150,6 +151,27 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 
+			usbc0: husb311_0@4e {
+				compatible = "hynetek,husb311";
+				int-n-gpios = <&gpio3_porta 10 1>;
+				reg = <0x4e>;
+				status = "okay";
+
+				usb_con0: connector {
+					compatible = "usb-c-connector";
+					label = "USB-C";
+					data-role = "dual";
+					power-role = "dual";
+					try-power-role = "sink";
+					source-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)>;
+					sink-pdos =
+						<PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)
+						PDO_FIXED(9000, 3000, PDO_FIXED_USB_COMM)
+						PDO_FIXED(12000, 3000, PDO_FIXED_USB_COMM)>;
+					op-sink-microwatt = <10000000>;
+				};
+			};
+
 			cw2015@62 {
 				clock-frequency = <100000>;
 				status = "okay";
@@ -174,6 +196,8 @@
 				status = "okay";
 				compatible = "ti,bq25703";
 				reg = <0x6b>;
+				typec0-enable-gpios = <&gpio3_porta 13 0>;  //CHG_PATH_SEL0_180
+				typec1-enable-gpios = <&gpio3_porta 12 0>;  //CHG_PATH_SEL1_180	
 				ti,charge-current = <2500000>;
 				ti,max-input-voltage = <5000000>;
 				ti,input-current = <2000000>;
@@ -193,6 +217,27 @@
 				status = "okay";
 				compatible = "mcu_hc32fx";
 				reg = <0x4c>;
+			};
+
+			usbc1: husb311_1@4e {
+				compatible = "hynetek,husb311";
+				int-n-gpios = <&gpio1_porta 5 1>;
+				reg = <0x4e>;
+				status = "okay";
+
+				usb_con1: connector {
+					compatible = "usb-c-connector";
+					label = "USB-C";
+					data-role = "dual";
+					power-role = "dual";
+					try-power-role = "sink";
+					source-pdos = <PDO_FIXED(5000, 2000, PDO_FIXED_USB_COMM)>;
+					sink-pdos =
+						<PDO_FIXED(5000, 3000, PDO_FIXED_USB_COMM)
+						PDO_FIXED(9000, 3000, PDO_FIXED_USB_COMM)
+						PDO_FIXED(12000, 3000, PDO_FIXED_USB_COMM)>;
+					op-sink-microwatt = <10000000>;
+				};
 			};
 		};
 
@@ -395,6 +440,21 @@
 			};
 		};
 
+		gpio3: gpio@ffe7f38000 {
+			compatible = "snps,dw-apb-gpio";
+			reg = <0xff 0xe7f38000 0x0 0x1000>;
+			clocks = <&dummy_apb>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			gpio3_porta: gpio-controller@0 {
+				compatible = "snps,dw-apb-gpio-port";
+				gpio-controller;
+				#gpio-cells = <2>;
+				snps,nr-gpios = <32>;
+				reg = <0>;
+			};
+		};
+
 		gpio0: gpio@ffec005000 {
 			compatible = "snps,dw-apb-gpio";
 			reg = <0xff 0xec005000 0x0 0x1000>;
@@ -570,6 +630,7 @@
 		};
 
 		ili9881c_panel {
+			status = "disabled";
 			compatible      = "ilitek,ili9881c";
 			backlight       = <&lcd_backlight>;
 			reset-gpios     = <&gpio1_porta 5 1>;   /* active low  */

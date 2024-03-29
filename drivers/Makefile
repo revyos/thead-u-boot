@@ -85,6 +85,7 @@ obj-y += misc/
 obj-$(CONFIG_MMC) += mmc/
 obj-$(CONFIG_NVME) += nvme/
 obj-$(CONFIG_PCI_ENDPOINT) += pci_endpoint/
+obj-$(CONFIG_DM_POWER_DELIVERY) += power/power_delivery/
 obj-y += dfu/
 obj-$(CONFIG_PCH) += pch/
 obj-y += phy/allwinner/

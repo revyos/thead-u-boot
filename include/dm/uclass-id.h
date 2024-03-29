@@ -118,6 +118,7 @@ enum uclass_id {
 	UCLASS_FG,		/* Fuel gauge */
 	UCLASS_CHARGE_DISPLAY,	/* Charge display */
 	UCLASS_MCU,		/* MCU device */
+	UCLASS_PD,		/* PD device */
 	UCLASS_COUNT,
 	UCLASS_INVALID = -1,
 };
