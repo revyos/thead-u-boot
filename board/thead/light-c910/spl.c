@@ -26,6 +26,11 @@
 DECLARE_GLOBAL_DATA_PTR;
 
 extern void init_ddr(void);
+#ifdef CONFIG_FIXUP_MEMORY_REGION
+extern int fixup_ddr_addrmap(unsigned long size);
+extern int query_ddr_boundary(unsigned long size);
+#endif
+extern unsigned long get_ddr_density(void);
 extern void cpu_clk_config(int cpu_freq);
 extern void sys_clk_config(void);
 extern void ddr_clk_config(int ddr_freq);
@@ -92,6 +97,25 @@ void setup_ddr_pmp(void)
 
 	sync_is();
 }
+
+void clear_ddr_pmp(void)
+{
+	/* restore pmp entry0,entry1 setting in bootrom */
+	writel(0x0400000000 >> 12, (void *)(PMP_BASE_ADDR + 0x104));
+	writel(0x0 >> 12, (void *)(PMP_BASE_ADDR + 0x100));
+	writel(0xffe1000000 >> 12, (void *)(PMP_BASE_ADDR + 0x10c));
+	writel(0xffe0180000 >> 12, (void *)(PMP_BASE_ADDR + 0x108));
+
+	writel(0x4040, (void *)(PMP_BASE_ADDR + 0x000));
+
+	sync_is();
+}
+
+static inline void _l2cache_ciall(void)
+{
+	asm volatile (".long 0x0170000b");
+}
+
 
 int get_rng(unsigned int *rng, int cnt)
 {
@@ -297,6 +321,101 @@ void setup_ddr_parity(void)
 	}
 }
 
+#ifdef CONFIG_FIXUP_MEMORY_REGION
+
+#define MAGIC_DATA (0xF4240)
+#define MAGIC_DATA2 (0x5AA5)
+#define MAGIC_DATA3 (0x3C3C)
+#define MAGIC_DATA4 (0xF0F0)
+
+/*
+return: 0: found boundary;
+*/
+int boundary_verify(unsigned long boundary) {
+	phys_addr_t verify_addr = (phys_addr_t)CONFIG_SYS_SDRAM_BASE;
+	phys_addr_t verify_addr2 = ((phys_addr_t)boundary + CONFIG_SYS_SDRAM_BASE)/4;
+	phys_addr_t verify_addr3 = ((phys_addr_t)boundary + CONFIG_SYS_SDRAM_BASE)/2;
+	phys_addr_t verify_addr4 = (phys_addr_t)boundary + CONFIG_SYS_SDRAM_BASE;
+
+	// verify data accessing result firstly
+	writel(MAGIC_DATA2, verify_addr);
+	invalidate_dcache_range(verify_addr, verify_addr + CONFIG_SYS_CACHELINE_SIZE);
+	if (readl(verify_addr) != MAGIC_DATA2) {
+		printf("ddr rw test failed\n");
+		return -1;
+	}
+	writel(MAGIC_DATA, verify_addr);  // writing at beginning
+	invalidate_dcache_range(verify_addr, verify_addr + CONFIG_SYS_CACHELINE_SIZE);
+	if (readl(verify_addr) != MAGIC_DATA) {
+		printf("ddr rw test failed\n");
+		return -1;
+	}
+	writel(MAGIC_DATA2, verify_addr2); // writing at one-quarter addr
+	writel(MAGIC_DATA3, verify_addr3); // writing at half addr
+	invalidate_dcache_range(verify_addr, verify_addr + CONFIG_SYS_CACHELINE_SIZE);
+	invalidate_dcache_range(verify_addr2, verify_addr2 + CONFIG_SYS_CACHELINE_SIZE);
+	invalidate_dcache_range(verify_addr3, verify_addr3 + CONFIG_SYS_CACHELINE_SIZE);
+
+	if (boundary == (unsigned long)MAXIMAL_DDR_DENSITY_MB * UNIT_MB) { // boundary by design
+		if ((readl(verify_addr) == MAGIC_DATA) &&
+			(readl(verify_addr2) == MAGIC_DATA2) &&
+			(readl(verify_addr3) == MAGIC_DATA3))
+			return 0;
+	}
+	else {
+		writel(MAGIC_DATA4, verify_addr4); // writing out of boundary
+		invalidate_dcache_range(verify_addr4, verify_addr4 + CONFIG_SYS_CACHELINE_SIZE);
+		if ((readl(verify_addr) == MAGIC_DATA4) && // overwrite by verify_addr4
+			(readl(verify_addr2) == MAGIC_DATA2) &&
+			(readl(verify_addr3) == MAGIC_DATA3) &&
+			(readl(verify_addr4) == MAGIC_DATA4))
+			return 0;
+	}
+
+	return -1;
+}
+
+int setup_ddr_addrmap(void)
+{
+	int ret;
+	unsigned long boundary = (unsigned long)MAXIMAL_DDR_DENSITY_MB * UNIT_MB;
+
+	// verify data accessing result firstly
+	writel(MAGIC_DATA, (phys_addr_t)CONFIG_SYS_SDRAM_BASE);
+	invalidate_dcache_range(CONFIG_SYS_SDRAM_BASE, CONFIG_SYS_SDRAM_BASE + CONFIG_SYS_CACHELINE_SIZE);
+	if (readl((phys_addr_t)CONFIG_SYS_SDRAM_BASE) != MAGIC_DATA) {
+		printf("ddr rw test failed\n");
+		goto addrmap_err;
+	}
+	writel(MAGIC_DATA2, (phys_addr_t)CONFIG_SYS_SDRAM_BASE);
+	invalidate_dcache_range(CONFIG_SYS_SDRAM_BASE, CONFIG_SYS_SDRAM_BASE + CONFIG_SYS_CACHELINE_SIZE);
+	if (readl((phys_addr_t)CONFIG_SYS_SDRAM_BASE) != MAGIC_DATA2) {
+		printf("ddr rw test failed\n");
+		goto addrmap_err;
+	}
+
+	// try to find memory boundary
+	while (boundary >= (unsigned long)MINIMAL_DDR_DENSITY_MB * UNIT_MB) {
+		if (query_ddr_boundary(boundary) == 0) {
+			clear_ddr_pmp();
+			fixup_ddr_addrmap(boundary);
+			setup_ddr_pmp();
+			if (boundary_verify(boundary) == 0) {
+				gd->ram_size = boundary;
+				printf("found ddr boundary <0x%lx>\n", boundary);
+				return 0;
+			}
+		}
+		boundary = boundary >> 1;
+	}
+
+	gd->ram_size = get_ddr_density();
+addrmap_err:
+	printf("failed to setup ddr addrmap\n");
+	return -1;
+}
+#endif
+
 void cpu_performance_enable(void)
 {
 #define CSR_MHINT2_E	0x7cc
@@ -308,7 +427,6 @@ void cpu_performance_enable(void)
 	csr_write(CSR_MCCR2, 0xe2490009);
 	// FIXME: Clear bit[12] to disable L0BTB.
 	csr_write(CSR_MHCR, 0x17f); // clear bit7 to disable indirect brantch prediction
-	csr_write(CSR_MXSTATUS, 0x638000);
 	csr_write(CSR_MHINT, 0x6e30c | (1<<21) | (1<<22)); // set bit21 & bit 22 to close tlb & fence broadcast
 	mdelay(50); // workaround
 }
@@ -372,9 +490,9 @@ void board_init_f(ulong dummy)
 	preloader_console_init();
 
 #ifdef CONFIG_PMIC_VOL_INIT
-	ret = pmic_ddr_regu_init();
+	ret = aon_local_init();
 	if (ret) {
-		printf("%s pmic init failed %d \n",__func__,ret);
+		printf("%s aon local init failed %d \n",__func__,ret);
 		hang();
 	}
 
@@ -389,7 +507,6 @@ void board_init_f(ulong dummy)
 		printf("%s set apcpu voltage failed \n",__func__);
 		hang();
 	}
-
 #endif
 	ddr_clk_config(0);
 	cpu_clk_config(0);
@@ -398,6 +515,12 @@ void board_init_f(ulong dummy)
 	setup_ddr_scramble();
 	setup_ddr_parity();
 	setup_ddr_pmp();
+#ifdef CONFIG_FIXUP_MEMORY_REGION
+	setup_ddr_addrmap();
+#else
+	// update ram_size from board config
+	gd->ram_size = get_ddr_density();
+#endif
 
 	printf("ddr initialized, jump to uboot\n");
 	light_board_init_r(NULL, 0);

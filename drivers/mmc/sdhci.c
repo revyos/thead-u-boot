@@ -38,9 +38,7 @@ static void sdhci_reset(struct sdhci_host *host, u8 mask)
 		timeout--;
 		udelay(1000);
 	}
-#ifdef CONFIG_TARGET_LIGHT_C910
-	mdelay(50);
-#endif
+
 }
 
 static void sdhci_cmd_done(struct sdhci_host *host, struct mmc_cmd *cmd)

@@ -14,9 +14,9 @@ DECLARE_GLOBAL_DATA_PTR;
 int dram_init(void)
 {
 #ifdef CONFIG_DDR_BOARD_CONFIG
-extern unsigned long get_ddr_density(void);
-	// update ram_size from board config info
-	gd->ram_size = get_ddr_density();
+	// already setup during ddr initial flow
+	gd->bd->bi_memsize = gd->ram_size;
+	gd->bd->bi_memstart = CONFIG_SYS_SDRAM_BASE;
 	return 0;
 #else
 	return fdtdec_setup_mem_size_base();

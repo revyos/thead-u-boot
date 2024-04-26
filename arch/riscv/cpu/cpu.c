@@ -27,6 +27,15 @@ u32 hart_lottery __attribute__((section(".data"))) = 0;
 u32 available_harts_lock = 1;
 #endif
 
+void arch_setup_gd(struct global_data *gd_ptr)
+{
+	// sync specific info from spl
+	gd_ptr->ram_size = gd->ram_size;
+
+	// setup gd ptr
+	gd = gd_ptr;
+}
+
 static inline bool supports_extension(char ext)
 {
 #ifdef CONFIG_CPU

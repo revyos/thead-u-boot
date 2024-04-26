@@ -11,6 +11,10 @@
 #include <thead/clock_config.h>
 #include <linux/bitops.h>
 #include <asm/arch-thead/light-iopmp.h>
+#include <memalign.h>
+#include <fdt_support.h>
+#include <fs.h>
+#include <asm/global_data.h>
 
 #define SOC_PIN_AP_RIGHT_TOP          (0x0)
 #define SOC_PIN_AP_LEFT_TOP           (0x1)
@@ -1438,7 +1442,7 @@ static void light_iopin_init(void)
 	// light_pin_mux(AOGPIO_15,0);
 	light_pin_cfg(AOGPIO_7, PIN_SPEED_NORMAL, PIN_PN, 2);     ///NC
 	light_pin_cfg(AOGPIO_8, PIN_SPEED_NORMAL, PIN_PN, 2);     ///NC
-	// light_pin_cfg(AOGPIO_9,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(AOGPIO_9,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(AOGPIO_10, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_cfg(AOGPIO_11, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_cfg(AOGPIO_12, PIN_SPEED_NORMAL, PIN_PN, 2);
@@ -1472,6 +1476,8 @@ static void light_iopin_init(void)
 	light_pin_cfg(AUDIO_PA29, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_mux(AUDIO_PA30, 0);
 	light_pin_cfg(AUDIO_PA30, PIN_SPEED_NORMAL, PIN_PN, 2);
+	#warning "aon set to 3"
+	light_pin_mux(AUDIO_PA30, 3);
 
 	// light_pin_mux(AUDIO_PA9,3);                         ///AUDIO-PA-RESET
 	// light_pin_cfg(AUDIO_PA9,PIN_SPEED_NORMAL,PIN_PN,2);
@@ -2247,16 +2253,19 @@ static void light_iopin_init(void)
 }
 
 #else
+
 static void light_iopin_init(void)
 {
 	light_pin_cfg(I2C_AON_SCL,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(I2C_AON_SDA,PIN_SPEED_NORMAL,PIN_PN,4);
 	light_pin_cfg(AOGPIO_8,PIN_SPEED_NORMAL,PIN_PN,2);
 	light_pin_cfg(AOGPIO_9,PIN_SPEED_NORMAL,PIN_PN,2);
+	light_pin_cfg(AOGPIO_14, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_mux(AOGPIO_10,1);
 	light_pin_mux(AOGPIO_11,1);
 	light_pin_mux(AOGPIO_12,1);
 	light_pin_mux(AOGPIO_13,1);
+	light_pin_mux(AOGPIO_14, 0);
 	light_pin_mux(AUDIO_PA30,3);
 
 	/*qspi1 cs0 gpio0-1 pad strength and pin-pull mode*/
@@ -2525,3 +2534,208 @@ U_BOOT_CMD(
 	"check ethaddrs in environment variables is valid",
 	""
 );
+
+
+#define PAGE_SIZE 4096
+#define HIBERNATE_SIG	"S1SUSPEND"
+#define HIBERNATE_SIG2	"S1SUSPEN2" //sign for 2nd time load image
+
+static inline int fdt_disabled_node(void *blob,const char *path)
+{
+	int offset;
+	offset = fdt_path_offset(blob,path);
+	if (offset < 0) {
+		printf("ERROR:failed to find %s node in dtb (ret %d)\n",path,offset);
+		return offset;
+	}
+	return fdt_status_disabled(blob,offset);
+}
+
+static int do_board_check_hibernate(cmd_tbl_t *cmdtp, int flag, int argc,
+		       char * const argv[])
+{
+	int ret;
+	char runcmd[128];
+	ulong addr;
+	void *blob = NULL;
+	ulong mask = 0;
+	int mmc_parts;
+	int resume_part;
+	bool fastresume = 0;
+	#define ON_RET_ERROR(str) if(ret < 0) printf("set node %s status failed %d\n",str,ret)
+	ALLOC_CACHE_ALIGN_BUFFER(u8,swsusp_header_buf,PAGE_SIZE);
+	u8 *header = &swsusp_header_buf[0];
+
+	mmc_parts = env_get_hex("mmcpart",3);
+	resume_part = mmc_parts - 2;
+
+	if(argc >= 4) { // is user pass in ,use that
+		sprintf(runcmd, "read %s %s %s 0 8",
+			argv[1],argv[2],argv[3]);
+		header = (u8 *)simple_strtoul(argv[3],NULL,16);
+		if(argc >= 5)
+			mask = simple_strtoul(argv[4],NULL,16);
+		printf("read swsusp_header to %p,dtb disbale mask 0x%lx\n",header,mask);
+	} else {
+		sprintf(runcmd, "read mmc 0:%d 0x%lx 0 8",
+			resume_part,(unsigned long)&header[0]);
+	}
+
+	ret = run_command(runcmd, 0);
+	if(ret != CMD_RET_SUCCESS)
+		goto failed;
+	if(!memcmp(HIBERNATE_SIG, &header[PAGE_SIZE-10], 10) ||
+		!memcmp(HIBERNATE_SIG2, &header[PAGE_SIZE-10], 10) ) {
+		printf("found sign\n");
+	}
+	else {
+		sprintf(runcmd, "0:%s",env_get("mmcbootpart"));
+		if(file_exists("mmc",runcmd,"no_fastresume",FS_TYPE_EXT)) {
+			printf("do not fastresume\n");
+			goto default_set;
+		}
+
+		sprintf(runcmd, "read mmc 0:%d 0x%lx 0 8",
+			resume_part+1,(unsigned long)&header[0]);
+		ret = run_command(runcmd, 0);
+		if(ret != CMD_RET_SUCCESS)
+			goto failed;
+		if(!memcmp(HIBERNATE_SIG, &header[PAGE_SIZE-10], 10) ||
+			!memcmp(HIBERNATE_SIG2, &header[PAGE_SIZE-10], 10) ) {
+			printf("found fastresume sign\n");
+			resume_part = resume_part+1;
+			fastresume = true;
+		}
+		else {
+			printf(" not find hibernate sign\n");
+			goto default_set;
+		}
+	}
+
+	/*get dtb address*/
+	if(env_get("dtb_addr") == NULL)
+	{
+		printf("Cannot get dtb_addr,check flow !\n");
+		goto failed;
+	}
+	addr = env_get_hex("dtb_addr",0);
+	sprintf(runcmd, "fdt addr 0x%lx", env_get_hex("dtb_addr",0));
+	ret = run_command(runcmd, 0);
+	if(ret != CMD_RET_SUCCESS)
+		goto failed;
+	sprintf(runcmd, "fdt resize");
+	ret = run_command(runcmd, 0);
+	if(ret != CMD_RET_SUCCESS)
+		goto failed;
+
+	/*set unneed devices node disabled for hibernate resume in kernel dtb*/
+	blob = (void *)addr;
+	ret = fdt_status_disabled_by_alias(blob,"i2c0");
+	ON_RET_ERROR("i2c0");
+	ret = fdt_status_disabled_by_alias(blob,"i2c1");
+	ON_RET_ERROR("i2c1");
+	ret = fdt_status_disabled_by_alias(blob,"i2c2");
+	ON_RET_ERROR("i2c2");
+
+	ret = fdt_status_disabled_by_alias(blob,"audio_i2c0");
+	ON_RET_ERROR("audio_i2c0");
+	ret = fdt_status_disabled_by_alias(blob,"audio_i2c1");
+	ON_RET_ERROR("audio_i2c1");
+	ret = fdt_status_disabled_by_alias(blob,"ethernet0");
+	ON_RET_ERROR("ethernet0");
+	ret = fdt_status_disabled_by_alias(blob,"ethernet1");
+	ON_RET_ERROR("ethernet1");
+	ret = fdt_status_disabled_by_alias(blob,"spi0");
+	ON_RET_ERROR("spi0");
+	ret = fdt_status_disabled_by_alias(blob,"spi1");
+	ON_RET_ERROR("spi1");
+	ret = fdt_status_disabled_by_alias(blob,"spi2");
+	ON_RET_ERROR("spi2");
+
+	ret = fdt_disabled_node(blob,"/soc/adc");
+	ON_RET_ERROR("/soc/adc");
+
+	//default mask is 0, need set this node disbaled
+	if(0 == (mask & 0x01)) {
+		ret = fdt_disabled_node(blob,"/soc/light_i2s");
+		ON_RET_ERROR("/soc/light_i2s");
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s0");
+		ON_RET_ERROR("/soc/audio_i2s0");
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s1");
+		ON_RET_ERROR("/soc/audio_i2s1");
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s2");
+		ON_RET_ERROR("/soc/audio_i2s2");
+	}
+	if(0 == (mask & 0x02)) {
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd0");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd0");
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd1");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd1");
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd2");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd2");
+		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd3");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd3");
+	}
+	/*set resume_bootargs for kernel do fast bootup */
+	sprintf(runcmd,"resume=/dev/mmcblk0p%d notrace noftrace nopty noclkdebug ",resume_part);
+	env_set("resume_bootargs",runcmd);
+
+	return CMD_RET_SUCCESS;
+
+default_set:
+	sprintf(runcmd,"resume=/dev/mmcblk0p%d",resume_part);
+	env_set("resume_bootargs",runcmd);
+	return CMD_RET_SUCCESS;
+
+failed:
+	printf("ERROR:runcmd %s failed!\n",runcmd);
+	sprintf(runcmd,"resume=/dev/mmcblk0p%d",resume_part);
+	env_set("resume_bootargs",runcmd);
+	return CMD_RET_FAILURE;
+}
+
+U_BOOT_CMD(
+	chk_hibernate, 6, 0,	do_board_check_hibernate,
+	"check hibernate image sign,if valid set dtb nodes and bootargs for fast boot resume",
+	" [<interface> <dev[:part]>] [mask]"
+);
+
+#ifdef CONFIG_FIXUP_MEMORY_REGION
+static int do_fixup_memory_region(cmd_tbl_t *cmdtp, int flag, int argc,
+		       char * const argv[])
+{
+	ulong addr;
+	void *blob = NULL;
+	DECLARE_GLOBAL_DATA_PTR;
+	u64 base, size;
+
+	base = gd->ram_base;
+	size = gd->ram_size;
+
+	/*get dtb address*/
+	if(env_get("dtb_addr") == NULL)
+	{
+		printf("Cannot get dtb_addr,check flow !\n");
+		return CMD_RET_FAILURE;
+	}
+	addr = env_get_hex("dtb_addr",0);
+
+	/*set unneed devices node disabled for hibernate resume in kernel dtb*/
+	blob = (void *)addr;
+	fdtdec_setup_mem_size_base_fdt(blob);
+	size -= gd->ram_base;
+
+	if (size != gd->ram_size) {
+		printf("fixup memory region from [0x%09lx ~ 0x%09lx] to [0x%09lx ~ 0x%09lx]\n",
+				gd->ram_base, gd->ram_base+gd->ram_size, gd->ram_base, gd->ram_base+size);
+		gd->ram_size = size;
+		fdt_fixup_memory(blob, gd->ram_base, gd->ram_size);
+	}
+	return CMD_RET_SUCCESS;
+}
+U_BOOT_CMD(
+	fixup_memory_region, 2, 0,	do_fixup_memory_region,
+	"modify linux memory region via gd->ram_size",
+	""
+);
+#endif

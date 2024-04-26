@@ -1,4 +1,7 @@
 /dts-v1/;
+
+#include <dt-bindings/pmic/light_pmic.h>
+
 / {
 	model = "T-HEAD c910 light";
 	compatible = "thead,c910_light";
@@ -147,6 +150,13 @@
 
 			#address-cells = <1>;
 			#size-cells = <0>;
+
+			pcal6408ahk_d: gpio@20 {
+				compatible = "nxp,pca9557";
+				reg = <0x18>;
+				gpio-controller;
+				#gpio-cells = <2>;
+			};
 		};
 
 		i2c4: i2c@ffe7f28000{
@@ -157,13 +167,6 @@
 
 			#address-cells = <1>;
 			#size-cells = <0>;
-
-			pcal6408ahk_a: gpio@20 {
-				compatible = "nxp,pca9554";
-				reg = <0x20>;
-				gpio-controller;
-				#gpio-cells = <2>;
-			};
 		};
 
 		i2c5: i2c@fff7f2c000{
@@ -382,6 +385,20 @@
 			reg = <0xff 0xef600000 0x0 0x100>;
 		};
 
+		usb: usb@ffe7040000 {
+			compatible = "snps,dwc3";
+			reg = <0xff 0xe7040000 0x0 0x10000>;
+			interrupts = <68>;
+			reg-shift = <2>;
+			reg-io-width = <4>;
+			maximum-speed = "super-speed";
+			dr_mode = "host";
+			dma-mask = <0xf 0xffffffff>;
+			snps,usb3_lpm_capable;
+			snps,usb_sofitpsync;
+			status = "okay";
+		};
+
 		axiscr {
 			compatible = "thead,axiscr";
 			reg = <0xff 0xff004000 0x0 0x1000>;
@@ -473,12 +490,375 @@
 		};
 
 		panel0: dsi_panel0 {
-			compatible      = "ilitek,ili9881c";
+			compatible      = "jadard,jd9365da-h3";
 			backlight       = <&lcd_backlight>;
-			reset-gpios     = <&gpio1_porta 5 1>;   /* active low  */
-			lcd-en-gpios    = <&pcal6408ahk_a 2 0>; /* active high */
-			lcd-bias-en-gpios = <&pcal6408ahk_a 4 0>;/* active high */
+			reset-gpio     = <&pcal6408ahk_d 7 0>;
+			hsvcc-gpio   = <&pcal6408ahk_d 6 1>;
+			vspn3v3-gpio = <&pcal6408ahk_d 5 1>;
 		};
+
+		aon {
+		compatible = "thead,light-aon";
+		status = "okay";
+
+		wakeup-by-gpio-on;
+		wakeup-by-rtc-on;
+
+		pd: light-aon-pd {
+			compatible = "thead,light-aon-pd";
+			#power-domain-cells = <1>;
+		};
+
+		light-regu-reg {
+			compatible = "thead,light-dialog-pmic";
+			status = "okay";
+
+
+
+			soc_dvdd18_aon_reg: soc_dvdd18_aon {
+				regulator-name = "soc_dvdd18_aon";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_avdd33_usb3_reg: soc_avdd33_usb3 {
+				regulator-name = "soc_avdd33_usb3";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd08_aon_reg: soc_dvdd08_aon {
+				regulator-name = "soc_dvdd08_aon";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_apcpu_dvdd_dvddm_reg: soc_apcpu_dvdd_dvddm {
+				regulator-name = "soc_apcpu_dvdd_dvddm";
+				regulator-min-microvolt = <300000>;
+				regulator-max-microvolt = <1570000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd08_ddr_reg: soc_dvdd08_ddr {
+				regulator-name = "soc_dvdd08_ddr";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_vdd_ddr_1v8_reg: soc_vdd_ddr_1v8 {
+				regulator-name = "soc_vdd_ddr_1v8";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_vdd_ddr_1v1_reg: soc_vdd_ddr_1v1 {
+				regulator-name = "soc_vdd_ddr_1v1";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_vdd_ddr_0v6_reg: soc_vdd_ddr_0v6 {
+				regulator-name = "soc_vdd_ddr_0v6";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd18_ap_reg: soc_dvdd18_ap {
+				regulator-name = "soc_dvdd18_ap";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd08_ap_reg: soc_dvdd08_ap {
+				regulator-name = "soc_dvdd08_ap";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_avdd08_mipi_hdmi_reg: soc_avdd08_mipi_hdmi {
+				regulator-name = "soc_avdd08_mipi_hdmi";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_avdd18_mipi_hdmi_reg: soc_avdd18_mipi_hdmi {
+				regulator-name = "soc_avdd18_mipi_hdmi";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd33_emmc_reg: soc_dvdd33_emmc {
+				regulator-name = "soc_dvdd33_emmc";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd18_emmc_reg: soc_dvdd18_emmc {
+				regulator-name = "soc_vdd18_emmc";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+			soc_dovdd18_scan_reg: soc_dovdd18_scan {
+				regulator-name = "soc_dovdd18_scan";
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <3600000>;
+			};
+			soc_vext_2v8_reg: soc_vext_2v8 {
+				regulator-name = "soc_vext_2v8";
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dvdd12_scan_reg: soc_dvdd12_scan {
+				regulator-name = "soc_dvdd12_scan";
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <3600000>;
+			};
+			soc_avdd28_scan_en_reg: soc_avdd28_scan_en {
+				regulator-name = "soc_avdd28_scan_en";
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
+			};
+			soc_avdd28_rgb_reg: soc_avdd28_rgb {
+				regulator-name = "soc_avdd28_rgb";
+				regulator-min-microvolt = <2200000>;
+				regulator-max-microvolt = <3475000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dovdd18_rgb_reg: soc_dovdd18_rgb {
+				regulator-name = "soc_dovdd18_rgb";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <3600000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dvdd12_rgb_reg: soc_dvdd12_rgb {
+				regulator-name = "soc_dvdd12_rgb";
+				regulator-min-microvolt = <400000>;
+				regulator-max-microvolt = <1675000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_avdd25_ir_reg: soc_avdd25_ir {
+				regulator-name = "soc_avdd25_ir";
+				regulator-min-microvolt = <2200000>;
+				regulator-max-microvolt = <3475000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dovdd18_ir_reg: soc_dovdd18_ir {
+				regulator-name = "soc_dovdd18_ir";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <3600000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dvdd12_ir_reg: soc_dvdd12_ir {
+				regulator-name = "soc_dvdd12_ir";
+				regulator-min-microvolt = <400000>;
+				regulator-max-microvolt = <1675000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+	   };
+
+	    aon_pmic_config {
+			compatible = "thead,light-pmic-conf";
+			status = "okay";
+
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pmic_dev_0: pmic-dev@0 {
+			  pmic-name = "dialog,da9063,v1";
+			  pmic-addr = <0x5a 0x5b>;
+			  pmic_wdt_on;
+			  status = "okay";
+			};
+
+			pmic_dev_1: pmic-dev@1 {
+			  pmic-name = "dialog,da9121,v1";
+			  pmic-addr = <0x68>;
+			  status = "okay";
+			};
+
+			regu_config_0 {
+                reg_info = <&soc_dvdd18_aon_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO3>;
+				};
+			};
+
+			regu_config_1 {
+                reg_info = <&soc_avdd33_usb3_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO9>;
+				};
+			};
+
+			regu_config_2 {
+                reg_info = <&soc_dvdd08_aon_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO2>;
+				};
+			};
+
+			regu_config_3 {
+                reg_info = <&soc_apcpu_dvdd_dvddm_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_BCORE1>;
+					auto_on_info = <0 0 800000>;
+				};
+
+				regu_id@1 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_BCORE2>;
+					auto_on_info = <1 0 800000>;
+				};
+
+				regu_id@2 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_BUCKIO>;
+					auto_on_info = <2 0 800000>;
+				};
+
+				coupling_info@0 {
+					negative-min;
+                    info = <0 2 5 30>;
+				};
+
+				coupling_info@1 {
+					negative-min;
+                    info = <1 2 5 30>;
+				};
+			};
+
+			regu_config_4 {
+                reg_info = <&soc_dvdd08_ddr_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_BUCKPERI>;
+				};
+			};
+
+			regu_config_5 {
+                reg_info = <&soc_vdd_ddr_1v8_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO4>;
+				};
+			};
+
+		    regu_config_6 {
+                reg_info = <&soc_vdd_ddr_1v1_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_BUCKMEM>;
+				};
+			};
+
+			regu_config_7 {
+                reg_info = <&soc_vdd_ddr_0v6_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_BUCKPRO>;
+				};
+			};
+
+			regu_config_8 {
+                reg_info = <&soc_dvdd18_ap_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO11>;
+				};
+			};
+
+            regu_config_9 {
+                reg_info = <&soc_avdd08_mipi_hdmi_reg>;
+				status = "okay";
+				regu_id@0 {
+					pmic_dev = <&pmic_dev_0 DA9063_ID_LDO1>;
+				};
+			};
+
+			regu_config_10 {
+                reg_info = <&soc_avdd18_mipi_hdmi_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO5>;
+				};
+			};
+
+			regu_config_11 {
+                reg_info = <&soc_dvdd33_emmc_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO10>;
+				};
+			};
+
+			regu_config_12 {
+                reg_info = <&soc_dovdd18_scan_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO6>;
+					auto_on_info = <3 1 1800000>;
+					auto_off_info = <1 1>;
+				};
+			};
+
+
+			regu_config_13 {
+                reg_info = <&soc_dvdd12_scan_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO8>;
+					auto_on_info = <4 1 1200000>;
+					auto_off_info = <2 1>;
+				};
+			};
+
+			regu_config_14 {
+                reg_info = <&soc_avdd28_scan_en_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_LDO7>;
+					auto_on_info = <5 1 2800000>;
+					auto_off_info = <0 1>;
+				};
+			};
+
+			regu_config_15 {
+                reg_info = <&soc_dvdd08_ap_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 DA9121_ID_BUCK1>;
+                    parent_pmic_dev = <&pmic_dev_0 2 0>;
+				};
+			};
+
+			regu_config_16 {
+                reg_info = <&soc_dvdd18_emmc_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 DA9063_ID_GPIO7>;
+					parent_pmic_dev = <&pmic_dev_0 7 0>;
+				};
+			};
+		};
+	};
+
 	};
 
 	chosen {

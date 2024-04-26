@@ -8,10 +8,16 @@
 #include <asm/io.h>
 #include <dwc3-uboot.h>
 #include <usb.h>
+#include <usb/xhci.h>
 #include <cpu_func.h>
 #include <asm/gpio.h>
 #include <abuf.h>
 #include "sec_library.h"
+
+#ifdef CONFIG_LIGHT_AON_CONF
+#include "../../../drivers/misc/light_regu.h"
+#include "dm/device.h"
+#endif
 
 #ifdef CONFIG_USB_DWC3
 static struct dwc3_device dwc3_device_data = {
@@ -29,6 +35,13 @@ int usb_gadget_handle_interrupts(int index)
 int board_usb_init(int index, enum usb_init_type init)
 {
 	dwc3_device_data.base = 0xFFE7040000UL;
+
+	if (init == USB_INIT_DEVICE) {
+		dwc3_device_data.dr_mode = USB_DR_MODE_PERIPHERAL;
+	} else {
+		dwc3_device_data.dr_mode = USB_DR_MODE_HOST;
+	}
+
 	return dwc3_uboot_init(&dwc3_device_data);
 }
 
@@ -38,6 +51,28 @@ int board_usb_cleanup(int index, enum usb_init_type init)
 	return 0;
 }
 
+int xhci_hcd_init(int index, struct xhci_hccr **hccr, struct xhci_hcor **hcor)
+{
+
+
+	int ret = board_usb_init(index, USB_INIT_HOST);
+	if (ret != 0) {
+		puts("Failed to initialize board for USB\n");
+		return ret;
+	}
+
+	*hccr = (struct xhci_hccr *)dwc3_device_data.base;
+	*hcor = (struct xhci_hcor *)(dwc3_device_data.base +
+			HC_LENGTH(xhci_readl(&(*hccr)->cr_capbase)));;
+
+	return ret;
+}
+
+void xhci_hcd_stop(int index)
+{
+	board_usb_cleanup(index, USB_INIT_HOST);
+}
+
 int g_dnl_board_usb_cable_connected(void)
 {
 	return 1;
@@ -45,9 +80,14 @@ int g_dnl_board_usb_cable_connected(void)
 #endif
 
 #ifdef CONFIG_CMD_BOOT_SLAVE
+#ifdef CONFIG_LIGHT_AON_CONF
+#define E902_AON_CONFIG_SIZE 0xC00
+#else
+#define E902_AON_CONFIG_SIZE 0x000
+#endif
 #define E902_SYSREG_START	0xfffff48044
 #define E902_SYSREG_RESET	0xfffff44024
-#define E902_START_ADDRESS	0xFFEF8000
+#define E902_START_ADDRESS	(0xFFEF8000 + E902_AON_CONFIG_SIZE)
 #define C910_E902_START_ADDRESS 0xFFFFEF8000
 #define E902_IOPMP_BASE		0xFFFFC21000
 
@@ -87,31 +127,115 @@ void set_c906_cpu_entry(phys_addr_t entry_h, phys_addr_t entry_l)
 
 void boot_audio(void)
 {
-        writel(0x37, (volatile void *)C906_RESET_REG);
+	writel(0x37, (volatile void *)C906_RESET_REG);
 
-        set_c906_cpu_entry(C906_START_ADDRESS_H, C906_START_ADDRESS_L);
-        flush_cache((uintptr_t)C910_C906_START_ADDRESS, 0x20000);
+	set_c906_cpu_entry(C906_START_ADDRESS_H, C906_START_ADDRESS_L);
+	flush_cache((uintptr_t)C910_C906_START_ADDRESS, 0x20000);
 
-        writel(0x7ffff1f, (volatile void *)C906_CPR_IPCG_ADDRESS);
-        writel((1<<23) | (1<<24), (volatile void *)C906_IOCTL_GPIO_SEL_ADDRESS);
-        writel(0, (volatile void *)C906_IOCTL_AF_SELH_ADDRESS);
+	writel(0x7ffff1f, (volatile void *)C906_CPR_IPCG_ADDRESS);
+	writel((1<<23) | (1<<24), (volatile void *)C906_IOCTL_GPIO_SEL_ADDRESS);
+	writel(0, (volatile void *)C906_IOCTL_AF_SELH_ADDRESS);
 
-        writel(0x3f, (volatile void *)C906_RESET_REG);
+	writel(0x3f, (volatile void *)C906_RESET_REG);
 }
 
-void boot_aon(void)
+#ifdef CONFIG_LIGHT_AON_CONF
+
+int get_and_set_aon_config_data()
 {
+	int ret =0;
+    struct udevice *dev;
+	struct mic_regu_platdata *config_data =NULL;
+
+	ret = uclass_first_device_err(UCLASS_MISC, &dev);
+	if(ret){
+        printf("get light aon config faild %d\n", ret);
+		return ret;
+	}
+
+	config_data = (struct mic_regu_platdata *)(dev->platdata);
+
+    volatile aon_config_t* read_config = (aon_config_t* )C910_E902_START_ADDRESS;
+	if(strncmp(read_config->magic , AON_CONFIG_MAGIC, strlen(AON_CONFIG_MAGIC))) {
+        printf("No aon config magic found in aon bin, please check the aon bin\n");
+		return -1;
+	}
+
+	if(strncmp(read_config->version, AON_CONFIG_VERSION, strlen(AON_CONFIG_VERSION))) {
+       printf("Err aon config version, aon bin is:%s, u-boot is:%s\n", read_config->version, AON_CONFIG_VERSION);
+	   return -1;
+	}
+
+	if(PMIC_MAX_HW_ID_NUM >  read_config->max_hw_id_num) {
+        printf("Invald max hw id num, aon bin support %d , u-boot is %d\n",read_config->max_hw_id_num, PMIC_MAX_HW_ID_NUM);
+		return -1;
+	}
+
+	/*set pmic dev info */
+	int pmic_dev_num =  config_data->pmic_list.pmic_num;
+    int pmic_dev_list_offset   = sizeof(aon_config_t);
+	uintptr_t pmic_dev_start_addr  =  C910_E902_START_ADDRESS + pmic_dev_list_offset;
+
+	int  regu_num            = config_data->regu_id_list.regu_id_num;
+	int  regu_id_list_offset = pmic_dev_list_offset + pmic_dev_num * sizeof(pmic_dev_info_t);
+	uintptr_t regu_start_addr  = C910_E902_START_ADDRESS + regu_id_list_offset;
+    int aon_bin_size  =  regu_id_list_offset + regu_num* sizeof(csi_regu_id_t);
+    if( aon_bin_size > read_config->aon_config_partition_size) {
+         printf("Invalid aon partition size, aon bin support:%d, u-boot is %d\n", read_config->aon_config_partition_size, aon_bin_size);
+		 return -1;
+	}
+
+	printf("pmic_dev_num:%d offset:%d addr:0x%10x\n",pmic_dev_num, pmic_dev_list_offset, pmic_dev_start_addr);
+
+	memcpy(pmic_dev_start_addr, config_data->pmic_list.pmic_list, pmic_dev_num * sizeof(pmic_dev_info_t));
+    printf("regu_num:%d offset:%d addr:0x%10x\n",regu_num,regu_id_list_offset, regu_start_addr);
+
+	memcpy(regu_start_addr, config_data->regu_id_list.regu_id_list, regu_num * sizeof(csi_regu_id_t));
+    
+	read_config->wakeup_flag = config_data->wakeup_flag;
+	read_config->aon_pmic.pmic_dev_num =  pmic_dev_num;
+    read_config->aon_pmic.pmic_dev_list_offset   = pmic_dev_list_offset;
+
+	/*set regu list info*/
+	read_config->aon_pmic.regu_num =  regu_num;
+	read_config->aon_pmic.regu_id_list_offset = regu_id_list_offset;
+
+    flush_cache((uintptr_t)C910_E902_START_ADDRESS, aon_bin_size);
+
+	printf("-->pmic_dev_num:%d offset:%d\n",read_config->aon_pmic.pmic_dev_num, read_config->aon_pmic.pmic_dev_list_offset);
+	printf("-->regu_num:%d offset:%d\n",read_config->aon_pmic.regu_num,read_config->aon_pmic.regu_id_list_offset);
+
+	return 0;
+}
+#endif
+
+int do_boot_aon(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
+{
+#ifdef CONFIG_LIGHT_AON_CONF
+    int ret = 0;
+	ret = get_and_set_aon_config_data();
+	if(ret) {
+        printf("aon config and set faild %d", ret);
+		hang();
+		return ret;
+	}
+#endif
 	writel(0xffffffff, (void *)(E902_IOPMP_BASE + 0xc0));
 	disable_slave_cpu();
 	set_slave_cpu_entry(E902_START_ADDRESS);
 	flush_cache((uintptr_t)C910_E902_START_ADDRESS, 0x10000);
 	enable_slave_cpu();
+	return 0;
 }
+
+U_BOOT_CMD(
+	bootaon, CONFIG_SYS_MAXARGS, 0, do_boot_aon,
+	"Boot aon from memory  ",
+	" "
+);
 
 int do_bootslave(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 {
-	boot_aon();
-	mdelay(100);
 	boot_audio();
 	return 0;
 }

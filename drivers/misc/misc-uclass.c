@@ -13,7 +13,6 @@
  * general classes. A set of generic read, write and ioctl methods may
  * be used to access the device.
  */
-
 int misc_read(struct udevice *dev, int offset, void *buf, int size)
 {
 	const struct misc_ops *ops = device_get_ops(dev);

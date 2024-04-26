@@ -2,8 +2,13 @@
 #include <linux/sizes.h>
 #include "../include/common_lib.h"
 #include "../include/ddr_common_func.h"
+#include "../include/ddr_retention.h"
 
 DDR_SYSREG_REG_SW_REG_S ddr_sysreg;
+
+#ifdef CONFIG_DDR_MSG
+#define DDR_DEBUG(x) printf(x)
+#endif
 
 #ifndef CONFIG_DDR_RANK_SIZE
 #define CONFIG_DDR_RANK_SIZE SZ_4G
@@ -32,6 +37,44 @@ enum DDR_TYPE get_ddr_type() {
     printf("unsupport lpddr4 type!!!\n");
     return NULL;
 #endif // #ifdef CONFIG_LPDDR4X
+}
+
+int get_ddr_rank_number() {
+#ifdef CONFIG_DDR_SINGLE_RANK
+	return 1;
+#elif defined CONFIG_DDR_DUAL_RANK
+	return 2;
+#else
+#ifdef CONFIG_DDR_MSG
+	DDR_DEBUG("unsupported ddr rank type!!!\n");
+#endif
+    return NULL;
+#endif
+}
+
+int get_ddr_freq() {
+#ifdef CONFIG_DDR_4266
+    return 4266;
+#elif CONFIG_DDR_3733
+    return 3733;
+#elif CONFIG_DDR_3200
+    return 3200;
+#elif CONFIG_DDR_2133
+	return 2133;
+#else
+    printf("unsupport lpddr4 freq!!!\n");
+    return -1;
+#endif
+}
+
+enum DDR_BITWIDTH get_ddr_bitwidth() {
+#ifdef CONFIG_DDR_H32_MODE
+    return DDR_BITWIDTH_32;
+#elif CONFIG_DDR_H16_MODE
+    return DDR_BITWIDTH_16;
+#else
+    return DDR_BITWIDTH_64;
+#endif
 }
 
 void ddr_sysreg_wr(unsigned long int addr,unsigned int wr_data) {
@@ -104,75 +147,114 @@ unsigned int ddr_phy_reg_rd(unsigned long int addr) {
 
   void lp4_mrw(int addr, int wdata,int dch,int rank) {
   DWC_DDR_UMCTL2_C_STRUCT_REG_S umctl2_reg;
+  uint32_t val_t0,val_t1;
   if(dch==0) {
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
-  //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 0;//write
-  wr(MRCTRL0,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        while ((rd(MRSTAT) & 0x1) == 0x1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
+        //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 0;//write
+        wr(MRCTRL0, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
 
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = (addr<<8) | (wdata&0xFF);
-  wr(MRCTRL1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
-  
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
-  wr(MRCTRL0,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = (addr << 8) | (wdata & 0xFF);
+        wr(MRCTRL1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = (addr << 8) | (wdata & 0xFF);
+        wr(MRCTRL1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
+        wr(MRCTRL0, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+
+        //udelay(10);
+        //delay 5us
+        val_t0=rd(0xFFF4D004);
+        val_t1=rd(0xFFF4D004);
+        while((val_t0-val_t1)<200){val_t1=rd(0xFFF4D004);};
+
+        while ((rd(MRSTAT) & 0x1) == 0x1);
   }
   else {
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
-  //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 0;//write
-  wr(MRCTRL0_DCH1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        while ((rd(MRSTAT_DCH1) & 0x1) == 0x1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
+        //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 0;//write
+        wr(MRCTRL0_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
 
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = (addr<<8) | (wdata&0xFF);
-  wr(MRCTRL1_DCH1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
-  
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
-  wr(MRCTRL0_DCH1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = (addr << 8) | (wdata & 0xFF);
+        wr(MRCTRL1_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
+
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = (addr << 8) | (wdata & 0xFF);
+        wr(MRCTRL1_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
+        wr(MRCTRL0_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+
+        //udelay(10);
+        //delay 5us
+        val_t0=rd(0xFFF4D004);
+        val_t1=rd(0xFFF4D004);
+        while((val_t0-val_t1)<200){val_t1=rd(0xFFF4D004);};
+        while ((rd(MRSTAT_DCH1) & 0x1) == 0x1);
   }
-  }
+}
 
   int lp4_mrr(int addr,int dch,int rank) {
   DWC_DDR_UMCTL2_C_STRUCT_REG_S umctl2_reg;
   if(dch==0) {
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
-  //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 1;//read
-  wr(MRCTRL0,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
+        //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 1;//read
+        wr(MRCTRL0, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
 
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = addr<<8;
-  wr(MRCTRL1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
-  
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
-  wr(MRCTRL0,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = addr << 8;
+        wr(MRCTRL1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
 
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
-  return (umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data & 0xFF);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = addr << 8;
+        wr(MRCTRL1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
+
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
+        wr(MRCTRL0, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+
+        udelay(20);
+        while ((rd(MRSTAT) & 0x1) == 0x1);
+        return ddr_sysreg_rd(MRR_STS_CH0);
   }
   else {
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
-  //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 1;//read
-  wr(MRCTRL0_DCH1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
+        //umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_addr = addr; //do not care for lp4
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_rank = rank;//rank0 only
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_type = 1;//read
+        wr(MRCTRL0_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
 
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = addr<<8;
-  wr(MRCTRL1_DCH1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
-  
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
-  wr(MRCTRL0_DCH1,umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = addr << 8;
+        wr(MRCTRL1_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
 
-  umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
-  return (umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data & 0xFF);
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32 = rd(MRCTRL1_DCH1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.mr_data = addr << 8;
+        wr(MRCTRL1_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl1.u32);
+
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32 = rd(MRCTRL0_DCH1);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.mr_wr = 1;//trigger wr/rd
+        wr(MRCTRL0_DCH1, umctl2_reg.dwc_ddr_umctl2_c_struct_mrctrl0.u32);
+
+        udelay(20);
+        while ((rd(MRSTAT_DCH1) & 0x1) == 0x1);
+        return ddr_sysreg_rd(MRR_STS_CH1);
   }
   }
 
@@ -236,15 +318,15 @@ unsigned int ddr_phy_reg_rd(unsigned long int addr) {
     if(port & 0x4) wr(PCTRL_2,0);
     if(port & 0x8) wr(PCTRL_3,0);
     if(port & 0x10) wr(PCTRL_4,0);
-    if(port & 0x1F) { //at least one port is not disabled
-        wr(DBG1,0);
-        wr(DBG1_DCH1,0);
+    while (rd(PSTAT) != 0x0);
+    if ((port & 0x1F) == 0x1F) { //all ports are disabled
+        wr(DBG1, 2);
+        wr(DBG1_DCH1, 2);
     }
-    else { //all ports are disabled
-        wr(DBG1,3);
-        wr(DBG1_DCH1,3);
+    else { //at least one port is not disabled
+        wr(DBG1, 0);
+        wr(DBG1_DCH1, 0);
     }
-
   }
 
   void enable_axi_port(int port) {
@@ -457,7 +539,7 @@ if(bits==64) {
   wr(DFITMG0,0x05a3820e);//[28:24] dft_t_ctrl_delay [22:16] dfi_t_rddate_en=RL-5
 #endif
   wr(DFITMG1,0x000c0303);
-  wr(DFILPCFG0,0x0351a001);
+  wr(DFILPCFG0,0x0351a101); //[8]=1: enable dfi lp mode during selfref
   //wr(DFIUPD0,0x00400018); //[31:30]=0 use ctrlupd enable
   //wr(DFIUPD1,0x00b700c4);
   //wr(DFIUPD2,0x00000000);//[31]=0 disable phy ctrlupdate
@@ -557,7 +639,7 @@ if(bits==64) {
   wr(DFITMG0,0x059f820c);//[28:24] dfi_t_ctrl_delay
 #endif
   wr(DFITMG1,0x000c0303);//dfi_t_wrdata_delay=tctrl+6+BL/2+trainedTdqsdly=24, may need take care cmd pipe
-  wr(DFILPCFG0,0x0351a001);
+  wr(DFILPCFG0,0x0351a101); //[8]=1: enable dfi lp mode during selfref
   //wr(DFIUPD0,0xc0400018);
   //wr(DFIUPD1,0x00b700c4);
   //wr(DFIUPD2,0x80000000);
@@ -645,7 +727,7 @@ if(bits==64) {
   wr(DFITMG0,0x059b820a); //[22:16] dfi_t_rddate_en=RL-5
 #endif
   wr(DFITMG1,0x000b0303);
-  wr(DFILPCFG0,0x0351a001);
+  wr(DFILPCFG0,0x0351a101); //[8]=1: enable dfi lp mode during selfref
   //wr(DFIUPD0,0xc0400018);
   //wr(DFIUPD1,0x00b700c4);
   //wr(DFIUPD2,0x80000000);
@@ -730,7 +812,7 @@ if(bits==64) {
   wr(ZQCTL2,0x00000000);
   wr(DFITMG0,0x048f8206);
   wr(DFITMG1,0x000b0303);
-  wr(DFILPCFG0,0x0351a001);
+  wr(DFILPCFG0,0x0351a101); //[8]=1: enable dfi lp mode during selfref
   //wr(DFIUPD0,0xc0400018);
   //wr(DFIUPD1,0x00b700c4);
   //wr(DFIUPD2,0x80000000);
@@ -856,17 +938,28 @@ if(bits==64) {
 #ifdef CONFIG_DDR_MSG
  printf("DDR 32bit mode\n");
 #endif
-  wr(ADDRMAP0,0x001f001f);  //
   if(rank_num==2) {
-  wr(ADDRMAP0,0x001f0017);//4GB
+#ifdef CONFIG_DDR_DDP
+    wr(ADDRMAP0,0x001f0018);//max 8GB
+#else
+    wr(ADDRMAP0,0x001f0017); //4GB
+#endif
+  }
+  else {
+    wr(ADDRMAP0,0x001f001f); //cs_bit0: NULL
   }
   wr(ADDRMAP1,0x00080808); //bank +2
   wr(ADDRMAP2,0x00000000); //col b5+5 ~ col b2  +2
   wr(ADDRMAP3,0x00000000); //col b9 ~ col b6
   wr(ADDRMAP4,0x00001f1f); //col b11~ col b10
   wr(ADDRMAP5,0x070f0707); //row_b11 row b2_10 row b1 row b0  +6
-  wr(ADDRMAP6,0x07070707); //max row 15
-  wr(ADDRMAP7,0x00000f0f);
+  wr(ADDRMAP6,0x07070707); //row 15
+  wr(ADDRMAP7,0x00000f0f); //row16: NULL
+#ifdef CONFIG_DDR_DDP
+  if(rank_num==2) {
+    wr(ADDRMAP7,0x00000f07); //max row16
+  }
+#endif
   wr(ADDRMAP9,0x07070707);
   wr(ADDRMAP10,0x07070707);
   wr(ADDRMAP11,0x00000007);
@@ -874,12 +967,12 @@ if(bits==64) {
 #ifdef CONFIG_DDR_MSG
  printf("DDR 64bit mode, 256B interleaving\n");
 #endif
-  wr(ADDRMAP0,0x0004001f);  // +2
+  wr(ADDRMAP0,0x0004001f); //cs_bit0: NULL
   if(rank_num==2) {
 #ifdef CONFIG_DDR_DDP
-  wr(ADDRMAP0,0x00040019);//16GB
+    wr(ADDRMAP0,0x00040019);//max 16GB
 #else
-  wr(ADDRMAP0,0x00040018);//8GB
+    wr(ADDRMAP0,0x00040018);//8GB
 #endif
   }
   wr(ADDRMAP1,0x00090909); //bank +2
@@ -887,11 +980,11 @@ if(bits==64) {
   wr(ADDRMAP3,0x01010101); //col b9 ~ col b6
   wr(ADDRMAP4,0x00001f1f); //col b11~ col b10
   wr(ADDRMAP5,0x080f0808); //row_b11 row b2_10 row b1 row b0  +6
-  wr(ADDRMAP6,0x08080808);
+  wr(ADDRMAP6,0x08080808); //row15
 #ifdef CONFIG_DDR_DDP
-  wr(ADDRMAP7,0x00000f08);
+  wr(ADDRMAP7,0x00000f08); //row16
 #else
-  wr(ADDRMAP7,0x00000f0f);
+  wr(ADDRMAP7,0x00000f0f); //row16: NULL
 #endif
   wr(ADDRMAP9,0x08080808);
   wr(ADDRMAP10,0x08080808);
@@ -899,6 +992,130 @@ if(bits==64) {
  } else {
  printf("Wrong address map setting!!!\n");
  }
+}
+
+#define MEMSIZE_MIN_MB (2*1024)
+#define MEMSIZE_MAX_MB (16*1024)
+#define UNIT_MB (1024*1024)
+int lpddr4_query_boundary(enum DDR_TYPE type, int rank_num, int speed,
+					enum DDR_BITWIDTH bits, unsigned long size)
+{
+  if ((size < (unsigned long)MEMSIZE_MIN_MB*UNIT_MB) ||
+    (size > (unsigned long)MEMSIZE_MAX_MB*UNIT_MB))
+    goto err_ret;
+
+  if (bits == DDR_BITWIDTH_32) {// only phy0
+    if (rank_num == 2) {
+      if (size == 0x80000000) //2GB
+        goto err_ret;
+      else if (size == 0x100000000) //4GB
+        goto ret_ok;
+      else if (size == 0x200000000) //8GB
+        goto ret_ok;
+      else if (size == 0x400000000) //16GB
+        goto err_ret;
+      else
+        goto err_ret;
+    }
+    else { // single rank
+      if (size == 0x80000000) //2GB
+        goto ret_ok;
+      else if (size == 0x100000000) //4GB
+        goto err_ret;
+      else if (size == 0x200000000) //8GB
+        goto err_ret;
+      else if (size == 0x400000000) //16GB
+        goto err_ret;
+      else
+        goto err_ret;
+    }
+  }
+  else if (bits == DDR_BITWIDTH_64) { // phy0+phy1
+    if (rank_num == 2) {
+      if (size == 0x80000000) //2GB
+        goto err_ret;
+      else if (size == 0x100000000) //4GB
+        goto err_ret;
+      else if (size == 0x200000000) //8GB
+        goto ret_ok;
+      else if (size == 0x400000000) //16GB
+        goto ret_ok;
+      else
+        goto err_ret;
+    }
+    else { // single rank
+      if (size == 0x80000000) //2GB
+        goto err_ret;
+      else if (size == 0x100000000) //4GB
+        goto ret_ok;
+      else if (size == 0x200000000) //8GB
+        goto err_ret;
+      else if (size == 0x400000000) //16GB
+        goto err_ret;
+      else
+        goto err_ret;
+    }
+  }
+  else {
+    goto err_ret;
+  }
+
+ret_ok:
+  return 0;
+
+err_ret:
+  return -1;
+}
+
+int adjust_ddr_addrmap(enum DDR_TYPE type, int rank_num, int speed,
+					enum DDR_BITWIDTH bits, unsigned long size)
+{
+  if (lpddr4_query_boundary(type, rank_num, speed, bits, size) < 0)
+    goto err_ret;
+
+  if (bits == DDR_BITWIDTH_32) {// only phy0
+    if (rank_num == 2) {
+      if (size == 0x100000000) {//4GB
+        wr(ADDRMAP0,0x001f0017); // cs_bit0: HIF[29]
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x200000000) {//8GB
+        wr(ADDRMAP0,0x001f0018); // cs_bit0: HIF[30]
+        wr(ADDRMAP7,0x00000f07); // row16: HIF[29]
+      }
+    }
+	else { // single rank
+      if (size == 0x80000000) //2GB
+        wr(ADDRMAP0,0x001f001f); // cs_bit0: NULL
+    }
+  }
+  else if (bits == DDR_BITWIDTH_64) { // phy0+phy1
+    if (rank_num == 2) {
+      if (size == 0x200000000) {//8GB
+        wr(ADDRMAP0,0x00040018); // cs_bit0: HIF[30]
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x400000000) {//16GB
+        wr(ADDRMAP0,0x00040019); // cs_bit0: HIF[31]
+        wr(ADDRMAP7,0x00000f08); // row16: HIF[30]
+      }
+    }
+    else { // single rank
+      if (size == 0x100000000) {//4GB
+        wr(ADDRMAP0,0x0004001f); // cs_bit0: NULL
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+    }
+  }
+  else {
+    // nothing
+  }
+
+  return 0;
+
+err_ret:
+  printf("unsupport memsize %ld\n", size);
+  return -1;
 }
 
   void quasi_reg_write(unsigned long int reg,int wdata) {
@@ -1015,11 +1232,11 @@ void lpddr4_enter_selfrefresh(int pwdn_en,int dis_dram_clk,int mode) {
     umctl2_reg.dwc_ddr_umctl2_c_struct_stat.u32 = rd(STAT_DCH1);
     if(pwdn_en) {
     while( umctl2_reg.dwc_ddr_umctl2_c_struct_stat.selfref_state != 2) //wait sdram enter selfrefresh-powerdown state
-        umctl2_reg.dwc_ddr_umctl2_c_struct_stat.u32 = rd(STAT);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_stat.u32 = rd(STAT_DCH1);
     }
     else {
     while( umctl2_reg.dwc_ddr_umctl2_c_struct_stat.selfref_state != 1) //wait sdram enter selfrefresh state
-        umctl2_reg.dwc_ddr_umctl2_c_struct_stat.u32 = rd(STAT);
+        umctl2_reg.dwc_ddr_umctl2_c_struct_stat.u32 = rd(STAT_DCH1);
     }
 #ifdef CONFIG_DDR_MSG
     printf("[lpddr4_enter_selfrefresh]: CH1 STAT is :%x after enter selfrefresh state\n",umctl2_reg.dwc_ddr_umctl2_c_struct_stat.u32);
@@ -1055,7 +1272,8 @@ void lpddr4_auto_ps_en(int pwdn_en,int selfref_en,int clock_auto_disable ) {
     //ddr_sysreg_wr(DDR_CFG0,0x1ff0);
     //ddr_sysreg_wr(DDR_CFG0,0x1ff0);
     ddr_sysreg.ddr_sysreg_registers_struct_ddr_cfg0.u32 = ddr_sysreg_rd(DDR_CFG0);
-    ddr_sysreg.ddr_sysreg_registers_struct_ddr_cfg0.rg_ctl_ddr_usw_rst_reg |= 0x1F2;
+    //ddr_sysreg.ddr_sysreg_registers_struct_ddr_cfg0.rg_ctl_ddr_usw_rst_reg |= 0x1F2;
+    ddr_sysreg.ddr_sysreg_registers_struct_ddr_cfg0.rg_ctl_ddr_usw_rst_reg |= 0x1FA;
     ddr_sysreg_wr(DDR_CFG0,ddr_sysreg.ddr_sysreg_registers_struct_ddr_cfg0.u32);
   }
 
@@ -1075,7 +1293,7 @@ void dfi_freq_change(int dfi_freq,int skip_dram_init) {
 #ifdef CONFIG_DDR_MSG
   printf("[dfi_freq_change]: start dfi_freq_change, target dfi_freq is %x \n",dfi_freq);
 #endif
-  wr(DBG1,3);
+  //wr(DBG1,3);
   umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.u32 = rd(SWCTL);
   umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.sw_done = 0;
   wr(SWCTL,umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.u32);
@@ -1086,7 +1304,6 @@ void dfi_freq_change(int dfi_freq,int skip_dram_init) {
 
   umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.u32 = rd(DFIMISC);
   umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.dfi_frequency = dfi_freq;
-  umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.dfi_init_start = 0x1;
   umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.dfi_init_complete_en = 0;
   wr(DFIMISC,umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.u32);
 
@@ -1097,15 +1314,28 @@ void dfi_freq_change(int dfi_freq,int skip_dram_init) {
   while( umctl2_reg.dwc_ddr_umctl2_c_struct_swstat.sw_done_ack == 0)
     umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.u32 = rd(SWSTAT);
 
+  wr(SWCTL,0x0);
+  umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.u32 = rd(DFIMISC);
+  umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.dfi_init_start = 0x1;
+  wr(DFIMISC,umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.u32);
+  wr(SWCTL,0x1);
+  while(rd(SWSTAT)!=0x00000001);
   rdata = rd(DFISTAT);
+  while ((rdata & 0x1) != 0) //wait dfi_init_complete = 0
+    rdata = rd(DFISTAT);
+
+#ifndef CONFIG_DDR_H32_MODE
+  rdata = rd(DCH1_DFISTAT);
   while((rdata & 0x1) != 0) //wait dfi_init_complete = 0
-  rdata = rd(DFISTAT);
+    rdata = rd(DCH1_DFISTAT);
+#endif
+
   //change dfi clk freq here
   //pull down dfi_init_start
   umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.u32 = rd(SWCTL);
   umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.sw_done = 0;
-  wr(SWCTL,umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.u32);
-
+  wr(SWCTL, umctl2_reg.dwc_ddr_umctl2_c_struct_swctl.u32);
+ 
   umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.u32 = rd(DFIMISC);
   umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.dfi_init_start = 0;
   wr(DFIMISC,umctl2_reg.dwc_ddr_umctl2_c_struct_dfimisc.u32);
@@ -1119,9 +1349,17 @@ void dfi_freq_change(int dfi_freq,int skip_dram_init) {
   umctl2_reg.dwc_ddr_umctl2_c_struct_dfistat.u32 = rd(DFISTAT);
   while(umctl2_reg.dwc_ddr_umctl2_c_struct_dfistat.dfi_init_complete == 0)
     umctl2_reg.dwc_ddr_umctl2_c_struct_dfistat.u32 = rd(DFISTAT);
-  wr(DBG1,0);
+
+  //wait dfi_init_complete = 1
+#ifndef CONFIG_DDR_H32_MODE
+  umctl2_reg.dwc_ddr_umctl2_c_struct_dfistat.u32 = rd(DCH1_DFISTAT);
+  while(umctl2_reg.dwc_ddr_umctl2_c_struct_dfistat.dfi_init_complete == 0)
+    umctl2_reg.dwc_ddr_umctl2_c_struct_dfistat.u32 = rd(DCH1_DFISTAT);
+#endif
+
+  //wr(DBG1,0);
 #ifdef CONFIG_DDR_MSG
-  printf("[dfi_freq_change]: dfi_freq_change, end \n",dfi_freq);
+  printf("[dfi_freq_change]: dfi_freq_change, end \n");
 #endif
 }
 
@@ -1146,3 +1384,168 @@ void lpddr4_auto_selref(void)
   wr(PWRCTL,0x0000000b); //[3] dfi_dram_clk_disable [1] powerdown_en [0]serref_en
   wr(DCH1_PWRCTL,0x0000000b);
 }
+
+void ctrl_en_lp3_exit(enum DDR_BITWIDTH bits) {
+  //skip DRAM init, because this has done 
+  wr(SWCTL,0x00000000);
+  wr(INIT0,0xc0020002);
+  wr(SWCTL,0x00000001);
+  while(rd(SWSTAT)!=0x00000001);
+
+  //dfi frequency change proto ,to PS0
+  wr(SWCTL,0x00000000);
+  wr(DFIMISC,0x00000000);// [5]dfi_freq=0x0
+  wr(SWCTL,0x00000001);
+  while(rd(SWSTAT)!=0x00000001);
+
+  wr(SWCTL,0x00000000);
+  wr(DFIMISC,0x00000020);// [5]dfi_init_start=0x1
+  wr(SWCTL,0x00000001);
+  while(rd(SWSTAT)!=0x00000001);
+
+
+  while(rd(DFISTAT)!=0x00000001); //polling dfi_init_complete
+if(bits==64) {
+  while(rd(DCH1_DFISTAT)!=0x00000001);
+ }
+  wr(SWCTL,0x00000000);
+  wr(DFIMISC,0x00000000);
+  wr(SWCTL,0x00000001);
+  while(rd(SWSTAT)!=0x00000001);
+
+
+  wr(SWCTL,0x00000000);
+  wr(DFIMISC,0x00000001);
+  wr(SWCTL,0x00000001);
+  while(rd(SWSTAT)!=0x00000001);
+
+  //for low power,
+  wr(SWCTL,0x00000000);
+  wr(PWRCTL,0x0000000a); //[3] dfi_dram_clk_disable [1] powerdown_en
+  wr(DCH1_PWRCTL,0x0000000a);
+  wr(SWCTL,0x00000001);
+  while (rd(SWSTAT) != 0x00000001);
+  //detect until umctrl into normal state
+  while (rd(STAT) != 0x00000001);
+  if(bits==64) {
+    while(rd(DCH1_STAT) != 0x00000001);
+  }
+
+  //en phy master proto
+  wr(DFIPHYMSTR,0x14000001);
+
+#ifdef CONFIG_DDR_MSG
+    DDR_DEBUG("DFIPHYMSTR is %0x \n", rd(DFIPHYMSTR));
+    DDR_DEBUG("DFIUPD0    is %0x \n", rd(DFIUPD0));
+    DDR_DEBUG("DFIUPD1    is %0x \n", rd(DFIUPD1));
+    DDR_DEBUG("ZQCTL0     is %0x \n", rd(ZQCTL0));
+    DDR_DEBUG("ADDRMAP0     is %0x \n", rd(ADDRMAP0));
+    DDR_DEBUG("ADDRMAP1     is %0x \n", rd(ADDRMAP1));
+#endif
+}
+
+int lpddr4_reinit_ctrl(enum DDR_TYPE type, int rank_num, int speed,
+					enum DDR_BITWIDTH bits, unsigned long size)
+{
+    int ret;
+    unsigned int rdata;
+
+    //a.
+    ddr_sysreg_wr(DDR_CFG1, 0xa000011f);   //remove core clock after xx
+    wr(PWRCTL, 0x00000000); //[3] dfi_dram_clk_disable [1] powerdown_en [0]serref_en
+    wr(DCH1_PWRCTL, 0x00000000);
+
+    // use phy value stored in spl
+    //dwc_ddrphy_phyinit_regInterface(saveRegs);
+
+    //b.dis axi port
+    disable_axi_port(0x1f);
+    while (rd(PSTAT) != 0x0);
+
+#ifdef CONFIG_DDR_MSG
+    DDR_DEBUG("Axi prot idle\n");
+#endif
+    wr(DFIPHYMSTR, 0x14000000);
+    //check status.
+    while ((rd(STAT) & 0x3) == 0x03);
+
+#ifndef CONFIG_DDR_H32_MODE
+    while ((rd(STAT_DCH1) & 0x3) == 0x03);
+#endif
+    //c.poll cam empty flag
+    while ((rd(DBGCAM) & 0x36000000) != 0x36000000);
+    //d.save phy regs
+    //e.SRE
+    lpddr4_enter_selfrefresh(1, 0, 0);
+    //f.LP3 enter
+    dfi_freq_change(0x1f, 0x3);
+    //g.PwrOk disassert
+    rdata = ddr_sysreg_rd(DDR_CFG0);
+    rdata &= ~(0x1 << 6);
+    ddr_sysreg_wr(DDR_CFG0, rdata);   //Pwrokin dessert
+
+    //p.phy reset
+    rdata = ddr_sysreg_rd(DDR_CFG0);
+    rdata &= ~(0x1 << 7);
+    rdata &= 0x0;
+    ddr_sysreg_wr(DDR_CFG0, rdata);   //Phy reset .DDR_CFG0 ALL reset
+
+    //r.ddr core reset
+    rdata = ddr_sysreg_rd(DDR_CFG0);
+    rdata &= ~(0x1 << 5);
+    ddr_sysreg_wr(DDR_CFG0, rdata);   //ctrl sw reset
+
+    //s.pwr ok assert
+    rdata = ddr_sysreg_rd(DDR_CFG0);
+    rdata |= (0x1 << 6);
+    ddr_sysreg_wr(DDR_CFG0, rdata);   //Pwrokin dessert
+
+    //t.ctrl init
+    //dwc_umctl_init_skip_traing(type, rank_num, speed, bits);
+    ddr_sysreg_wr(DDR_CFG0, 0x50);  // release apb presetn
+    ddr_sysreg_wr(DDR_CFG0, 0x50);
+    ddr_sysreg_wr(DDR_CFG0, 0x50);
+    if (bits == 32) {
+        ddr_sysreg_wr(DDR_CFG0, 0x52);
+    }
+    ctrl_init(rank_num, speed);
+    addrmap(rank_num, bits);
+    ret = adjust_ddr_addrmap(type, rank_num, speed, bits, size);
+
+    // msic regu restore for str
+    dwc_ddr_misc_regu_save();
+
+    de_assert_other_reset_ddr(); //after this step, only PwrOk is staill low
+
+    dq_pinmux(bits);
+
+    //u.phy restor
+	  dwc_ddrphy_phyinit_regInterface(restoreRegs);
+
+    //v.ctrl en ,hs
+    ctrl_en_lp3_exit(bits);
+
+    //w.SRE
+    lpddr4_selfrefresh_exit(0);
+
+    //y.en auto refresh
+    enable_auto_refresh();
+ 
+    //x.en axi port
+    enable_axi_port(0x1f);
+    wr(DFIPHYMSTR, 0x14000001);
+    lpddr4_auto_selref();
+
+    if(rd(PSTAT))
+    {
+#ifdef CONFIG_DDR_MSG
+	    DDR_DEBUG("***** DDR busy in LP3 Mode *****\n");
+#endif
+    }else{
+#ifdef CONFIG_DDR_MSG
+	    DDR_DEBUG("***** AXI port idle *****\n");
+#endif
+    }
+    return ret;
+ }
+

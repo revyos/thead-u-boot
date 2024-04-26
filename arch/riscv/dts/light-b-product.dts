@@ -1,4 +1,7 @@
 /dts-v1/;
+
+#include <dt-bindings/pmic/light_pmic.h>
+
 / {
 	model = "T-HEAD c910 light";
 	compatible = "thead,c910_light";
@@ -469,6 +472,362 @@
 			lcd-en-gpios    = <&gpio1_porta 9 0>; /* active high */
 			lcd-bias-en-gpios = <&gpio1_porta 10 0>;/* active high */
 		};
+
+		aon {
+		compatible = "thead,light-aon";
+		status = "okay";
+
+		wakeup-by-gpio-on;
+		wakeup-by-rtc-on;
+
+		pd: light-aon-pd {
+			compatible = "thead,light-aon-pd";
+			#power-domain-cells = <1>;
+		};
+
+		light-regu-reg {
+			compatible = "thead,light-dialog-pmic";
+			status = "okay";
+
+
+
+			soc_dvdd18_aon_reg: soc_dvdd18_aon {
+				regulator-name = "soc_dvdd18_aon";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_avdd33_usb3_reg: soc_avdd33_usb3 {
+				regulator-name = "soc_avdd33_usb3";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd08_aon_reg: soc_dvdd08_aon {
+				regulator-name = "soc_dvdd08_aon";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_apcpu_dvdd_dvddm_reg: soc_apcpu_dvdd_dvddm {
+				regulator-name = "soc_apcpu_dvdd_dvddm";
+				regulator-min-microvolt = <300000>;
+				regulator-max-microvolt = <1570000>;
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd08_ddr_reg: soc_dvdd08_ddr {
+				regulator-name = "soc_dvdd08_ddr";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_vdd_ddr_1v8_reg: soc_vdd_ddr_1v8 {
+				regulator-name = "soc_vdd_ddr_1v8";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_vdd_ddr_1v1_reg: soc_vdd_ddr_1v1 {
+				regulator-name = "soc_vdd_ddr_1v1";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_vdd_ddr_0v6_reg: soc_vdd_ddr_0v6 {
+				regulator-name = "soc_vdd_ddr_0v6";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd18_ap_reg: soc_dvdd18_ap {
+				regulator-name = "soc_dvdd18_ap";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd08_ap_reg: soc_dvdd08_ap {
+				regulator-name = "soc_dvdd08_ap";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_avdd08_mipi_hdmi_reg: soc_avdd08_mipi_hdmi {
+				regulator-name = "soc_avdd08_mipi_hdmi";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_avdd18_mipi_hdmi_reg: soc_avdd18_mipi_hdmi {
+				regulator-name = "soc_avdd18_mipi_hdmi";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd33_emmc_reg: soc_dvdd33_emmc {
+				regulator-name = "soc_dvdd33_emmc";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+
+			soc_dvdd18_emmc_reg: soc_dvdd18_emmc {
+				regulator-name = "soc_vdd18_emmc";
+				regulator-boot-on;
+				regulator-always-on;
+			};
+			soc_dovdd18_scan_reg: soc_dovdd18_scan {
+				regulator-name = "soc_dovdd18_scan";
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <3600000>;
+				status = "disabled";
+			};
+			soc_vext_2v8_reg: soc_vext_2v8 {
+				regulator-name = "soc_vext_2v8";
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dvdd12_scan_reg: soc_dvdd12_scan {
+				regulator-name = "soc_dvdd12_scan";
+				regulator-min-microvolt = <900000>;
+				regulator-max-microvolt = <3600000>;
+				status = "disabled";
+			};
+			soc_avdd28_scan_en_reg: soc_avdd28_scan_en {
+				regulator-name = "soc_avdd28_scan_en";
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
+				status = "disabled";
+			};
+			soc_avdd28_rgb_reg: soc_avdd28_rgb {
+				regulator-name = "soc_avdd28_rgb";
+				regulator-min-microvolt = <2200000>;
+				regulator-max-microvolt = <3475000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dovdd18_rgb_reg: soc_dovdd18_rgb {
+				regulator-name = "soc_dovdd18_rgb";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <3600000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dvdd12_rgb_reg: soc_dvdd12_rgb {
+				regulator-name = "soc_dvdd12_rgb";
+				regulator-min-microvolt = <400000>;
+				regulator-max-microvolt = <1675000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_avdd25_ir_reg: soc_avdd25_ir {
+				regulator-name = "soc_avdd25_ir";
+				regulator-min-microvolt = <2200000>;
+				regulator-max-microvolt = <3475000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dovdd18_ir_reg: soc_dovdd18_ir {
+				regulator-name = "soc_dovdd18_ir";
+				regulator-min-microvolt = <1200000>;
+				regulator-max-microvolt = <3600000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_dvdd12_ir_reg: soc_dvdd12_ir {
+				regulator-name = "soc_dvdd12_ir";
+				regulator-min-microvolt = <400000>;
+				regulator-max-microvolt = <1675000>;
+				regulator-boot-on;
+				regulator-always-on;
+				status = "disabled";
+			};
+			soc_adc_vref_reg: soc_adc_vref {
+				regulator-name = "soc_adc_vref";
+			};
+			soc_lcd0_en_reg: soc_lcd0_en {
+				regulator-name = "soc_lcd0_en";
+			};
+			soc_vext_1v8_reg: soc_vext_1v8 {
+				regulator-name = "soc_vext_1v8";
+			};
+	   };
+
+	    aon_pmic_config {
+			compatible = "thead,light-pmic-conf";
+			status = "okay";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pmic_dev_0: pmic-dev@0 {
+			  pmic-name = "ricoh,rn5t567,v0";
+			  pmic-addr = <0x31>;
+			  pmic_wdt_on;
+			  status = "okay";
+			};
+
+			pmic_dev_1: pmic-dev@1 {
+			  pmic-name = "ricoh,rn5t567,v1";
+			  pmic-addr = <0x32>;
+			  status = "okay";
+			};
+
+			regu_config_0 {
+                reg_info = <&soc_dvdd18_aon_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_LDO4>;
+				};
+			};
+
+			regu_config_1 {
+                reg_info = <&soc_avdd33_usb3_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_LDO1>;
+				};
+			};
+
+			regu_config_2 {
+                reg_info = <&soc_dvdd08_aon_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_LDO3>;
+				};
+			};
+
+			regu_config_3 {
+                reg_info = <&soc_apcpu_dvdd_dvddm_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_DC3>;
+					auto_on_info = <2 0 800000>;
+				};
+
+				regu_id@1 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_DC4>;
+					auto_on_info = <3 0 800000>;
+				};
+
+				coupling_info@0 {
+					negative-min;
+                    info = <0 1 5 30>;
+				};
+			};
+
+			regu_config_4 {
+                reg_info = <&soc_dvdd08_ddr_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_DC1>;
+				};
+			};
+
+			regu_config_5 {
+                reg_info = <&soc_vdd_ddr_1v8_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_LDO2>;
+				};
+			};
+
+		    regu_config_6 {
+                reg_info = <&soc_vdd_ddr_1v1_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_DC2>;
+				};
+			};
+
+			regu_config_7 {
+                reg_info = <&soc_vdd_ddr_0v6_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_DC1>;
+				};
+			};
+
+			regu_config_8 {
+                reg_info = <&soc_dvdd18_ap_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_LDO2>;
+				};
+			};
+
+            regu_config_9 {
+                reg_info = <&soc_avdd08_mipi_hdmi_reg>;
+				status = "okay";
+				regu_id@0 {
+					pmic_dev = <&pmic_dev_1 RICOH567_ID_LDO3>;
+				};
+			};
+
+			regu_config_10 {
+                reg_info = <&soc_avdd18_mipi_hdmi_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_LDO4>;
+				};
+			};
+
+			regu_config_11 {
+                reg_info = <&soc_dvdd33_emmc_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_LDO1>;
+				};
+			};
+
+			regu_config_12 {
+                reg_info = <&soc_dvdd08_ap_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_GPIO3>;
+				};
+			};
+
+			regu_config_13 {
+                reg_info = <&soc_dvdd18_emmc_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_DC3>;
+				};
+			};
+
+			regu_config_14 {
+                reg_info = <&soc_adc_vref_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_LDO5>;
+				};
+			};
+
+			regu_config_15 {
+                reg_info = <&soc_lcd0_en_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_0 RICOH567_ID_LDO5>;
+					auto_on_info = <0 0 1800000>;
+				};
+			};
+
+			regu_config_16 {
+                reg_info = <&soc_vext_1v8_reg>;
+				status = "okay";
+				regu_id@0 {
+                    pmic_dev = <&pmic_dev_1 RICOH567_ID_DC4>;
+					auto_on_info = <1 0 1800000>;
+				};
+			};
+		};
+	};
 	};
 
 	chosen {

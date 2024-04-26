@@ -35,6 +35,7 @@
 };
 
 &panel0 {
+	compatible = "ilitek,ili9881c";
 	status = "okay";
 	backlight = <&lcd_backlight>;
 	// 5v power cycle

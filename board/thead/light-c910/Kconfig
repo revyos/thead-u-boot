@@ -140,8 +140,7 @@ config SYS_TEXT_BASE
 
 config SPL_TEXT_BASE
     hex
-    default 0xffe0000800 if LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A || LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B || LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF || LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A
-    default 0xffe0000000 if !(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A || LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B || LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF || LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A)
+    default 0xffe0000800
 
 config SPL_MAX_SIZE
     hex
@@ -257,6 +256,11 @@ config DDR_DDP
 	help
 	  Enabling this will support ddr Dual Die Package configuration.
 	  e.g. to support 8GB ddr device with 17-bit row address (16:0)
+
+config FIXUP_MEMORY_REGION
+	bool "self-adapt to query and fixup memory region"
+	help
+	  Enabling this will support self-adapt to query and fixup memory region
 
 config DDR_H32_MODE
         bool "LPDDR4/4X 32bit mode configuration"

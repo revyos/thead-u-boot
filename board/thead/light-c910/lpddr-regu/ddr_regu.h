@@ -9,5 +9,5 @@
 #define __DDR_REGU_H__
 
 int pmic_ddr_set_voltage(void);
-int pmic_ddr_regu_init(void);
+int aon_local_init(void);
 #endif

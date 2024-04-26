@@ -458,3 +458,22 @@ U_BOOT_CMD(
 );
 
 #endif  /* CONFIG_CMD_LINK_LOCAL */
+
+/* moved from board_init_r sequence here to save normal boot time */
+static int do_eth_init(cmd_tbl_t *cmdtp, int flag, int argc,
+			char * const argv[])
+{
+	puts("Net:   ");
+	eth_initialize();
+#if defined(CONFIG_RESET_PHY_R)
+	debug("Reset Ethernet PHY\n");
+	reset_phy();
+#endif
+	return 0;
+}
+
+U_BOOT_CMD(
+	eth,	6,	1,	do_eth_init,
+	"eth initialize",
+	""
+);

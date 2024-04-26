@@ -30,10 +30,15 @@
 #define CONFIG_SYS_BOOTM_LEN        SZ_64M
 #define CONFIG_SYS_CACHELINE_SIZE   64
 
+#define CONFIG_CMD_READ 1
+
 #define SRAM_BASE_ADDR	 0xffe0000000
 #define PLIC_BASE_ADDR   0xffd8000000
 #define PMP_BASE_ADDR    0xffdc020000
 
+#define MINIMAL_DDR_DENSITY_MB (1*1024)
+#define MAXIMAL_DDR_DENSITY_MB (16*1024)
+#define UNIT_MB (1024*1024)
 
 /* Network Configuration */
 #define CONFIG_DW_ALTDESCRIPTOR
@@ -127,6 +132,8 @@
 #define ENV_STR_SERIAL 		"serial#=\0"
 #define ENV_KERNEL_KDUMP	"kdump_buf=0M\0"
 #endif
+/*public bootargs in mostly boards, make env 'set_booargs' shorter and clean */
+#define ENV_PUBLIC_BOOTARGS "pub_bootargs=rootfstype=ext4 rdinit=/sbin/init rootwait rw earlycon clk_ignore_unused\0"
 
 #define CONFIG_MISC_INIT_R
 
@@ -163,12 +170,12 @@
 	"partitions=name=table,size=2031KB;name=boot,size=500MiB,type=boot;name=swap,size=4096MiB,type=swap,uuid=${uuid_swap};name=root,size=-,type=linux,uuid=${uuid_rootfsA}\0" \
 	"gpt_partition=gpt write mmc ${emmc_dev} $partitions\0" \
 	"sdcard_gpt_partition=gpt write mmc ${sdcard_dev} $partitions\0" \
-	"load_aon=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize\0" \
+	"load_aon=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize;bootaon\0" \
 	"load_c906_audio=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_c906_audio.bin;cp.b $fwaddr $audio_ram_addr $filesize\0" \
 	"load_str=load mmc ${mmcdev}:${mmcbootpart} $fwaddr str.bin;cp.b $fwaddr $str_ram_addr $filesize\0" \
 	"load_opensbi=load mmc ${mmcdev}:${mmcbootpart} $opensbi_addr fw_dynamic.bin\0" \
 	"bootcmd_load=run mmc_select; run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
-	"bootcmd=run bootcmd_load; bootslave; sysboot mmc ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
+	"bootcmd=run bootcmd_load; chk_hibernate; fixup_memory_region; bootslave; sysboot mmc ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"\0"
 

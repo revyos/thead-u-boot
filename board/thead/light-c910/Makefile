@@ -23,6 +23,7 @@ obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/init_ddr.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/pinmux.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/waitfwdone.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/ddr_common_func.o
+obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/ddr_retention.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/common_lib.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/lpddr4_init.o
 ifdef CONFIG_DDR_DBI_OFF
@@ -63,6 +64,7 @@ obj-y += boot.o
 obj-y += sbmeta/sbmeta.o
 ifndef CONFIG_TARGET_LIGHT_FPGA_FM_C910
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/ddr_common_func.o
+obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/ddr_retention.o
 obj-$(CONFIG_LPDDR) += $(DDR_SRC_PATH)/common_lib.o
 endif
 
