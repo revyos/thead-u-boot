@@ -794,7 +794,7 @@ static void light_iopmp_config(void)
 	}
 }
 
-int pmic_ddr_regu_init(void)
+int aon_local_init(void)
 {
 #define AON_PADMUX_BASE (0xfffff4a000)
 	int ret;

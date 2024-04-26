@@ -439,4 +439,10 @@ config K3_AVS0
 	  optimized voltage from the efuse, so that it can be programmed
 	  to the PMIC on board.
 
+config LIGHT_AON_CONF
+	bool "Light aon config support"
+	depends on MISC
+	help
+	  Select this to enable aon config by dts.
+
 endmenu

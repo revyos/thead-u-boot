@@ -310,6 +310,7 @@ static void flash(char *cmd_parameter, char *response)
 	char cmdbuf[32];
 	u32 block_cnt;
 	struct blk_desc *dev_desc;
+	disk_partition_t info;
 	int ret = 0;
 
 	if (strcmp(cmd_parameter, "uboot") == 0) {
@@ -351,8 +352,25 @@ static void flash(char *cmd_parameter, char *response)
 		memcpy((void *)LIGHT_TF_FW_ADDR, fastboot_buf_addr, image_size);
 	} else if ((strcmp(cmd_parameter, TEE_PART_NAME) == 0)) {
 		memcpy((void *)LIGHT_TEE_FW_ADDR, fastboot_buf_addr, image_size);
+	} else if ((strcmp(cmd_parameter, "boot") == 0)) {
+		dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+		if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
+			fastboot_fail("invalid mmc device", response);
+			return;
+        }
+		/* if fastresume partition exists, earse the old image header */
+		if(part_get_info_by_name(dev_desc, "fastresume", &info)) {
+			printf(" find fastresume partition , erase the header:\n");
+			char * buf = memalign(CONFIG_SYS_CACHELINE_SIZE,4096);
+			if(!buf) {
+				printf(" fastresume partition header mem alloc failed\n");
+				return;
+			}
+			memset(buf,0xff,4096);
+			blk_dwrite(dev_desc, info.start, 4096/info.blksz, buf);
+			free(buf);
+		}
 	}
-
 	if(strcmp(cmd_parameter, "uboot") == 0 || (strcmp(cmd_parameter, "fw") == 0) ||
 	   (strcmp(cmd_parameter, "uImage") == 0) || (strcmp(cmd_parameter, "dtb") == 0) ||
 	   (strcmp(cmd_parameter, "rootfs") == 0) || (strcmp(cmd_parameter, "aon") == 0)) {

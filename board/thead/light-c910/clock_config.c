@@ -1220,7 +1220,7 @@ int clk_config(void)
 		return -EINVAL;
 
 	printf("C910 CPU FREQ: %ldMHz\n", rate / 1000000);
-
+#ifdef PERI_BUS_PLL_FREQ_PRINT
 	rate = clk_light_get_rate("ahb2_cpusys_hclk", CLK_DEV_MUX);
 	if (!rate)
 		return -EINVAL;
@@ -1262,6 +1262,7 @@ int clk_config(void)
 		return -EINVAL;
 
 	printf("DPU1 PLL POSTDIV FREQ: %ldMHZ\n", rate / 1000000);
+#endif
 
 #ifdef AUDIO_PLL_FREQ_PRINT
 	rate = clk_light_get_rate("audio_pll_foutpostdiv", CLK_DEV_PLL);

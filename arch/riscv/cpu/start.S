@@ -104,12 +104,6 @@ call_board_init_f_0:
 	mv	a0, sp
 	jal	board_init_f_alloc_reserve
 
-	/*
-	 * Set global data pointer here for all harts, uninitialized at this
-	 * point.
-	 */
-	mv	gp, a0
-
 	/* setup stack */
 #ifdef CONFIG_SMP
 	/* tp: hart id */
@@ -127,16 +121,34 @@ call_board_init_f_0:
 	la	t0, hart_lottery
 	li	s2, 1
 	amoswap.w s2, t1, 0(t0)
-	bnez	s2, wait_for_gd_init
+	beqz	s2, call_board_init_f_1
+
+	/*
+	 * Set global data pointer here for secondary harts, uninitialized at this
+	 * point.
+	 */
+	mv	gp, a0
+
+	jal wait_for_gd_init
 #else
-	bnez	tp, secondary_hart_loop
+	beqz	tp, call_board_init_f_1
+
+	/*
+	 * Set global data pointer here for secondary harts, uninitialized at this
+	 * point.
+	 */
+	mv	gp, a0
+
+	jal secondary_hart_loop
 #endif
 
+call_board_init_f_1:
 #ifdef CONFIG_OF_PRIOR_STAGE
 	la	t0, prior_stage_fdt_address
 	SREG	s1, 0(t0)
 #endif
 
+	 /* Set global data pointer here for main hart */
 	jal	board_init_f_init_reserve
 
 	/* save the boot hart id to global_data */

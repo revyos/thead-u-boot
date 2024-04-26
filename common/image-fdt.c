@@ -416,7 +416,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 				 * FDT blob
 				 */
 				debug("*  fdt: raw FDT blob\n");
-				printf("## Flattened Device Tree blob at %08lx\n",
+				debug("## Flattened Device Tree blob at %08lx\n",
 				       (long)fdt_addr);
 			}
 			break;
@@ -425,7 +425,7 @@ int boot_get_fdt(int flag, int argc, char * const argv[], uint8_t arch,
 			goto no_fdt;
 		}
 
-		printf("   Booting using the fdt blob at %#08lx\n", fdt_addr);
+		debug("   Booting using the fdt blob at %#08lx\n", fdt_addr);
 		fdt_blob = map_sysmem(fdt_addr, 0);
 	} else if (images->legacy_hdr_valid &&
 			image_check_type(&images->legacy_hdr_os_copy,

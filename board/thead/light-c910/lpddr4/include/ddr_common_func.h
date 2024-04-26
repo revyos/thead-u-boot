@@ -15,6 +15,9 @@ enum DDR_BITWIDTH {
 
 unsigned long get_ddr_density(void);
 enum DDR_TYPE get_ddr_type(void);
+int get_ddr_rank_number(void);
+int get_ddr_freq(void);
+enum DDR_BITWIDTH get_ddr_bitwidth(void);
 void ddr_sysreg_wr(unsigned long int addr,unsigned int wr_data);
 unsigned int ddr_sysreg_rd(unsigned long int addr);
 
@@ -49,4 +52,8 @@ void addrmap(int rank_num, enum DDR_BITWIDTH bits);
 void ctrl_en(enum DDR_BITWIDTH bits);
 void enable_auto_refresh(void);
 void lpddr4_auto_selref(void);
+int lpddr4_query_boundary(enum DDR_TYPE type, int rank_num, int speed,
+                    enum DDR_BITWIDTH bits, unsigned long size);
+int lpddr4_reinit_ctrl(enum DDR_TYPE type, int rank_num, int speed,
+                    enum DDR_BITWIDTH bits, unsigned long size);
 #endif // DDR_COMMON_FUNCE_H

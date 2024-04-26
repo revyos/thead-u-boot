@@ -7,6 +7,8 @@
 #include "ddr_reg_define.h"
 #include "ddr_sysreg_registers_struct.h"
 #include "ddr_sysreg_registers.h"
+#include "aonsys_reg_define.h"
+#include "aonsys_rstget_reg_define.h"
 #include "define_ddr.h"
 #include "DWC_ddr_umctl2_c_struct.h"
 #include "DWC_ddr_umctl2_header.h"
