@@ -140,7 +140,7 @@ config SYS_TEXT_BASE
 
 config SPL_TEXT_BASE
     hex
-    default 0xffe0000800
+    default 0xffe0000000
 
 config SPL_MAX_SIZE
     hex
