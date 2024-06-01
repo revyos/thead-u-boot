@@ -94,6 +94,10 @@ jobs:
                 make light_milkv_meles_singlerank_defconfig
                 make -j$(nproc)
                 find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-meles-4g.bin
+                make clean
+                make light_huiwei_defconfig
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-huiwei.bin
 
                 # mainline support
                 make clean
