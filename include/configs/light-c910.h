@@ -159,23 +159,25 @@
 	ENV_STR_BOARD \
 	"kernel_addr_r=0x00200000\0" \
 	"kdump_buf=180M\0" \
+	"boottype=mmc\0" \
 	"mmcbootpart=2\0" \
 	"default_mmcdev=1\0" \
 	"emmc_dev=0\0" \
 	"sdcard_dev=1\0" \
-	"mmc_select=if test -e mmc ${default_mmcdev}:${mmcbootpart} ${boot_conf_file}; then mmcdev=1; else mmcdev=0; fi;\0" \
+	"mmc_select=if test -e ${boottype} ${default_mmcdev}:${mmcbootpart} ${boot_conf_file}; then mmcdev=1; else mmcdev=0; fi;\0" \
 	"boot_conf_file=/extlinux/extlinux.conf\0" \
 	"uuid_rootfsA=80a5a8e9-c744-491a-93c1-4f4194fd690a\0" \
 	"uuid_swap=5ebcaaf0-e098-43b9-beef-1f8deedd135e\0" \
 	"partitions=name=table,size=2031KB;name=boot,size=500MiB,type=boot;name=swap,size=4096MiB,type=swap,uuid=${uuid_swap};name=root,size=-,type=linux,uuid=${uuid_rootfsA}\0" \
 	"gpt_partition=gpt write mmc ${emmc_dev} $partitions\0" \
 	"sdcard_gpt_partition=gpt write mmc ${sdcard_dev} $partitions\0" \
-	"load_aon=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize;bootaon\0" \
-	"load_c906_audio=load mmc ${mmcdev}:${mmcbootpart} $fwaddr light_c906_audio.bin;cp.b $fwaddr $audio_ram_addr $filesize\0" \
-	"load_str=load mmc ${mmcdev}:${mmcbootpart} $fwaddr str.bin;cp.b $fwaddr $str_ram_addr $filesize\0" \
-	"load_opensbi=load mmc ${mmcdev}:${mmcbootpart} $opensbi_addr fw_dynamic.bin\0" \
-	"bootcmd_load=run mmc_select; run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
-	"bootcmd=run bootcmd_load; chk_hibernate; fixup_memory_region; bootslave; sysboot mmc ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
+	"load_aon=load ${boottype} ${mmcdev}:${mmcbootpart} $fwaddr light_aon_fpga.bin;cp.b $fwaddr $aon_ram_addr $filesize;bootaon\0" \
+	"load_c906_audio=load ${boottype} ${mmcdev}:${mmcbootpart} $fwaddr light_c906_audio.bin;cp.b $fwaddr $audio_ram_addr $filesize\0" \
+	"load_str=load ${boottype} ${mmcdev}:${mmcbootpart} $fwaddr str.bin;cp.b $fwaddr $str_ram_addr $filesize\0" \
+	"load_opensbi=load ${boottype} ${mmcdev}:${mmcbootpart} $opensbi_addr fw_dynamic.bin\0" \
+	"load_usb=usb start; load usb ${mmcdev}:${mmcbootpart} ${boot_conf_addr_r} ${boot_conf_file}; if test -e usb ${mmcdev}:${mmcbootpart} ${boot_conf_file}; then setenv boottype usb; fi;\0" \
+	"bootcmd_load=run load_usb; run mmc_select; run load_aon; run load_c906_audio; run load_str; run load_opensbi\0" \
+	"bootcmd=run bootcmd_load; chk_hibernate; fixup_memory_region; bootslave; sysboot ${boottype} ${mmcdev}:${mmcbootpart} any $boot_conf_addr_r $boot_conf_file;\0" \
 	"fdtfile=" CONFIG_DEFAULT_FDT_FILE "\0" \
 	"\0"
 
