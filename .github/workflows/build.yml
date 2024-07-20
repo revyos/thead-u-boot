@@ -135,6 +135,19 @@ jobs:
                 sed -i 's#thead/light-lpi4a-cluster-16gb.dtb#thead/th1520-lichee-cluster-4a-16g.dtb#' .config
                 make -j$(nproc)
                 find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lc4a-16g-main.bin
+
+                # 8g emmc support
+                sed -i 's/name=swap,size=4096MiB,type=swap/name=swap,size=2MiB,type=swap/' include/configs/light-c910.h
+                make clean
+                make light_lpi4a_defconfig
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lpi4a_8gemmc.bin
+
+                make clean
+                make light_lpi4a_defconfig
+                sed -i 's#thead/light-lpi4a.dtb#thead/th1520-lichee-pi-4a.dtb#' .config
+                make -j$(nproc)
+                find . -name "u-boot-with-spl.bin" | xargs -I{} cp -av {} ${GITHUB_WORKSPACE}/output/u-boot-with-spl-lpi4a-main_8gemmc.bin
               popd
               tree ${GITHUB_WORKSPACE}/output
 
