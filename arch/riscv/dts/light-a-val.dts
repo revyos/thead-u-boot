@@ -312,7 +312,7 @@
 			tpm@0{
 				compatible = "z32h330tc,z32h330tc-spi";
 				reg = <0>;
-				spi-max-frequency = <40000000>;
+				spi-max-frequency = <20000000>;
 			};
 		};
 

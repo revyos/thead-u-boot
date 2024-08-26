@@ -14,10 +14,9 @@
 #define MAX_DIGEST_SIZE     64
 #define SBMETA_MAGIC        0x544D4253  /* = {'S', 'B', 'M', 'T'} */
 
-#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A)
+#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_RVBOOK)
 #define LIGHT_SBMETA_ADDR   0x10000000
 #endif
-#define SBMETA_PART         5
 #define ENTRY_SIZE          128
 #define PLAIN_SBMETA_TEXT   4096
 #define SBMETA_SIZE         4736  /* 4K SMBETA image + 640 footer */
@@ -27,8 +26,8 @@
 #define SIGN_TYPE_NUM       6
 #define SBMETA_FILENAME     "sbmeta.bin"
 
-#define SBMETA_SECURITY_LEVEL_H      3   /* verify signature and hash */
-#define SBMETA_SECURITY_LEVEL_M      2   /* verify checksum */
-#define SBMETA_SECURITY_LEVEL_L      1   /* no verification */
+#define SBMETA_SECURITY_LEVEL_SIGN      3   /* verify signature and hash */
+#define SBMETA_SECURITY_LEVEL_HASH      2   /* verify checksum */
+#define SBMETA_SECURITY_LEVEL_NONE      1   /* no verification */
 
 #endif

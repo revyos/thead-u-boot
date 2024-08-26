@@ -135,6 +135,14 @@ config FASTBOOT_CMD_OEM_FORMAT
 	  relies on the env variable partitions to contain the list of
 	  partitions as required by the gpt command.
 
+config FASTBOOT_CMD_OEM_NV_OPERATION
+	bool "Enable the 'oem nv get/set' command"
+	help
+	  Add support for the "oem get/set" command from a client.
+
+config FASTBOOT_ECIES_AUTH
+	bool "Enabled ecies fastboot auth"
+
 endif # FASTBOOT
 
 endmenu

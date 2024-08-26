@@ -45,6 +45,19 @@ static void oem_format(char *, char *);
 static void oem_command(char *, char *);
 int image_have_head(unsigned long img_src_addr);
 
+#if CONFIG_FASTBOOT_CMD_OEM_NV_OPERATION
+void oem_nv_get_proccess(char *cmd_parameter, char *response);
+void oem_nv_set_proccess(char *cmd_parameter, char *response);
+void oem_nv_factory_recovery_process(char *cmd_parameter, char *response);
+static void oem_nv_get(char *cmd_parameter, char *response);
+static void oem_nv_set(char *cmd_parameter, char *response);
+static void oem_fcty(char *cmd_parameter, char *response);
+#endif
+
+#ifdef CONFIG_FASTBOOT_ECIES_AUTH
+int ecies_process_data(uint8_t * data, int data_size,char *response);
+#endif
+
 static const struct {
 	const char *command;
 	void (*dispatch)(char *cmd_parameter, char *response);
@@ -97,6 +110,20 @@ static const struct {
 		.command = "oem command",
 		.dispatch = oem_command,
 	},
+#if CONFIG_FASTBOOT_CMD_OEM_NV_OPERATION
+	[FASTBOOT_COMMAND_OEM_NV_GET] = {
+		.command = "oem nv get",
+		.dispatch = oem_nv_get,
+	},
+	[FASTBOOT_COMMAND_OEM_NV_SET] = {
+		.command = "oem nv set",
+		.dispatch = oem_nv_set,
+	},
+	[FASTBOOT_COMMAND_OEM_FCTY] = {
+		.command = "oem fcty",
+		.dispatch = oem_fcty,
+	},
+#endif
 };
 
 /**
@@ -294,7 +321,90 @@ int check_image_board_id(uint8_t *image_data)
 	return 0;
 }
 
+int hibernate_image_cleaned_flag = 0;
+void clean_hibernate_image_header(char *response)
+{
+	struct blk_desc *dev_desc;
+	disk_partition_t info;
+	if(0x03 == hibernate_image_cleaned_flag) //already erased all
+	{
+		return;
+	}
+	dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
+		fastboot_fail("invalid mmc device", response);
+		return;
+	}
+	char * buf = memalign(CONFIG_SYS_CACHELINE_SIZE,4096);
+	if(!buf) {
+		printf(" mem alloc for hibernate partition header failed!\n");
+		return;
+	}
+	/* if fastresume partition exists, earse the old image header */
+	if(part_get_info_by_name(dev_desc, "fastresume", &info)) {
+		printf(" find fastresume partition , erase the header:\n");
+		memset(buf,0xff,4096);
+		if(blk_dwrite(dev_desc, info.start, 4096/info.blksz, buf) != 4096/info.blksz)
+		{
+			printf(" fastresume header write failed!\n");
+			hibernate_image_cleaned_flag = 0;
+		}
+		else
+		{
+			hibernate_image_cleaned_flag |= 0x1;
+		}
+	}
+	/* if swap partition exists, earse the old image header */
+	if(part_get_info_by_name(dev_desc, "swap", &info)) {
+		printf(" find swap partition , erase the header:\n");
+		memset(buf,0xff,4096);
+		if(blk_dwrite(dev_desc, info.start, 4096/info.blksz, buf) != 4096/info.blksz)
+		{
+			printf(" swap header write failed!\n");
+			hibernate_image_cleaned_flag = 0;
+		}
+		else
+		{
+			hibernate_image_cleaned_flag |= 0x2;
+		}
+	}
+	free(buf);
+}
+
 #if CONFIG_IS_ENABLED(FASTBOOT_FLASH)
+void fasboot_uboot_write_process(void *buf, char *response)
+{
+	char cmdbuf[32];
+	u32 block_cnt;
+	struct blk_desc *dev_desc;
+	int ret = 0;
+	disk_partition_t info;
+
+	ret = check_image_board_id(buf);
+	if (ret != 0) {
+		fastboot_fail("U-BOOT image does not match the type of BOARD", response);
+		return;
+	}
+
+	dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
+		fastboot_fail("invalid mmc device", response);
+		return;
+	}
+
+	run_command("mmc partconf 0 1 0 1", 0);
+
+	block_cnt = image_size / BLOCK_SIZE;
+	if (image_size % BLOCK_SIZE) {
+		block_cnt = block_cnt +1;
+	}
+
+	sprintf(cmdbuf, "mmc write 0x%p 0 %x", buf, block_cnt);
+
+	run_command(cmdbuf, 0);
+	run_command("mmc partconf 0 1 0 0", 0);
+}
+
 /**
  * flash() - write the downloaded image to the indicated partition.
  *
@@ -308,36 +418,10 @@ static void flash(char *cmd_parameter, char *response)
 {
 #ifdef THEAD_LIGHT_FASTBOOT
 	char cmdbuf[32];
-	u32 block_cnt;
 	struct blk_desc *dev_desc;
 	disk_partition_t info;
-	int ret = 0;
-
 	if (strcmp(cmd_parameter, "uboot") == 0) {
-		ret = check_image_board_id(fastboot_buf_addr);
-		if (ret != 0) {
-			fastboot_fail("U-BOOT image does not match the type of BOARD", response);
-			return;
-		}
-
-		dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
-		if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
-			fastboot_fail("invalid mmc device", response);
-			return;
-        }
-
-		run_command("mmc partconf 0 1 0 1", 0);
-
-		block_cnt = image_size / BLOCK_SIZE;
-		if (image_size % BLOCK_SIZE) {
-			block_cnt = block_cnt +1;
-		}
-
-		sprintf(cmdbuf, "mmc write 0x%p 0 %x", fastboot_buf_addr, block_cnt);
-
-		run_command(cmdbuf, 0);
-		run_command("mmc partconf 0 1 0 0", 0);
-
+		fasboot_uboot_write_process(fastboot_buf_addr, response);
 	} else if ((strcmp(cmd_parameter, "fw") == 0)) {
 		memcpy((void *)LIGHT_FW_ADDR, fastboot_buf_addr, image_size);
 	} else if ((strcmp(cmd_parameter, "uImage") == 0)) {
@@ -352,13 +436,15 @@ static void flash(char *cmd_parameter, char *response)
 		memcpy((void *)LIGHT_TF_FW_ADDR, fastboot_buf_addr, image_size);
 	} else if ((strcmp(cmd_parameter, TEE_PART_NAME) == 0)) {
 		memcpy((void *)LIGHT_TEE_FW_ADDR, fastboot_buf_addr, image_size);
-	} else if ((strcmp(cmd_parameter, "boot") == 0)) {
+	}
+#ifdef CONFIG_RV_BOOK
+	else if ((strcmp(cmd_parameter, "boot") == 0)) {
 		dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
 		if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
-			fastboot_fail("invalid mmc device", response);
-			return;
-        }
-		/* if fastresume partition exists, earse the old image header */
+				fastboot_fail("invalid mmc device", response);
+				return;
+		}
+				/* if fastresume partition exists, earse the old image header */
 		if(part_get_info_by_name(dev_desc, "fastresume", &info)) {
 			printf(" find fastresume partition , erase the header:\n");
 			char * buf = memalign(CONFIG_SYS_CACHELINE_SIZE,4096);
@@ -371,6 +457,22 @@ static void flash(char *cmd_parameter, char *response)
 			free(buf);
 		}
 	}
+#endif
+#ifdef CONFIG_FASTBOOT_ECIES_AUTH
+	else if ((strcmp(cmd_parameter, "ecies") == 0)) {
+		ecies_process_data(fastboot_buf_addr, image_size,response);
+		return;
+	}
+#endif
+
+	//If version is updated, hibernate image may not compatible with current,erase it.
+	if ((strcmp(cmd_parameter, "boot") == 0)
+		|| (strcmp(cmd_parameter, "uboot") == 0)
+		|| (strcmp(cmd_parameter, "root") == 0)) {
+
+		clean_hibernate_image_header(response);
+	}
+
 	if(strcmp(cmd_parameter, "uboot") == 0 || (strcmp(cmd_parameter, "fw") == 0) ||
 	   (strcmp(cmd_parameter, "uImage") == 0) || (strcmp(cmd_parameter, "dtb") == 0) ||
 	   (strcmp(cmd_parameter, "rootfs") == 0) || (strcmp(cmd_parameter, "aon") == 0)) {
@@ -380,54 +482,7 @@ static void flash(char *cmd_parameter, char *response)
 #endif
 
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
-	if(strcmp(cmd_parameter, TF_IMG_UPD_NAME) == 0) {
-		#if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
-		/* tee/tf/uboot image must be written into stash partition */
-		sprintf(cmdbuf, "%s", STASH_PART_NAME);
-		fastboot_mmc_flash_write(cmdbuf, fastboot_buf_addr, image_size, response);
-		#endif
-		/* Send ACK to host */
-		fastboot_okay(NULL, response);
-
-		/* set secure upgrade flag to indicate it is TF image upgrade*/
-		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", TF_SEC_UPGRADE_FLAG);
-		run_command(cmdbuf, 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-		return;
-	} else if (strcmp(cmd_parameter, TEE_IMG_UPD_NAME) == 0) {
-		#if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
-		/* tee/tf/uboot image must be written into stash partition */
-		sprintf(cmdbuf, "%s", STASH_PART_NAME);
-		fastboot_mmc_flash_write(cmdbuf, fastboot_buf_addr, image_size, response);
-		#endif
-
-		/* Send ACK to host */
-		fastboot_okay(NULL, response);
-
-		/* set secure upgrade flag to indicate it is TEE image upgrade*/
-		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", TEE_SEC_UPGRADE_FLAG);
-		run_command(cmdbuf, 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-		return;
-	} else if (strcmp(cmd_parameter, SBMETA_IMG_UPD_NAME) == 0) {
-		#if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
-		/* tee/tf/uboot image must be written into stash partition */
-		sprintf(cmdbuf, "%s", STASH_PART_NAME);
-		fastboot_mmc_flash_write(cmdbuf, fastboot_buf_addr, image_size, response);
-		#endif
-
-		/* Send ACK to host */
-		fastboot_okay(NULL, response);
-
-		/* set secure upgrade flag to indicate it is TEE image upgrade*/
-		sprintf(cmdbuf,"env set sec_upgrade_mode 0x%x", SBMETA_SEC_UPGRADE_FLAG);
-		run_command(cmdbuf, 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-		return;
-	} else if (strcmp(cmd_parameter, UBOOT_IMG_UPD_NAME) == 0) {
+	if (strcmp(cmd_parameter, UBOOT_IMG_UPD_NAME) == 0) {
 		#if CONFIG_IS_ENABLED(FASTBOOT_FLASH_MMC)
 
 		env_set_hex("ubootupdsize", image_size);
@@ -530,3 +585,38 @@ static void oem_command(char *cmd_parameter, char *response)
 	else
 		fastboot_okay(NULL, response);
 }
+
+#if CONFIG_FASTBOOT_CMD_OEM_NV_OPERATION
+/**
+ * oem_nv_get() - Execute the OEM NV GET command
+ *
+ * @cmd_parameter: Pointer to command parameter
+ * @response: Pointer to fastboot response buffer
+ */
+ static void oem_nv_get(char *cmd_parameter, char *response)
+ {
+	oem_nv_get_proccess(cmd_parameter,response);
+ }
+
+/**
+ * oem_nv_set() - Execute the OEM NV Set command
+ *
+ * @cmd_parameter: Pointer to command parameter
+ * @response: Pointer to fastboot response buffer
+ */
+ static void oem_nv_set(char *cmd_parameter, char *response)
+ {
+	oem_nv_set_proccess(cmd_parameter,response);
+ }
+
+/**
+ * oem_fcty() - Execute the OEM fcty command
+ *
+ * @cmd_parameter: Pointer to command parameter
+ * @response: Pointer to fastboot response buffer
+ */
+ static void oem_fcty(char *cmd_parameter, char *response)
+ {
+	oem_nv_factory_recovery_process(cmd_parameter,response);
+ }
+ #endif

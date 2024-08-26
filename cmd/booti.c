@@ -118,7 +118,7 @@ U_BOOT_CMD(
 
 #endif
 
-#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A)
+#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_ANT_REF) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_RVBOOK)
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
 extern int light_secboot(int argc, char * const argv[]);
 #endif
@@ -135,6 +135,91 @@ U_BOOT_CMD(
 	secboot, CONFIG_SYS_MAXARGS, 1, do_secboot,
 	"verify image file with known pubkey which reside in father image or itself!",
 	"vimage addr imgname[[tee/tf]	- verify specifed image resides in addr\n"
+);
+
+/* check whether partition numbers are consistent with the slot suffix */
+static int do_light_bootab(cmd_tbl_t *cmdtp, int flag, int argc, char * const argv[]) {
+	char *slot_suffix = env_get("slot_suffix");
+	int teepart = env_get_hex("mmcteepart", 3);
+
+	struct disk_partition part_info;
+	struct blk_desc *dev_desc;
+	int part = 0;
+
+        dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (dev_desc == NULL) {
+		printf("Failed to find MMC device\n");
+		return 1;
+	}
+
+	if ((strcmp(slot_suffix, "a") == 0) && (teepart != 3)) {
+		part = part_get_info_by_name(dev_desc, "boot_a", &part_info);
+		if (part < 0) {
+			printf("Failed to find MMC device\n");
+			return 1;
+		}
+		env_set_hex("mmcbootpart", part);
+
+		part = part_get_info_by_name(dev_desc, "tee_a", &part_info);
+		if (part < 0) {
+			printf("Failed to find MMC device\n");
+			return 1;
+		}
+		env_set_hex("mmcteepart", part);
+
+		part = part_get_info_by_name(dev_desc, "sbmeta_a", &part_info);
+		if (part < 0) {
+			printf("Failed to find MMC device\n");
+			return 1;
+		}
+		env_set_hex("mmcsbmetapart", part);
+
+		part = part_get_info_by_name(dev_desc, "root_a", &part_info);
+		if (part < 0) {
+			printf("root AB partition is not enabled\n");
+		} else {
+			env_set_hex("mmcpart", part);
+		}
+
+		run_command("env save", 0);
+	} else if ((strcmp(slot_suffix, "b") == 0) && (teepart != 10)) {
+		part = part_get_info_by_name(dev_desc, "boot_b", &part_info);
+		if (part < 0) {
+			printf("Failed to find MMC device\n");
+			return 1;
+		}
+		env_set_hex("mmcbootpart", part);
+
+		part = part_get_info_by_name(dev_desc, "tee_b", &part_info);
+		if (part < 0) {
+			printf("Failed to find MMC device\n");
+			return 1;
+		}
+		env_set_hex("mmcteepart", part);
+
+		part = part_get_info_by_name(dev_desc, "sbmeta_b", &part_info);
+		if (part < 0) {
+			printf("Failed to find MMC device\n");
+			return 1;
+		}
+		env_set_hex("mmcsbmetapart", part);
+
+		part = part_get_info_by_name(dev_desc, "root_b", &part_info);
+		if (part < 0) {
+			printf("root AB partition is not enabled\n");
+		} else {
+			env_set_hex("mmcpart", part);
+		}
+		run_command("env save", 0);
+	}
+	printf("current active slot is:%s\n", slot_suffix);
+	return CMD_RET_SUCCESS;
+}
+
+U_BOOT_CMD(
+	light_bootab, CONFIG_SYS_MAXARGS, 1, do_light_bootab,
+	"Light A/B updates",
+	NULL
 );
 
 #endif

@@ -79,16 +79,15 @@
 
 
 /* trust image name string */
-#define TF_IMG_UPD_NAME		"stashtf"
-#define TEE_IMG_UPD_NAME	"stashtee"
 #define UBOOT_IMG_UPD_NAME	"stashuboot"
-#define SBMETA_IMG_UPD_NAME	"stashsbmeta"
 #define TF_PART_NAME		"tf"
 #define TEE_PART_NAME		"tee"
 #define UBOOT_PART_NAME		"uboot"
 #define STASH_PART_NAME 	"stash"
 #define KERNEL_PART_NAME	"kernel"
 #define SBMETA_PART_NAME	"sbmeta"
+/* Define the NV partition name */
+#define NV_PARTITION_NAME	"nv"
 
 #define UBOOT_STAGE_ADDR	SRAM_BASE_ADDR
 
@@ -100,10 +99,10 @@
 #define CONFIG_BMP_32BPP
 
 /* security upgrade flag */
-#define TF_SEC_UPGRADE_FLAG	0x5555aaaa
-#define TEE_SEC_UPGRADE_FLAG 0x5a5aa5a5
 #define UBOOT_SEC_UPGRADE_FLAG	0xa5a5aa55
-#define SBMETA_SEC_UPGRADE_FLAG 0xaaaa5555
+#define SEC_IMG_UPGRADE_FLAG	0x5a5a
+#define BOOT_IMG_UPGRADE_FLAG	0xa500
+#define ROOT_IMG_UPGRADE_FLAG	0xa5
 
 /* Define secure debug log level */
 #define LOG_LEVEL	1
