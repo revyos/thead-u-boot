@@ -130,6 +130,8 @@ source "drivers/w1-eeprom/Kconfig"
 
 source "drivers/watchdog/Kconfig"
 
+source "drivers/mcu/Kconfig"
+
 config PHYS_TO_BUS
 	bool "Custom physical to bus address mapping"
 	help

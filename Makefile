@@ -727,6 +727,7 @@ UBOOTINCLUDE    := \
 				-I$(srctree)/arch/$(ARCH)/thumb1/include),) \
 		-I$(srctree)/arch/$(ARCH)/include \
 		$(if $(CONFIG_TARGET_LIGHT_C910), -I$(srctree)/lib/sec_library/include) \
+		$(if $(CONFIG_TARGET_LIGHT_C910), -I$(srctree)/lib/sec_library/include/soft_crypto) \
 		-include $(srctree)/include/linux/kconfig.h
 
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
@@ -757,6 +758,8 @@ libs-y += drivers/net/phy/
 libs-y += drivers/power/ \
 	drivers/power/domain/ \
 	drivers/power/fuel_gauge/ \
+	drivers/power/charge/ \
+	drivers/mcu/ \
 	drivers/power/mfd/ \
 	drivers/power/pmic/ \
 	drivers/power/battery/ \

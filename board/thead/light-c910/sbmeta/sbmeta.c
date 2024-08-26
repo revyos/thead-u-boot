@@ -29,7 +29,7 @@
 #define DMSG(fmt, args...)      trace_printer("", fmt, ##args)
 #endif
 
-#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A)
+#if CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_VAL_B) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A) || CONFIG_IS_ENABLED(LIGHT_SEC_BOOT_WITH_VERIFY_RVBOOK)
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
 /* digest_size corresponding to digest_scheme specified in sbmeta_info_t */
 static const int digest_size[] = {0, 20, 16, 28, 32, 48, 64, 32};
@@ -62,7 +62,8 @@ typedef struct {
     char        filename[MAX_NAME_SIZE];
     uint8_t     digest[MAX_DIGEST_SIZE];
     uint32_t    relocated_addr;
-    uint32_t    reserved[4];
+    uint8_t     security_level;
+    uint8_t     reserved[15];
 } sbmeta_info_t;
 
 static int is_sbmeta_info(uint32_t entry_src_addr)
@@ -107,6 +108,11 @@ static int dump_sbmeta_info(sbmeta_info_t *sbmeta_info)
         IMSG("Image has been loaded\r\n");
     }
 
+    if (sbmeta_info->security_level > SBMETA_SECURITY_LEVEL_SIGN || sbmeta_info->security_level < SBMETA_SECURITY_LEVEL_NONE) {
+        EMSG("security level is invalid\n");
+        return CMD_RET_FAILURE;
+    }
+
     /* dump sbmeta_info_t */
     DMSG("image medium type: %d\n", sbmeta_info->medium_type);
     DMSG("image load part: mmc %d:%d\n", sbmeta_info->dev, sbmeta_info->part);
@@ -134,6 +140,10 @@ static int sbmeta_field_verify(sbmeta_info_t *sbmeta_info, unsigned long img_src
 
     if (sbmeta_info == NULL) {
         return CMD_RET_FAILURE;
+    }
+
+    if (sbmeta_info->security_level < SBMETA_SECURITY_LEVEL_SIGN) {
+        return 0;
     }
 
     /* if image has secure header, check with sbmeta field */
@@ -221,7 +231,7 @@ static int sbmeta_verify_image(uint32_t image_load_addr, sbmeta_info_t *sbmeta_i
     uint8_t checksum_scheme = sbmeta_info->checksum_scheme;
     uint8_t *digest = sbmeta_info->digest;
     uint8_t is_encrypted = sbmeta_info->isencrypted;
-    uint32_t security_level = env_get_hex("sbmeta_security_level", 3);
+    uint32_t security_level = sbmeta_info->security_level;
     uint32_t filesize = 0;
     char buf[64] = {0};
 
@@ -253,11 +263,11 @@ static int sbmeta_verify_image(uint32_t image_load_addr, sbmeta_info_t *sbmeta_i
 
     /* start verifying images */
     IMSG("Process %s image verification ...\n", image_name);
-    if (security_level == 3 || is_encrypted != 0) {
+    if (security_level == SBMETA_SECURITY_LEVEL_SIGN || is_encrypted != 0) {
         if (verify_customer_image(image_type, image_load_addr) != 0) {
             return CMD_RET_FAILURE;
         }
-    } else if (security_level == 2) {
+    } else if (security_level == SBMETA_SECURITY_LEVEL_HASH) {
         if (memcmp(digest, buf, 64) == 0) {
             EMSG("sbmeta info doesn't specify digest value in security level 2\r\n");
             return CMD_RET_FAILURE;
@@ -309,7 +319,8 @@ static int light_sbmetaboot(int argc, char *const argv[])
     sbmeta_info_t *sbmeta_info = NULL;
 
     /* Load sbmeta image to memory */
-    snprintf(cmd, sizeof(cmd), "ext4load mmc $mmcdev:%x 0x%p %s", SBMETA_PART, (void *)(uintptr_t)LIGHT_SBMETA_ADDR, SBMETA_FILENAME);
+    snprintf(cmd, sizeof(cmd), "ext4load mmc ${mmcdev}:${mmcsbmetapart} 0x%x %s", (void *)(uintptr_t)LIGHT_SBMETA_ADDR, SBMETA_FILENAME);
+    printf("%s\n",cmd);
     if (run_command(cmd, 0) != 0) {
         /* if sbmeta doesn't exist, do secboot by default */
         IMSG("SBMETA doesn't exist, go to verify tf/tee\r\n");
@@ -324,7 +335,6 @@ static int light_sbmetaboot(int argc, char *const argv[])
 
         return 0;
     }
-
     /* initialize crypto algorithm interfaces */
     if (csi_sec_init() != 0) {
         return CMD_RET_FAILURE;

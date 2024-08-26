@@ -20,12 +20,106 @@
 #define LIGHT_APSYS_RSTGEN_ADDRBASE	0xffff015000
 #define LIGHT_DPU_CLOCK_GATING_CTRL0	0xffef601A28
 #define LIGHT_DPU_CLOCK_GATING_CTRL1    0xffef601A2C
+#ifdef CONFIG_RV_BOOK
+#define LIGHT_CPU_PLL_IDX(x)            (x)
+#endif
 
 void show_sys_clk(void)
 {
 	/* Do nothing for FPGA */
 }
 
+#ifdef CONFIG_RV_BOOK
+
+static int _light_get_pllid(void)
+{
+	unsigned int val;
+	int ret;
+	val = readl((void *)LIGHT_APCLK_ADDRBASE + 0x100);
+	if(val & 0x1)
+		ret = LIGHT_CPU_PLL_IDX(1);
+	else
+		ret = LIGHT_CPU_PLL_IDX(0);
+	return ret;
+}
+
+void update_cpu_freq(uint32_t val)
+{
+	if(_light_get_pllid() == LIGHT_CPU_PLL_IDX(0))
+	{
+        /* update cpupll1*/
+		writel(0x20000000, (void *)LIGHT_APCLK_ADDRBASE + 0x14);
+		writel(val, (void *)LIGHT_APCLK_ADDRBASE + 0x10);
+		writel(0x23000000, (void *)LIGHT_APCLK_ADDRBASE + 0x14);
+		udelay(3);
+		writel(0x03000000, (void *)LIGHT_APCLK_ADDRBASE + 0x14);
+		readl((void *)LIGHT_APCLK_ADDRBASE + 0x80);
+		readl((void *)LIGHT_APCLK_ADDRBASE + 0x80);
+		while(!(readl((void *)LIGHT_APCLK_ADDRBASE + 0x80) & 0x10));
+		udelay(11);
+	}else{
+        /* update cpupll0*/
+		writel(0x20000000, (void *)LIGHT_APCLK_ADDRBASE + 0x04);
+		writel(val, (void *)LIGHT_APCLK_ADDRBASE + 0x00);
+		writel(0x23000000, (void *)LIGHT_APCLK_ADDRBASE + 0x04);
+		udelay(3);
+		writel(0x03000000, (void *)LIGHT_APCLK_ADDRBASE + 0x04);
+		readl((void *)LIGHT_APCLK_ADDRBASE + 0x80);
+		readl((void *)LIGHT_APCLK_ADDRBASE + 0x80);
+		while(!(readl((void *)LIGHT_APCLK_ADDRBASE + 0x80) & 0x02));
+		udelay(11);
+    }
+}
+
+void cpu_clk_config(int32_t cpu_freq)
+{
+#ifndef CONFIG_TARGET_LIGHT_FPGA_FM_C910 /* for sillicon */
+       unsigned int tmp;
+
+    switch(cpu_freq){
+        case 750000000:
+            {
+               /* 4. update c910_cclk to 750Mhz */
+            update_cpu_freq(0x1407d01);
+               /* config bus: cpu clk ratio to 1:1 */
+               writel((readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) & (~(0x7<<8))) | (0x0<<8), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // ratio=0
+               writel(readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) & (~(0x1<<11)), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=0
+               writel(readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) | (0x1<<11), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=1
+            printf("cpu frequency to 750\n");
+        }
+        break;
+        case 1500000000:
+            {
+               /* 4. update c910_cclk to 1.5Ghz */
+            update_cpu_freq(0x01207d01);
+               /* config bus: cpu clk ratio to 1:2 */
+               writel((readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) & (~(0x7<<8))) | (0x1<<8), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // ratio=0
+               writel(readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) & (~(0x1<<11)), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=0
+               writel(readl((const volatile void __iomem *)(LIGHT_APCLK_ADDRBASE + 0x100)) | (0x1<<11), (void *)(LIGHT_APCLK_ADDRBASE + 0x100)); // sync=1
+            printf("cpu frequency to 1500\n");
+            }
+        break;
+        default:
+            return;
+    }
+        if(_light_get_pllid() == LIGHT_CPU_PLL_IDX(0))
+        {
+               /* switch c910_cclk to cpu_pll1_foutpostdiv */
+               tmp = readl((void *)LIGHT_APCLK_ADDRBASE + 0x100);
+               tmp |= 0x1;
+               writel(tmp, (void *)LIGHT_APCLK_ADDRBASE + 0x100);
+        }else
+        {
+               /* switch c910_cclk to cpu_pll0_foutpostdiv */
+               tmp = readl((void *)LIGHT_APCLK_ADDRBASE + 0x100);
+               tmp &= ~0x1;
+               writel(tmp, (void *)LIGHT_APCLK_ADDRBASE + 0x100);
+        }
+       udelay(1);
+#endif
+}
+
+#else
 void cpu_clk_config(uint32_t cpu_freq)
 {
 #ifndef CONFIG_TARGET_LIGHT_FPGA_FM_C910 /* for sillicon */
@@ -54,6 +148,7 @@ void cpu_clk_config(uint32_t cpu_freq)
 	udelay(1);
 #endif
 }
+#endif
 
 void sys_clk_config(void)
 {
@@ -335,6 +430,24 @@ void sys_clk_config(void)
 
 #endif
 }
+
+#ifndef CONFIG_SPL_BUILD
+static int cpu_switch_freq(cmd_tbl_t *cmdtp, int flag, int argc,
+                      char * const argv[])
+{
+    cpu_clk_config(1500000000);
+    return 0;
+}
+
+U_BOOT_CMD(
+        cpufreq_switch,
+        2,
+        0,
+        cpu_switch_freq,
+        "switch cpu freq to highest",
+        ""
+);
+#endif
 
 void ddr_clk_config(int ddr_freq)
 {

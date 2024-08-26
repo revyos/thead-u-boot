@@ -99,7 +99,7 @@ void sc_ecc_uninit(sc_ecc_t *ecc);
   \return      \ref uint32_t
 */
 uint32_t sc_ecc_config(sc_ecc_t *ecc, sc_ecc_cipher_order_e co,
-                       sc_ecc_endian_mode_e endian);
+                    sc_ecc_endian_mode_e endian);
 
 /**
   \brief       Attach the callback handler to ECC
@@ -124,7 +124,7 @@ uint32_t sc_ecc_detach_callback(sc_ecc_t *ecc);
 */
 uint32_t sc_ecc_get_capabilities(sc_ecc_t *ecc, sc_ecc_capabilities_t *cap);
 
-uint32_t sc_ecc_check_keypair(sc_ecc_t *ecc, uint8_t pubkey[65],
+uint32_t sc_ecc_check_keypair(sc_ecc_t *ecc, uint8_t pubkey[64],
                               uint8_t prikey[32]);
 
 /**
@@ -134,7 +134,7 @@ uint32_t sc_ecc_check_keypair(sc_ecc_t *ecc, uint8_t pubkey[65],
   \param[out]  public   Pointer to the ecc public key, alloc by caller.
   \return      \ref uint32_t
 */
-uint32_t sc_ecc_gen_key(sc_ecc_t *ecc, uint8_t pubkey[65], uint8_t prikey[32]);
+uint32_t sc_ecc_gen_key(sc_ecc_t *ecc, uint8_t pubkey[64], uint8_t prikey[32]);
 
 
 /**
@@ -144,7 +144,7 @@ uint32_t sc_ecc_gen_key(sc_ecc_t *ecc, uint8_t pubkey[65], uint8_t prikey[32]);
   \param[out]  pubkey   Pointer to the ecc public key, alloc by caller.
   \return      \ref uint32_t
 */
-uint32_t sc_ecc_gen_pubkey(sc_ecc_t *ecc, uint8_t pubkey[65], 
+uint32_t sc_ecc_gen_pubkey(sc_ecc_t *ecc, uint8_t pubkey[64],
                     uint8_t prikey[32], sc_ecc_curve_type type);
 
 /**
@@ -156,7 +156,7 @@ uint32_t sc_ecc_gen_pubkey(sc_ecc_t *ecc, uint8_t pubkey[65],
   \return      \ref uint32_t
 */
 uint32_t sc_ecc_sign(sc_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32],
-                     uint8_t s[64], sc_ecc_curve_type type);
+                    uint8_t s[64], sc_ecc_curve_type type);
 
 /**
   \brief       ecc sign
@@ -167,7 +167,7 @@ uint32_t sc_ecc_sign(sc_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32],
   \return      \ref uint32_t
 */
 uint32_t sc_ecc_sign_async(sc_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32],
-                           uint8_t s[64], sc_ecc_curve_type type);
+                        uint8_t s[64], sc_ecc_curve_type type);
 
 /* TODO */
 /**
@@ -178,8 +178,8 @@ uint32_t sc_ecc_sign_async(sc_ecc_t *ecc, uint8_t d[32], uint8_t prikey[32],
   \param[out]  s Pointer to the signature
   \return      verify result
 */
-bool sc_ecc_verify(sc_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65],
-                   uint8_t s[64], sc_ecc_curve_type type);
+bool sc_ecc_verify(sc_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[64],
+                uint8_t s[64], sc_ecc_curve_type type);
 
 /**
   \brief       ecc verify
@@ -189,8 +189,8 @@ bool sc_ecc_verify(sc_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65],
   \param[out]  s Pointer to the signature
   \return      verify result
 */
-bool sc_ecc_verify_async(sc_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65],
-                         uint8_t s[64], sc_ecc_curve_type type);
+bool sc_ecc_verify_async(sc_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[64],
+                        uint8_t s[64], sc_ecc_curve_type type);
 
 /**
   \brief       ecc encrypto
@@ -203,7 +203,7 @@ bool sc_ecc_verify_async(sc_ecc_t *ecc, uint8_t d[32], uint8_t pubkey[65],
   \return      uint32_t
 */
 uint32_t sc_ecc_encrypt(sc_ecc_t *ecc, uint8_t *plain, uint32_t plain_len,
-                        uint8_t pubKey[65], uint8_t *cipher,
+                        uint8_t pubKey[64], uint8_t *cipher,
                         uint32_t *cipher_len);
 
 /**
@@ -237,7 +237,7 @@ uint32_t sc_ecc_exchangekey(sc_ecc_t *ecc, sc_ecc_exchange_role_e role,
   \return      uint32_t
 */
 uint32_t sc_ecc_getZ(sc_ecc_t *ecc, uint8_t *id, uint32_t id_len,
-                     uint8_t pubkey[65], uint8_t z[32]);
+                    uint8_t pubkey[65], uint8_t z[32]);
 
 /**
   \brief       ecc key exchange get E
@@ -245,7 +245,7 @@ uint32_t sc_ecc_getZ(sc_ecc_t *ecc, uint8_t *id, uint32_t id_len,
   \return      uint32_t
 */
 uint32_t sc_ecc_getE(sc_ecc_t *ecc, uint8_t *m, uint32_t len, uint8_t z[32],
-                     uint8_t e[32]);
+                    uint8_t e[32]);
 
 /**
   \brief       Get ECC state.
