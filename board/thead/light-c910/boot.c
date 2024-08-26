@@ -15,6 +15,7 @@
 #include "../../../lib/sec_library/include/sec_crypto_sha.h"
 #include "../../../lib/sec_library/include/kdf.h"
 #include "../../../lib/sec_library/include/sec_crypto_mac.h"
+#include "fastboot.h"
 
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
 
@@ -23,6 +24,14 @@
 
 /* The macro is used to enable uboot version in efuse */
 #define	LIGHT_UBOOT_VERSION_IN_ENV	1
+
+/* The macro is used to enable secimg version in env */
+#define LIGHT_SECIMG_VERSION_IN_ENV 1
+
+/* vimage return value */
+#define VIMAGE_UPGRADE_NOT_REQUIRED  1
+#define VIMAGE_BREAK_VERSION_RULE_ERROR  2
+#define VIMAGE_SIGNATRE_VERIFICATION_FAILED  3
 
 /* The macro is used to enble RPMB ACCESS KEY from KDF */
 //#define LIGHT_KDF_RPMB_KEY	1
@@ -38,7 +47,8 @@ static const unsigned char emmc_rpmb_key_sample[32] = {0x33, 0x22, 0x11, 0x00, 0
 												0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff};
 #endif
 static unsigned int upgrade_image_version = 0;
-
+static char *current_slot = "a";
+static char *update_slot = "b";
 #define RPMB_EMMC_CID_SIZE 16
 #define RPMB_CID_PRV_OFFSET             9
 #define RPMB_CID_CRC_OFFSET             15
@@ -46,8 +56,8 @@ static unsigned int upgrade_image_version = 0;
 static int tee_rpmb_key_gen(uint8_t* key, uint32_t * length)
 {
 	uint32_t data[RPMB_EMMC_CID_SIZE / 4];
-    uint8_t huk[32];
-    uint32_t huk_len;
+	uint8_t huk[32];
+	uint32_t huk_len;
 	struct mmc *mmc = find_mmc_device(0);
 	int i;
 	sc_mac_t mac_handle;
@@ -72,14 +82,14 @@ static int tee_rpmb_key_gen(uint8_t* key, uint32_t * length)
 	memset((void *)((uint64_t)data + RPMB_CID_PRV_OFFSET), 0, 1);
 	memset((void *)((uint64_t)data + RPMB_CID_CRC_OFFSET), 0, 1);
 
-    /* Step1: Derive HUK from KDF function */
+    	/* Step1: Derive HUK from KDF function */
 	ret = csi_kdf_gen_hmac_key(huk, &huk_len);
 	if (ret) {
 		printf("kdf gen hmac key faild[%d]\r\n", ret);
 		return -1;
 	}
 
-    /* Step2: Using HUK and data to generate RPMB key */
+    	/* Step2: Using HUK and data to generate RPMB key */
 	ret = sc_mac_init(&mac_handle, 0);
 	if (ret) {
 		printf("mac init faild[%d]\r\n", ret);
@@ -152,22 +162,25 @@ int csi_rpmb_write_access_key(void)
 
 int csi_tf_get_image_version(unsigned int *ver)
 {
+	int ret = 0;
+#if !LIGHT_SECIMG_VERSION_IN_ENV
 	char runcmd[64] = {0};
 	unsigned char blkdata[256];
-	int ret = 0;
-
 	/* tf version reside in RPMB block#0, offset#16*/
 	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
 	ret = run_command(runcmd, 0);
 	if (ret == 0) {
 		*ver = (blkdata[16] << 8) + blkdata[17];
 	}
-
+#else
+	*ver = env_get_hex("tf_version", 0);
+#endif
 	return ret;
 }
 
 int csi_tf_set_image_version(unsigned int ver)
 {
+#if !LIGHT_SECIMG_VERSION_IN_ENV
 	char runcmd[64] = {0};
 	unsigned char blkdata[256];
 	unsigned long *temp_rpmb_key_addr = NULL;
@@ -194,7 +207,9 @@ int csi_tf_set_image_version(unsigned int ver)
 
 	sprintf(runcmd, "mmc rpmb write 0x%lx 0 1 0x%lx", (unsigned long)blkdata, (unsigned long)temp_rpmb_key_addr);
 	run_command(runcmd, 0);
-
+#else
+	env_set_hex("tf_version", ver);
+#endif
 	return 0;
 }
 
@@ -205,17 +220,19 @@ int csi_tf_set_upgrade_version(void)
 
 int csi_tee_get_image_version(unsigned int *ver)
 {
+	int ret = 0;
+#if !LIGHT_SECIMG_VERSION_IN_ENV
 	char runcmd[64] = {0};
 	unsigned char blkdata[256];
-	int ret = 0;
-
 	/* tf version reside in RPMB block#0, offset#0*/
 	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
 	ret = run_command(runcmd, 0);
 	if (ret == 0) {
 		*ver = (blkdata[0] << 8) + blkdata[1];
 	}
-
+#else
+	*ver = env_get_hex("tee_version", 0);
+#endif
 	return ret;
 }
 
@@ -234,6 +251,7 @@ int csi_kernel_get_image_version(unsigned int *ver)
 
 int csi_tee_set_image_version(unsigned int ver)
 {
+#if !LIGHT_SECIMG_VERSION_IN_ENV
 	char runcmd[64] = {0};
 	unsigned char blkdata[256];
 	unsigned long *temp_rpmb_key_addr = NULL;
@@ -259,7 +277,9 @@ int csi_tee_set_image_version(unsigned int ver)
 #endif
 	sprintf(runcmd, "mmc rpmb write 0x%lx 0 1 0x%lx", (unsigned long)blkdata, (unsigned long)temp_rpmb_key_addr);
 	run_command(runcmd, 0);
-
+#else
+	env_set_hex("tee_version", ver);
+#endif
 	return 0;
 }
 
@@ -270,22 +290,25 @@ int csi_tee_set_upgrade_version(void)
 
 int csi_sbmeta_get_image_version(unsigned int *ver)
 {
+	int ret = 0;
+#if !LIGHT_SECIMG_VERSION_IN_ENV
 	char runcmd[64] = {0};
 	unsigned char blkdata[256];
-	int ret = 0;
-
 	/* sbmeta version reside in RPMB block#0, offset#48*/
 	sprintf(runcmd, "mmc rpmb read 0x%lx 0 1", (unsigned long)blkdata);
 	ret = run_command(runcmd, 0);
 	if (ret == 0) {
 		*ver = (blkdata[48] << 8) + blkdata[49];
 	}
-
+#else
+	*ver = env_get_hex("sbmeta_version", 0);
+#endif
 	return ret;
 }
 
 int csi_sbmeta_set_image_version(unsigned int ver)
 {
+#if !LIGHT_SECIMG_VERSION_IN_ENV
 	char runcmd[64] = {0};
 	unsigned char blkdata[256];
 	unsigned long *temp_rpmb_key_addr = NULL;
@@ -310,7 +333,9 @@ int csi_sbmeta_set_image_version(unsigned int ver)
 #endif
 	sprintf(runcmd, "mmc rpmb write 0x%lx 0 1 0x%lx", (unsigned long)blkdata, (unsigned long)temp_rpmb_key_addr);
 	run_command(runcmd, 0);
-
+#else
+	env_set_hex("sbmeta_version", ver);
+#endif
 	return 0;
 }
 
@@ -438,13 +463,13 @@ int verify_image_version_rule(unsigned int new_ver, unsigned int cur_ver)
 		/* This is unsecure function */
 		if ((new_ver_y - cur_ver_y) == 0) {
 			printf("New version is equal to Current version, upgrade process terminates \n\n\n");
-			return -1;
+			return VIMAGE_UPGRADE_NOT_REQUIRED;
 		}
 		printf("This is unsecure function upgrade, going on uprade anyway\n");
 	} else if ((new_ver_x - cur_ver_x) != 1) {
 		/* Check the seure version rule */
 		printf("The upgrade version(X) breaks against the rule\n\n\n");
-		return -1;
+		return VIMAGE_BREAK_VERSION_RULE_ERROR;
 	}
 	printf("check image verison rule pass\n\n\n");
 
@@ -560,7 +585,7 @@ int light_vimage(int argc, char *const argv[])
 	unsigned long vimage_addr = 0;
 	unsigned int new_img_version = 0;
 	unsigned int cur_img_version = 0;
-    char imgname[32] = {0};
+	char imgname[32] = {0};
 
 	if (argc < 3)
 		return CMD_RET_USAGE;
@@ -575,35 +600,43 @@ int light_vimage(int argc, char *const argv[])
 		printf("get new img version fail\n");
 		return CMD_RET_FAILURE;
 	}
-    if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
-        new_img_version = (((new_img_version & 0xff )+1) << 8) | ((new_img_version & 0xff00)>>8);
-    }
+	if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
+		new_img_version = (((new_img_version & 0xff )+1) << 8) | ((new_img_version & 0xff00)>>8);
+	}
 	printf("Get new image version from image header: v%d.%d\n", (new_img_version & 0xff00)>>8, new_img_version & 0xff);
 
-	/* Check image version for ROLLBACK resisance */ 
+	/* Check image version for ROLLBACK resisance */
 	if (strcmp(imgname, TF_PART_NAME) == 0) {
-		
 		ret = csi_tf_get_image_version(&cur_img_version);
 		if (ret != 0) {
 			printf("Get tf img version fail\n");
 			return CMD_RET_FAILURE;
 		}
+#if LIGHT_NON_COT_BOOT
+		/* if in non-cot mode, tf and tee will not be signed at first */
+		if (image_have_head(vimage_addr) == 0 && ((cur_img_version & 0xFF00) >> 8 == 0)) {
+			return VIMAGE_UPGRADE_NOT_REQUIRED;
+		}
+#endif
 	} else if (strcmp(imgname, TEE_PART_NAME) == 0){
-
 		ret = csi_tee_get_image_version(&cur_img_version);
 		if (ret != 0) {
 			printf("Get tee img version fail\n");
 			return CMD_RET_FAILURE;
 		}
+#if LIGHT_NON_COT_BOOT
+		/* if in non-cot mode, tf and tee will not be signed at first */
+		if (image_have_head(vimage_addr) == 0 && ((cur_img_version & 0xFF00) >> 8 == 0)) {
+			return VIMAGE_UPGRADE_NOT_REQUIRED;
+		}
+#endif
 	} else if (strcmp(imgname, KERNEL_PART_NAME) == 0){
-
 		ret = csi_kernel_get_image_version(&cur_img_version);
 		if (ret != 0) {
 			printf("Get kernel img version fail\n");
 			return CMD_RET_FAILURE;
 		}
 	} else if (strcmp(imgname, SBMETA_PART_NAME) == 0){
-
 		ret = csi_sbmeta_get_image_version(&cur_img_version);
 		if (ret != 0) {
 			printf("Get sbmeta img version fail\n");
@@ -626,13 +659,13 @@ int light_vimage(int argc, char *const argv[])
 		printf("unsupport image file\n");
 		return CMD_RET_FAILURE;
 	}
-	
+
 	/* Verify image version rule */
 	ret = verify_image_version_rule(new_img_version, cur_img_version);
 	if (ret != 0) {
-		return CMD_RET_FAILURE;
+                return ret;
 	}
-	
+
 	/* Save new image version to allow caller upgrade image version */
 	upgrade_image_version = new_img_version;
 
@@ -646,27 +679,27 @@ int light_vimage(int argc, char *const argv[])
 	if (strcmp(imgname, TF_PART_NAME) == 0) {
 		ret = verify_customer_image(T_TF, vimage_addr);
 		if (ret != 0) {
-			return CMD_RET_FAILURE;
+			return VIMAGE_SIGNATRE_VERIFICATION_FAILED;
 		}
 	} else if (strcmp(imgname, TEE_PART_NAME) == 0) {
 		ret = verify_customer_image(T_TEE, vimage_addr);
 		if (ret != 0) {
-			return CMD_RET_FAILURE;
+			return VIMAGE_SIGNATRE_VERIFICATION_FAILED;
 		}
 	} else if (strcmp(imgname, KERNEL_PART_NAME) == 0) {
 		ret = verify_customer_image(T_KRLIMG, vimage_addr);
 		if (ret != 0) {
-			return CMD_RET_FAILURE;
+			return VIMAGE_SIGNATRE_VERIFICATION_FAILED;
 		}
 	} else if (strcmp(imgname, UBOOT_PART_NAME) == 0) {
 		ret = verify_customer_image(T_UBOOT, vimage_addr);
 		if (ret != 0) {
-			return CMD_RET_FAILURE;
+			return VIMAGE_SIGNATRE_VERIFICATION_FAILED;
 		}
 	} else if (strcmp(imgname, SBMETA_PART_NAME) == 0) {
 		ret = verify_customer_image(T_SBMETA, vimage_addr);
 		if (ret != 0) {
-			return CMD_RET_FAILURE;
+			return VIMAGE_SIGNATRE_VERIFICATION_FAILED;
 		}
 	} else {
 		printf("Error: unknow image name\n");
@@ -687,8 +720,8 @@ int light_secboot(int argc, char * const argv[])
 	printf("\n\n");
 	printf("Now, we start to verify all trust firmware before boot kernel !\n");
 
-    /* Enject RPMB KEY directly in startup */
-    csi_rpmb_write_access_key();
+	/* Enject RPMB KEY directly in startup */
+	csi_rpmb_write_access_key();
 
 	/* Initialize secure basis of functions */
 	ret = csi_sec_init();
@@ -825,273 +858,317 @@ void sec_firmware_version_dump(void)
 	printf("\n\n");
 }
 
-void sec_upgrade_thread(void)
+struct sec_img_upgrade_entry {
+	const char* filename;
+	const char* imgtype;
+	int (*set_version_func)(void);
+	const char *part_str;
+};
+
+static struct sec_img_upgrade_entry sec_img_list[] = {
+	{"sbmeta.bin", "sbmeta", csi_sbmeta_set_upgrade_version, "sbmeta"},
+	{"trust_firmware.bin", "tf", csi_tf_set_upgrade_version, "tee"},
+	{"tee.bin", "tee", csi_tee_set_upgrade_version, "tee"},
+        {NULL, NULL, NULL, NULL},
+};
+
+static struct blk_desc *dev_desc;
+static int ab_get_blk(void)
+{
+        struct disk_partition part_info;
+        dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (dev_desc == NULL) {
+		printf("Failed to find MMC device\n");
+		return -1;
+	}
+        return 0;
+}
+
+static int ab_get_sec_part(const char *part_str, int update_part)
+{
+	struct disk_partition part_info;
+        char partname[10] = {0};
+        int part = 0;
+
+        if (update_part) {
+                sprintf(partname, "%s_%s", part_str, update_slot);
+        } else {
+                sprintf(partname, "%s_%s", part_str, current_slot);
+        }
+
+        part = part_get_info_by_name(dev_desc, partname, &part_info);
+        if (part < 0) {
+		printf("Failed to find MMC device\n");
+	}
+
+        return part;
+}
+
+static int single_img_upgrade(struct sec_img_upgrade_entry *sec_img_entry)
 {
 	const unsigned long temp_addr=0x200000;
 	char runcmd[80];
-    uint8_t * image_buffer = NULL;
-    uint8_t * image_malloc_buffer = NULL;
-	int ret = 0;
-	unsigned int sec_upgrade_flag = 0;
+	uint8_t * image_buffer = NULL;
+	uint8_t * image_malloc_buffer = NULL;
 	unsigned int upgrade_file_size = 0;
+	const char *filename = NULL;
+	int update_part = 0;
+        int current_part = 0;
+	int ret = 0;
+        char *argv[3] = {"vimage", NULL, NULL};
+
+	if (sec_img_entry == NULL) {
+		return -1;
+	}
+
+	update_part = ab_get_sec_part(sec_img_entry->part_str, 1);
+        if (update_part < 0) {
+                return -1;
+        }
+
+	filename = sec_img_entry->filename;
+
+	/* STEP 1: read upgrade image from storage */
+	printf("read upgrade image (%s) from storage \n", filename);
+	sprintf(runcmd, "ext4load mmc ${mmcdev}:%x 0x%p %s", update_part, (void *)temp_addr, filename);
+	printf("runcmd:%s\n", runcmd);
+	ret = run_command(runcmd, 0);
+	if (ret != 0) {
+		printf("%s upgrade process is terminated due to some reason\n", filename);
+		return -1;
+	}
+	/* Fetch the total file size after read out operation end */
+	upgrade_file_size = env_get_hex("filesize", 0);
+	printf("upgrade file size: %d\n", upgrade_file_size);
+
+	/*store image to temp buffer as temp_addr may be decrypted*/
+	image_malloc_buffer = malloc(upgrade_file_size);
+	if (image_malloc_buffer == NULL) {
+		image_buffer = (uint8_t*)temp_addr + upgrade_file_size;
+	} else {
+		image_buffer = image_malloc_buffer;
+	}
+	memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
+
+	/* STEP 2: verify secure image */
+        sprintf(runcmd, "0x%lx", temp_addr);
+        argv[1] = runcmd;
+        argv[2] = sec_img_entry->imgtype;
+        ret = light_vimage(3, argv);
+        if (ret == VIMAGE_UPGRADE_NOT_REQUIRED) {
+                printf("%s Image may not need upgrade\n", sec_img_entry->imgtype);
+                return 0;
+        } else if (ret != 0) {
+                return -1;
+        }
+
+	/* STEP 3: update partition image in another slot */
+        current_part = ab_get_sec_part(sec_img_entry->part_str, 0);
+        if (current_part < 0) {
+                return -1;
+        }
+	printf("write upgrade image (%s) into another slot \n", filename);
+	sprintf(runcmd, "ext4write mmc 0:%x 0x%p /%s 0x%x", current_part, (void *)image_buffer, filename, upgrade_file_size);
+	printf("runcmd:%s\n", runcmd);
+	ret = run_command(runcmd, 0);
+	if (ret != 0) {
+		printf("%s upgrade process is terminated due to some reason\n", filename);
+		return -1;
+	}
+
+	/* STEP 4: update secure image version */
+        sec_img_entry->set_version_func();
+
+	printf("\n\n%s image ugprade process is successful\n\n", filename);
+	return 0;
+}
+
+static int sec_img_upgrade(void)
+{
+        int ret = 0;
+        struct sec_img_upgrade_entry *sec_img_entry = sec_img_list;
+
+        ab_get_blk();
+
+        while (sec_img_entry->filename != NULL) {
+                ret = single_img_upgrade(sec_img_entry);
+                if (ret) {
+                        printf("Fail to upgrade image\n");
+                        return -1;
+                }
+
+                sec_img_entry++;
+        }
+	return 0;
+}
+
+extern int hibernate_image_cleaned_flag;
+extern void clean_hibernate_image_header(char *response);
+static char *response[FASTBOOT_RESPONSE_LEN] = {0};
+void sec_upgrade_thread(void)
+{
+        const unsigned long temp_addr=0x200000;
+        char runcmd[80];
+        int ret = 0;
+        unsigned int sec_upgrade_flag = 0;
+        unsigned int upgrade_file_size = 0;
+
+        sec_upgrade_flag = env_get_hex("sec_upgrade_mode", 0);
+        current_slot = env_get("slot_suffix");
+        update_slot = strcmp(current_slot, "a") == 0 ? "b" : "a";
+
+        if (sec_upgrade_flag == 0) {
+		return;
+        }
+
+	clean_hibernate_image_header(response);
+        printf("bootstrap: sec_upgrade_flag: %x\n", sec_upgrade_flag);
+        if (sec_upgrade_flag == UBOOT_SEC_UPGRADE_FLAG) {
+                unsigned int block_cnt;
+                struct blk_desc *dev_desc;
+                const unsigned long uboot_temp_addr=0x80000000;
+                #define BLOCK_SIZE 512
+                #define PUBKEY_HEADER_SIZE	0x1000
+
+                /* STEP 1: read upgrade image (u-boot-with-spl.bin) from stash partition */
+                printf("read upgrade image (u-boot-with-spl.bin) from stash partition \n");
+                sprintf(runcmd, "ext4load mmc 0:4 0x%p u-boot-with-spl.bin", (void *)temp_addr);
+                printf("runcmd:%s\n", runcmd);
+                ret = run_command(runcmd, 0);
+                if (ret != 0) {
+                        printf("UBOOT Upgrade process is terminated due to some reason\n");
+                        goto _upgrade_uboot_exit;
+                }
+
+                /* Fetch the total file size after read out operation end */
+                upgrade_file_size = env_get_hex("filesize", 0);
+                printf("uboot upgrade file size: %d\n", upgrade_file_size);
+
+                /* STEP 2: verify its authentiticy here */
+                memmove((void *)uboot_temp_addr, (const void *)temp_addr, upgrade_file_size);
+                sprintf(runcmd, "vimage 0x%p uboot", (void *)(uboot_temp_addr+PUBKEY_HEADER_SIZE));
+                printf("runcmd:%s\n", runcmd);
+                ret = run_command(runcmd, 0);
+                if (ret != 0) {
+                        printf("UBOOT Image verification fail and upgrade process terminates\n");
+                        goto _upgrade_uboot_exit;
+                }
+
+                /* STEP 3: update uboot partition */
+                printf("write upgrade image (u-boot-with-spl.bin) into uboot partition \n");
+                dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+                if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
+                        printf("Invalid mmc device\n");
+                        goto _upgrade_uboot_exit;
+                }
+                block_cnt = upgrade_file_size / BLOCK_SIZE;
+                if (upgrade_file_size % BLOCK_SIZE) {
+                        block_cnt = block_cnt +1;
+                }
+
+                run_command("mmc partconf 0 1 0 1", 0);
+                sprintf(runcmd, "mmc write 0x%p 0 %x", (void *)temp_addr, block_cnt);
+                printf("runcmd:%s\n", runcmd);
+                ret = run_command(runcmd, 0);
+                run_command("mmc partconf 0 1 0 0", 0);
+                if (ret != 0) {
+                        printf("UBOOT upgrade process is terminated due to some reason\n");
+                        goto _upgrade_uboot_exit;
+                }
+
+                /* STEP 4: update tee version */
+                ret = csi_uboot_set_upgrade_version();
+                if (ret != 0) {
+                        printf("Set uboot upgrade version fail\n");
+                        goto _upgrade_uboot_exit;
+                }
+
+                printf("\n\nUBOOT image ugprade process is successful\n\n");
+_upgrade_uboot_exit:
+                /* set secure upgrade flag to 0 that indicate upgrade over */
+                run_command("env set sec_upgrade_mode 0", 0);
+                run_command("saveenv", 0);
+                run_command("reset", 0);
+        } else if ((sec_upgrade_flag >> 16) == SEC_IMG_UPGRADE_FLAG) {
+                ret = sec_img_upgrade();
+                if (ret) {
+                        printf("secure image upgrade failed\n");
+                        /* if failed, clear upgrade flag, terminate upgradation */
+                        sec_upgrade_flag = 0;
+                } else  {
+                        /* if succeed, clear secure flag */
+                        sec_upgrade_flag = sec_upgrade_flag & 0x0000FFFF;
+                        /* if boot need not update, switch current slot to update slot */
+                        if ((sec_upgrade_flag & 0xFF00) != BOOT_IMG_UPGRADE_FLAG) {
+                                sprintf(runcmd, "env set slot_suffix %s", update_slot);
+                                run_command(runcmd, 0);
+                        }
+                }
+                /* set upgrade flag */
+                sprintf(runcmd, "env set sec_upgrade_mode %x", sec_upgrade_flag);
+                run_command(runcmd, 0);
+
+                run_command("saveenv", 0);
+                run_command("reset", 0);
+        } else if (((sec_upgrade_flag & 0xFF00) != BOOT_IMG_UPGRADE_FLAG) &&
+			((sec_upgrade_flag & 0xFF) != ROOT_IMG_UPGRADE_FLAG)) {
+                printf("Unknown bootstrap, Force sysem reboot\n");
+                run_command("env set sec_upgrade_mode 0", 0);
+                run_command("saveenv", 0);
+                run_command("reset", 0);
+        }
+}
+
+void nonsec_upgrade_thread(void)
+{
+	unsigned int sec_upgrade_flag;
+	unsigned long retries;
+        char runcmd[32] = {0};
 
 	sec_upgrade_flag = env_get_hex("sec_upgrade_mode", 0);
-	if (sec_upgrade_flag == 0)
-		return;
-	printf("bootstrap: sec_upgrade_flag: %x\n", sec_upgrade_flag);
-	if (sec_upgrade_flag == TF_SEC_UPGRADE_FLAG) {
-		/* STEP 1: read upgrade image (trust_firmware.bin) from stash partition */
-		printf("read upgrade image (trust_firmware.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:4 0x%p trust_firmware.bin", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("TF upgrade process is terminated due to some reason\n");
-			goto _upgrade_tf_exit;
+	retries = env_get_ulong("retries", 10, 5);
+        if (sec_upgrade_flag == 0) {
+		if (retries < 5 && retries > 0) {
+			printf("boot upgradation is successful!\n");
+                	run_command("env set retries 5", 0);
+                	run_command("env save", 0);
 		}
-		/* Fetch the total file size after read out operation end */
-		upgrade_file_size = env_get_hex("filesize", 0);
-		printf("upgrade file size: %d\n", upgrade_file_size);
-
-        /*store image to temp buffer as temp_addr may be decrypted*/
-        image_malloc_buffer = malloc(upgrade_file_size);
-        if ( image_malloc_buffer == NULL ) {
-			image_buffer = (uint8_t*)temp_addr + upgrade_file_size;
-		} else {
-            image_buffer = image_malloc_buffer;
+                return;
         }
-        memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
 
-		/* STEP 2: verify its authentiticy here */
-		sprintf(runcmd, "vimage 0x%p tf", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("TF Image verification fail and upgrade process terminates\n");
-			goto _upgrade_tf_exit;
+	/* when sec_upgrade_mode != 0 and the first time try to boot. switch current slot to update slot*/
+	if (retries == 5) {
+		printf("upgrade images are in slot %s...\n", update_slot);
+		sprintf(runcmd, "env set slot_suffix %s", update_slot);
+		run_command(runcmd, 0);
+	}
+	/* if ROOT image need upgrade, clear flag */
+	if ((sec_upgrade_flag & 0xFF) == ROOT_IMG_UPGRADE_FLAG) {
+		printf("in root image upgrade process...\n");
+		sec_upgrade_flag = sec_upgrade_flag & 0xFF00;
+		sprintf(runcmd, "env set sec_upgrade_mode %X", sec_upgrade_flag);
+		run_command(runcmd, 0);
+	}
+
+	/* if boot image need upgrade, decrement retries */
+	if ((sec_upgrade_flag & 0xFF00) == BOOT_IMG_UPGRADE_FLAG) {
+		printf("in boot image upgrade process...\n");
+		retries--;
+                printf("remaining retry times: %ld\n", retries);
+		if (retries == 0 || retries > 5) {
+			/*
+                         * upgrade failed. Now updated images are in current slot
+                         * switch to original slot
+                         */
+                        printf("boot images upgrade failed. switch slot to %s...\n", update_slot);
+                        sprintf(runcmd, "env set slot_suffix %s", update_slot);
+                        run_command(runcmd, 0);
+			run_command("env set sec_upgrade_mode 0", 0);
+			retries = 5;
 		}
-
-		/* STEP 3: update tf partition */
-		printf("read upgrade image (trust_firmware.bin) into tf partition \n");
-		sprintf(runcmd, "ext4write mmc 0:3 0x%p /trust_firmware.bin 0x%x", (void *)image_buffer, upgrade_file_size);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("TF upgrade process is terminated due to some reason\n");
-			goto _upgrade_tf_exit;
-		}
-
-		/* STEP 4: update tf version */
-		ret = csi_tf_set_upgrade_version();
-		if (ret != 0) {
-			printf("Set trustfirmware upgrade version fail\n");
-			goto _upgrade_tf_exit;
-		}
-
-		printf("\n\nTF image ugprade process is successful\n\n");
-_upgrade_tf_exit:
-		/* set secure upgrade flag to 0 that indicate upgrade over */
-		run_command("env set sec_upgrade_mode 0", 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-
-        if ( image_malloc_buffer != NULL ) {
-            free(image_malloc_buffer);
-            image_malloc_buffer = NULL;
-        }
-	} else if (sec_upgrade_flag == TEE_SEC_UPGRADE_FLAG) {
-
- 		/* STEP 1: read upgrade image (tee.bin) from stash partition */
-		printf("read upgrade image (tee.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:4 0x%p tee.bin", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("TEE Upgrade process is terminated due to some reason\n");
-			goto _upgrade_tee_exit;
-		}
-		/* Fetch the total file size after read out operation end */
-		upgrade_file_size = env_get_hex("filesize", 0);
-		printf("TEE upgrade file size: %d\n", upgrade_file_size);
-
-        /*store image to temp buffer as temp_addr may be decrypted*/
-        image_malloc_buffer = malloc(upgrade_file_size);
-        if ( image_malloc_buffer == NULL ) {
-			image_buffer = (uint8_t*)temp_addr + upgrade_file_size;
-		} else {
-            image_buffer = image_malloc_buffer;
-        }
-        memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
-
-		/* STEP 2: verify its authentiticy here */
-		sprintf(runcmd, "vimage 0x%p tee", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("TEE Image verification fail and upgrade process terminates\n");
-			goto _upgrade_tee_exit;
-		}
-
-		/* STEP 3: update tee partition */
-		printf("read upgrade image (tee.bin) into sbmeta partition \n");
-		sprintf(runcmd, "ext4write mmc 0:3 0x%p /tee.bin 0x%x", (void *)image_buffer, upgrade_file_size);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("TEE upgrade process is terminated due to some reason\n");
-			goto _upgrade_tee_exit;
-		}
-
-		/* STEP 4: update tee version */
-		ret = csi_tee_set_upgrade_version();
-		if (ret != 0) {
-			printf("Set tee upgrade version fail\n");
-			goto _upgrade_tee_exit;
-		}
-
-		printf("\n\nTEE image ugprade process is successful\n\n");
-_upgrade_tee_exit:
-		/* set secure upgrade flag to 0 that indicate upgrade over */
-		run_command("env set sec_upgrade_mode 0", 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-
-        if ( image_malloc_buffer != NULL ) {
-            free(image_malloc_buffer);
-            image_malloc_buffer = NULL;
-        }
-	} else if (sec_upgrade_flag == SBMETA_SEC_UPGRADE_FLAG) {
-
- 		/* STEP 1: read upgrade image (sbmeta.bin) from stash partition */
-		printf("read upgrade image (sbmeta.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:4 0x%p sbmeta.bin", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("SBMETA Upgrade process is terminated due to some reason\n");
-			goto _upgrade_sbmeta_exit;
-		}
-		/* Fetch the total file size after read out operation end */
-		upgrade_file_size = env_get_hex("filesize", 0);
-		printf("SBMETA upgrade file size: %d\n", upgrade_file_size);
-
-        /*store image to temp buffer as temp_addr may be decrypted*/
-        image_malloc_buffer = malloc(upgrade_file_size);
-        if ( image_malloc_buffer == NULL ) {
-			image_buffer = (uint8_t*)temp_addr + upgrade_file_size;
-		} else {
-            image_buffer = image_malloc_buffer;
-        }
-        memcpy(image_buffer, (void*)temp_addr, upgrade_file_size);
-
-		/* STEP 2: verify its authentiticy here */
-		sprintf(runcmd, "vimage 0x%p sbmeta", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("SBMETA Image verification fail and upgrade process terminates\n");
-			goto _upgrade_sbmeta_exit;
-		}
-
-		/* STEP 3: update sbmeta partition */
-		printf("read upgrade image (SBMETA.bin) into sbmeta partition \n");
-		sprintf(runcmd, "ext4write mmc 0:3 0x%p /sbmeta.bin 0x%x", (void *)image_buffer, upgrade_file_size);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("SBMETA upgrade process is terminated due to some reason\n");
-			goto _upgrade_sbmeta_exit;
-		}
-
-		/* STEP 4: update sbmeta version */
-		ret = csi_sbmeta_set_upgrade_version();
-		if (ret != 0) {
-			printf("Set sbmeta upgrade version fail\n");
-			goto _upgrade_sbmeta_exit;
-		}
-
-		printf("\n\nSBMETA image ugprade process is successful\n\n");
-_upgrade_sbmeta_exit:
-		/* set secure upgrade flag to 0 that indicate upgrade over */
-		run_command("env set sec_upgrade_mode 0", 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-
-        if ( image_malloc_buffer != NULL ) {
-            free(image_malloc_buffer);
-            image_malloc_buffer = NULL;
-        }
-	} else if (sec_upgrade_flag == UBOOT_SEC_UPGRADE_FLAG) {
-		unsigned int block_cnt;
-		struct blk_desc *dev_desc;
-		const unsigned long uboot_temp_addr=0x80000000;
-		#define BLOCK_SIZE 512
-		#define PUBKEY_HEADER_SIZE	0x1000
-
-		/* STEP 1: read upgrade image (u-boot-with-spl.bin) from stash partition */
-		printf("read upgrade image (u-boot-with-spl.bin) from stash partition \n");
-		sprintf(runcmd, "ext4load mmc 0:4 0x%p u-boot-with-spl.bin", (void *)temp_addr);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("UBOOT Upgrade process is terminated due to some reason\n");
-			goto _upgrade_uboot_exit;
-		}
-
-		/* Fetch the total file size after read out operation end */
-		upgrade_file_size = env_get_hex("filesize", 0);
-		printf("uboot upgrade file size: %d\n", upgrade_file_size);
-
-		/* STEP 2: verify its authentiticy here */
-		memmove((void *)uboot_temp_addr, (const void *)temp_addr, upgrade_file_size);
-		sprintf(runcmd, "vimage 0x%p uboot", (void *)(uboot_temp_addr+PUBKEY_HEADER_SIZE));
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		if (ret != 0) {
-			printf("UBOOT Image verification fail and upgrade process terminates\n");
-			goto _upgrade_uboot_exit;
-		}
-
-		/* STEP 3: update uboot partition */
-		printf("write upgrade image (u-boot-with-spl.bin) into boot partition \n");
-		dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
-        if (!dev_desc || dev_desc->type == DEV_TYPE_UNKNOWN) {
-			printf("Invalid mmc device\n");
-			goto _upgrade_uboot_exit;
-        }
-		block_cnt = upgrade_file_size / BLOCK_SIZE;
-		if (upgrade_file_size % BLOCK_SIZE) {
-			block_cnt = block_cnt +1;
-		}
-
-		run_command("mmc partconf 0 1 0 1", 0);
-		sprintf(runcmd, "mmc write 0x%p 0 %x", (void *)temp_addr, block_cnt);
-		printf("runcmd:%s\n", runcmd);
-		ret = run_command(runcmd, 0);
-		run_command("mmc partconf 0 1 0 0", 0);
-		if (ret != 0) {
-			printf("UBOOT upgrade process is terminated due to some reason\n");
-			goto _upgrade_uboot_exit;
-		}
-
-		/* STEP 4: update tee version */
-		ret = csi_uboot_set_upgrade_version();
-		if (ret != 0) {
-			printf("Set uboot upgrade version fail\n");
-			goto _upgrade_uboot_exit;
-		}
-
-		printf("\n\nUBOOT image ugprade process is successful\n\n");
-_upgrade_uboot_exit:
-		/* set secure upgrade flag to 0 that indicate upgrade over */
-		run_command("env set sec_upgrade_mode 0", 0);
-		run_command("saveenv", 0);
-		run_command("reset", 0);
-	} else {
-		printf("Unknown bootstrap, Force sysem reboot\n");
-		run_command("reset", 0);
+                sprintf(runcmd, "env set retries %ld", retries);
+                run_command(runcmd, 0);
+                run_command("env save", 0);
 	}
 }
 #endif
-
-

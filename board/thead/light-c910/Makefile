@@ -7,6 +7,10 @@ DDR_SRC_PATH=lpddr4/src
 DDR_REGU_SRC=lpddr-regu
 DDR_FW_PATH=$(DDR_SRC_PATH)/ddr_phy_fw
 
+ifdef CONFIG_RV_BOOK
+obj-y += sys_clk.o
+endif
+
 ifdef CONFIG_SPL_BUILD
 obj-y += spl.o
 obj-y += sys_clk.o

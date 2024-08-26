@@ -86,6 +86,10 @@ config LIGHT_SEC_BOOT_WITH_VERIFY_LPI4A
     bool "light lpi4a security boot with verification"
     default n
 
+config LIGHT_SEC_BOOT_WITH_VERIFY_RVBOOK
+    bool "light lpi4a security boot with verification"
+    default n
+
 config TARGET_LIGHT_FPGA_FM_C910
     bool "light fullmask FPGA board"
     default n
@@ -124,6 +128,10 @@ config TARGET_LIGHT_FM_C910_BEAGLE
 
 config TARGET_LIGHT_FM_C910_LPI4A
     bool "light fullmask for Lichee Pi 4A board "
+    default n
+
+config TARGET_LIGHT_FM_C910_RVBOOK
+    bool "light fullmask for RVBOOK board "
     default n
 
 config TARGET_LIGHT_FM_C910_B_POWER

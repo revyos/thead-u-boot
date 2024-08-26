@@ -28,6 +28,8 @@
 #include "sec_crypto_ecc.h"
 #include "sec_crypto_ecdh.h"
 #include "csi_sec_img_verify.h"
+#include "sec_ecies_crypto.h"
+#include "sec_ecies_session.h"
 /* NOTE add more header */
 
 #endif /* _SL_H_ */

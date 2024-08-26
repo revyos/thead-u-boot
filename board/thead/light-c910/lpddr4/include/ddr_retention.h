@@ -28,8 +28,11 @@ typedef enum {
 typedef struct Ddr_Reg_Config {
     uint32_t misc_reg_num;
     uint32_t phy_reg_num;
+    uint8_t  ddr_rank;
+    uint8_t  reserve[55];
 } Ddr_Reg_Config_t;
 
 int dwc_ddrphy_phyinit_regInterface(regInstr myRegInstr);
+void dwc_ddr_misc_regu_save(void);
 
 #endif

@@ -27,6 +27,10 @@
 #include "crypto_aes.h"
 #endif
 
+#ifdef CONFIG_SEC_CRYPTO_GCM_SW
+#include "crypto_gcm.h"
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -69,6 +73,9 @@ typedef struct {
 #if defined(CONFIG_SEC_CRYPTO_AES_SW)
     sc_mbedtls_aes_context aes_ctx;
 #endif
+#if defined(CONFIG_SEC_CRYPTO_GCM_SW)
+    mbedtls_gcm_context gcm_ctx;
+#endif
 } sc_aes_t;
 
 /*Function documentation*/
@@ -86,6 +93,14 @@ uint32_t sc_aes_init(sc_aes_t *aes, uint32_t idx);
   \return      None
 */
 void sc_aes_uninit(sc_aes_t *aes);
+
+/**
+  \brief       Aes data transfer config
+  \param[in]   aes    handle to operate
+  \param[in]   mode   \ref sc_aes_trans_mode_t
+  \return      error code \ref uint32_t
+*/
+uint32_t sc_aes_trans_config(sc_aes_t *aes, sc_aes_trans_mode_t mode);
 
 /**
   \brief       Set encrypt key
@@ -263,53 +278,104 @@ uint32_t sc_aes_ctr_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size,vo
 /**
   \brief       Aes gcm encrypt
   \param[in]   dev_aes          dev_aes handle to operate
-  \param[in]   in               Pointer to the Source data.
+  \param[in]   in               Pointer to the Source data(add + plaintext, Add can be null, 
+                                Add and plaintext must be to an integer multiple of 16Byte)
   \param[out]  out              Pointer to the Result data
-  \param[in]   size             the Source data size
-  \param[in]   iv               init vector
+  \param[in]   size             the Source data true size
+  \param[in]   add_len          the Additional authenticated data true size
+  \param[in]   iv               Nonce(12Byte)
+  \param[out]  tag              tag output(16byte), parse null if not needed
   \return      error code \ref csi_error_t
 */
-uint32_t sc_aes_gcm_encrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv);
+uint32_t sc_aes_gcm_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void* tag);
 
 /**
   \brief       Aes gcm decrypt
   \param[in]   dev_aes          dev_aes handle to operate
-  \param[in]   in               Pointer to the Source data.
-  \param[out]  out              Pointer to the Result data
-  \param[in]   size             the Source data size
-  \param[in]   iv               init vecotr
+  \param[in]   in               Pointer to the Source data
+  \param[in]   in               Pointer to the Source data(add + cipher, Add can be null, 
+                                Add and plaintext must be to an integer multiple of 16Byte)
+  \param[in]   size             the Source data true size
+  \param[in]   add_len          the Additional authenticated data true size
+  \param[in]   iv               Nonce(12Byte)
+  \param[in]   tag              tag authenticated(16byte), parse null if not needed
   \return      error code \ref csi_error_t
 */
-uint32_t sc_aes_gcm_decrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv);
+uint32_t sc_aes_gcm_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void* tag);
 
 /**
   \brief       Aes gcm encrypt
   \param[in]   dev_aes          dev_aes handle to operate
-  \param[in]   in               Pointer to the Source data.
+  \param[in]   in               Pointer to the Source data(add + padding + plaintext + padding, Add can be null, 
+                                Add and plaintext must fill to an integer multiple of 16Byte with zero, 
+                                ignore this if the value is a multiple of 16)
   \param[out]  out              Pointer to the Result data
-  \param[in]   size             the Source data size
-  \param[in]   iv               init vector
-  \param[in]   tag_out          tag output ,parse null if not needed
+  \param[in]   size             the Source data true size
+  \param[in]   add_len          the Additional authenticated data true size
+  \param[in]   iv               Nonce(only support 7Byte)
+  \param[out]  tag              tag authenticated(onlt support 4Byte), parse null if not needed
   \return      error code \ref csi_error_t
 */
-uint32_t sc_aes_ccm_encrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t* tag_out);
+uint32_t sc_aes_ccm_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void* tag);
 
 /**
   \brief       Aes gcm decrypt
   \param[in]   dev_aes          dev_aes handle to operate
-  \param[in]   in               Pointer to the Source data.
+  \param[in]   in               Pointer to the Source data(add + padding + cipher + padding, Add can be null, 
+                                Add and cipher must fill to an integer multiple of 16 with zero, 
+                                ignore this if the value is a multiple of 16)
+  \param[out]  out              Pointer to the decrypted data
+  \param[in]   size             the Source data true size
+  \param[in]   add_len          the Additional authenticated data true size
+  \param[in]   iv               Nonce(only support 7Byte)
+  \param[in]   tag              tag authenticated(onlt support 4Byte), parse null if not needed
+  \return      error code \ref csi_error_t
+*/
+uint32_t sc_aes_ccm_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void* tag);
+
+/**
+  \brief       Aes xts encrypt
+  \param[in]   aes              handle to operate
+  \param[in]   in               Pointer to the Source data
   \param[out]  out              Pointer to the Result data
   \param[in]   size             the Source data size
   \param[in]   iv               init vecotr
-  \param[in]   tag_out tag output,parse null if not needed
-  \return      error code \ref csi_error_t
+  \param[in]   key2             XTS Second key
+  \return      error code \ref uint32_t
 */
-uint32_t sc_aes_ccm_decrypt(sc_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t* tag_out);
+uint32_t sc_aes_xts_encrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv, void *key2);
 
 /**
-  \brief       Aes data transfer config
+  \brief       Aes xts decrypt
+  \param[in]   aes              handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vecotr
+  \param[in]   key2             XTS Second key
+  \return      error code \ref uint32_t
 */
-uint32_t sc_aes_trans_config(sc_aes_t *aes, sc_aes_trans_mode_t mode) ;
+uint32_t sc_aes_xts_decrypt(sc_aes_t *aes, void *in, void *out, uint32_t size, void *iv, void *key2);
+
+/**
+  \brief       Aes cbc mac encrypt
+  \param[in]   aes              handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[in]   size             the Source data size
+  \param[out]  tag              tag output
+  \return      error code \ref uint32_t
+*/
+uint32_t sc_aes_cbc_mac_encrypt(sc_aes_t *aes, void *in, uint32_t size, void *tag);
+
+/**
+  \brief       Aes cbc mac decrypt
+  \param[in]   aes              handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[in]   size             the Source data size
+  \param[in]   tag              tag authen
+  \return      error code \ref uint32_t
+*/
+uint32_t sc_aes_cbc_mac_decrypt(sc_aes_t *aes, void *in, uint32_t size, void *tag);
 
 #ifdef __cplusplus
 }

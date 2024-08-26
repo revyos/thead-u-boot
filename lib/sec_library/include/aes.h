@@ -64,9 +64,11 @@ typedef enum{
     AES_MODE_CBC = 0x20000020,
     AES_MODE_CTR = 0x200001c0,
     AES_MODE_CFB = 0x20000400,
-    AES_MODE_GCM = 0x20030040,
-    AES_MODE_CCM = 0x21D40040,
+    AES_MODE_GCM = 0x20020040,
+    AES_MODE_CCM = 0x207C0040,
     AES_MODE_OFB = 0x24000000,
+    AES_MODE_XTS = 0x20001800,
+    AES_MODE_CBC_MAC = 0x2000800C,
 } csi_aes_mode_t;
 
 /**
@@ -82,10 +84,16 @@ typedef struct {
 */
 typedef struct {
     uint32_t            key_len_byte;
-    uint8_t             key[32];          /*Data block being processed*/
+    uint8_t             key[32];           /*Data block being processed*/
     uint32_t            sca;
     uint32_t            is_kdf;
     uint32_t            is_dma;
+    uint64_t            HH[16];
+    uint64_t            HL[16];
+    uint8_t             ctr[16];
+    uint8_t             buf[16];
+    uint32_t            origin_add_len;
+    uint32_t            origin_len;
 } csi_aes_context_t;
 
 /**
@@ -294,7 +302,7 @@ csi_error_t csi_aes_ctr_decrypt(csi_aes_t *aes,void *in,void *out,uint32_t size,
   \param[in]   iv               init vector
   \return      error code \ref csi_error_t
 */
-csi_error_t csi_aes_gcm_encrypt(csi_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv);
+csi_error_t csi_aes_gcm_encrypt(csi_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void *tag);
 
 /**
   \brief       Aes gcm decrypt
@@ -305,7 +313,7 @@ csi_error_t csi_aes_gcm_encrypt(csi_aes_t *aes, void *in, void *out,uint32_t siz
   \param[in]   iv               init vecotr
   \return      error code \ref csi_error_t
 */
-csi_error_t csi_aes_gcm_decrypt(csi_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv);
+csi_error_t csi_aes_gcm_decrypt(csi_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void *tag);
 
 /**
   \brief       Aes ccm encrypt
@@ -317,7 +325,7 @@ csi_error_t csi_aes_gcm_decrypt(csi_aes_t *aes, void *in, void *out,uint32_t siz
   \param[in]   tag_out          tag output
   \return      error code \ref csi_error_t
 */
-csi_error_t csi_aes_ccm_encrypt(csi_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t *tag_out);
+csi_error_t csi_aes_ccm_encrypt(csi_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void *tag);
 
 /**
   \brief       Aes ccm decrypt
@@ -329,7 +337,7 @@ csi_error_t csi_aes_ccm_encrypt(csi_aes_t *aes, void *in, void *out,uint32_t siz
   \param[in]   tag_out          tag output
   \return      error code \ref csi_error_t
 */
-csi_error_t csi_aes_ccm_decrypt(csi_aes_t *aes, void *in, void *out,uint32_t size, uint32_t add_len, void *iv, uint8_t *tag_out);
+csi_error_t csi_aes_ccm_decrypt(csi_aes_t *aes, void *in, void *out, uint32_t size, uint32_t add_len, void *iv, void *tag);
 
 /**
   \brief       Enable AES power manage
@@ -347,10 +355,54 @@ void csi_aes_disable_pm(csi_aes_t *aes);
 
 /**
   \brief       Config AES data transfer mode
-  \param[in]   mode    \ref csi_des_trans_mode_t 
+  \param[in]   mode    \ref csi_des_trans_mode_t
   \return      None
 */
 csi_error_t csi_aes_trans_config(csi_aes_t *aes, csi_aes_trans_mode_t mode);
+
+/**
+  \brief       Aes xts encrypt
+  \param[in]   dev_aes              dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vector
+  \param[in]   key2             XTS second key
+  \return      error code \ref csi_error_t
+*/
+csi_error_t csi_aes_xts_encrypt(csi_aes_t *aes, void *in, void *out, uint32_t size, void *iv, void *key2);
+
+/**
+  \brief       Aes xts decrypt
+  \param[in]   dev_aes              dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[out]  out              Pointer to the Result data
+  \param[in]   size             the Source data size
+  \param[in]   iv               init vecotr
+  \param[in]   key2             XTS second key
+  \return      error code \ref csi_error_t
+*/
+csi_error_t csi_aes_xts_decrypt(csi_aes_t *aes, void *in, void *out, uint32_t size, void *iv, void *key2);
+
+/**
+  \brief       Aes cbc mac encrypt
+  \param[in]   dev_aes              dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[in]   size             the Source data size
+  \param[out]  tag              tag output
+  \return      error code \ref csi_error_t
+*/
+csi_error_t csi_aes_cbc_mac_encrypt(csi_aes_t *aes, void *in, uint32_t size, void *tag);
+
+/**
+  \brief       Aes cbc mac decrypt
+  \param[in]   dev_aes              dev_aes handle to operate
+  \param[in]   in               Pointer to the Source data
+  \param[in]   size             the Source data size
+  \param[in]   tag              tag authen
+  \return      error code \ref csi_error_t
+*/
+csi_error_t csi_aes_cbc_mac_decrypt(csi_aes_t *aes, void *in, uint32_t size, void *tag);
 
 #ifdef __cplusplus
 }

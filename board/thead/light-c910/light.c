@@ -15,6 +15,11 @@
 #include <fdt_support.h>
 #include <fs.h>
 #include <asm/global_data.h>
+#ifdef CONFIG_RV_BOOK
+#include <memalign.h>
+#include <fdt_support.h>
+#include <fs.h>
+#endif
 
 #define SOC_PIN_AP_RIGHT_TOP          (0x0)
 #define SOC_PIN_AP_LEFT_TOP           (0x1)
@@ -342,6 +347,193 @@ static int  light_pinmx_get_mux_base(pin_name_t pin_name, uint32_t** cfg_base)
 	*cfg_base = g_soc_pin_grp_addr[i].pin_grp_mux_base;
 	return 0;
 }
+
+#ifdef CONFIG_FASTBOOT_FLASH_MMC
+/*
+ * The SN data is stored in the first 512B of the NV partition. It should be read out
+ * and updated. In the following situations, the update will fail:
+ * a. The NV partition cannot be found
+ * b. The length of the SN is out of range
+ * c. The value of the SN contains unprintable characters
+ */
+#define MAX_SN_SIZE	(64 + 2) /* extra two bytes is used for magic number */
+#define MAX_READ_SIZE	512
+#define NV_MAC_OFFSET	128
+#define NV_MAC_SIZE	20
+
+static int is_env_setted(const char *env_name)
+{
+#ifdef U_BUILD_DEBUG
+	return 0;
+#else
+	const char *env = env_get(env_name);
+	if(env && *env) {
+		return 1;
+	}
+
+	return 0;
+#endif
+}
+
+static void update_sn(void)
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
+	unsigned char buffer[MAX_READ_SIZE];
+	int ret;
+	ulong block_start;
+	ulong block_count;
+	ulong n;
+	size_t length;
+	unsigned int i;
+
+	ret = is_env_setted("serial#");
+	if (ret) {
+		printf("serial# has been setted,skip read from nv partition\n");
+		return;
+	}
+
+	/* Get mmc dev */
+	dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (dev_desc == NULL) {
+		printf("Failed to find MMC device\n");
+		goto err_exit;
+	}
+
+	/* Get the nv partition infomation */
+	ret = part_get_info_by_name(dev_desc, NV_PARTITION_NAME, &part_info);
+	if (ret < 0) {
+		printf("Failed to find '%s' partition\n", NV_PARTITION_NAME);
+		goto err_exit;
+	}
+
+	/* Read the first MAX_READ_SIZE from NV partition data */
+	block_start = part_info.start;
+	block_count = (MAX_READ_SIZE + dev_desc->blksz - 1) / dev_desc->blksz;
+	n = blk_dread(dev_desc, block_start, block_count, buffer);
+	if (n != block_count) {
+		printf("Failed to read data from '%s' partition\n", NV_PARTITION_NAME);
+		goto err_exit;
+	}
+
+	/* Check the length of SN data */
+	length = strnlen((char *)buffer, MAX_READ_SIZE);
+	if ((length > MAX_SN_SIZE)) {
+		printf("The size of SN data(%zu) is out of range \r\n", length);
+		goto err_exit;
+	}
+	/* Check the magic number of NV */
+	i = 0;
+	if ((buffer[i++] != 'N') || (buffer[i++] != 'V')) {
+		printf("The magic number of NV partition is invalid\r\n");
+		goto err_exit;
+	}
+	/* Check the value of the SN data; the SN value should consist of printable characters*/
+	for (; i < length; i++) {
+		if ((buffer[i] < 33) || (buffer[i] > 126)) {
+			printf("Unprintable character detected[0x%x] @%d \r\n", buffer[i], i);
+			goto err_exit;
+		}
+	}
+
+	/* The first two bytes are used for NV magic number */
+	env_set("serial#", (char *)buffer + 2);
+	printf("Success to read SN value, update SN: %s to env serial# \r\n", buffer + 2);
+
+	ret = run_command("env save",0);
+	if(ret != 0) {
+		printf("Failed to update SN to env\r\n");
+	}
+
+	return;
+
+err_exit:
+	printf("Failed to read the SN value; Using the default value instead\r\n");
+
+	return;
+}
+
+static void update_mac(void)
+{
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
+	unsigned char buffer[MAX_READ_SIZE];
+	int ret;
+	ulong block_start;
+	ulong block_count;
+	ulong n;
+	size_t length;
+	unsigned int i;
+
+	ret = is_env_setted("ethaddr");
+	if (ret) {
+		printf("ethaddr has been setted,skip read from nv partition\n");
+		return;
+	}
+
+	/* Get mmc dev */
+	dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (dev_desc == NULL) {
+		printf("Failed to find MMC device\n");
+		goto err_exit;
+	}
+
+	/* Get the nv partition infomation */
+	ret = part_get_info_by_name(dev_desc, NV_PARTITION_NAME, &part_info);
+	if (ret < 0) {
+		printf("Failed to find '%s' partition\n", NV_PARTITION_NAME);
+		goto err_exit;
+	}
+
+	/* Read the first MAX_READ_SIZE from NV partition data */
+	block_start = part_info.start;
+	block_count = (MAX_READ_SIZE + dev_desc->blksz - 1) / dev_desc->blksz;
+	n = blk_dread(dev_desc, block_start, block_count, buffer);
+	if (n != block_count) {
+		printf("Failed to read data from '%s' partition\n", NV_PARTITION_NAME);
+		goto err_exit;
+	}
+
+	/* Check the length of MAC data */
+	length = strnlen((char *)buffer + NV_MAC_OFFSET, MAX_READ_SIZE);
+	if (length != NV_MAC_SIZE) {
+		printf("The size of MAC data(%zu) is out of range\r\n", length);
+		goto err_exit;
+	}
+	/* Check the magic number of MAC */
+	i = 0;
+	if ((buffer[NV_MAC_OFFSET + i++] != 'M') || (buffer[NV_MAC_OFFSET + i++] != 'A') || (buffer[NV_MAC_OFFSET + i++] != 'C')) {
+		printf("The magic number of NV partition is invalid\r\n");
+		goto err_exit;
+	}
+	/* Check the value of the MAC data; the MAC value should consist of printable characters*/
+	for (; i < length; i++) {
+		if ((buffer[NV_MAC_OFFSET + i] < 33) || (buffer[i + NV_MAC_OFFSET] > 126)) {
+			printf("Unprintable character detected\r\n");
+			goto err_exit;
+		}
+	}
+
+	/* The first two bytes are used for MAC magic number */
+	env_set("ethaddr", (char *)buffer + 3 + NV_MAC_OFFSET);
+	printf("Success to read MAC value, update MAC: %s to env ethaddr \r\n", buffer + 3 + NV_MAC_OFFSET);
+
+	return;
+
+err_exit:
+	printf("Failed to read the MAC value; Using the default value instead\r\n");
+
+	return;
+}
+#else
+static void update_sn(void)
+{
+}
+
+static void update_mac(void)
+{
+}
+#endif
 
 /*******************************************************************************
  * function: danica_ioreuse_inital
@@ -1413,7 +1605,7 @@ static void light_iopin_init(void)
 	light_pin_cfg(GMAC0_RXD2, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 	light_pin_cfg(GMAC0_RXD3, PIN_SPEED_NORMAL, PIN_PN, 0xF);
 }
-#elif defined (CONFIG_TARGET_LIGHT_FM_C910_LPI4A)
+#elif defined (CONFIG_TARGET_LIGHT_FM_C910_LPI4A) || defined(CONFIG_TARGET_LIGHT_FM_C910_RVBOOK)
 static void light_iopin_init(void)
 {
 	/* aon-padmux config */
@@ -1426,7 +1618,10 @@ static void light_iopin_init(void)
 	light_pin_cfg(CPU_JTG_TMS, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_mux(CPU_JTG_TDI, 3);
 	light_pin_cfg(CPU_JTG_TDI, PIN_SPEED_NORMAL, PIN_PN, 2);
-
+	#ifdef CONFIG_RV_BOOK
+	light_pin_mux(CPU_JTG_TRST, 3);
+	light_pin_cfg(CPU_JTG_TRST, PIN_SPEED_NORMAL, PIN_PN, 2);
+	#endif
 	light_pin_mux(AOGPIO_7, 1);
 	light_pin_mux(AOGPIO_8, 1);
 	// light_pin_mux(AOGPIO_9, 0);
@@ -1472,7 +1667,6 @@ static void light_iopin_init(void)
 	light_pin_cfg(AUDIO_PA29, PIN_SPEED_NORMAL, PIN_PN, 2);
 	light_pin_mux(AUDIO_PA30, 0);
 	light_pin_cfg(AUDIO_PA30, PIN_SPEED_NORMAL, PIN_PN, 2);
-	#warning "aon set to 3"
 	light_pin_mux(AUDIO_PA30, 3);
 
 	// light_pin_mux(AUDIO_PA9,3);                         ///AUDIO-PA-RESET
@@ -1912,19 +2106,30 @@ static void light_usb_boot_check(void)
 	run_command("fastboot usb 0", 0);
 }
 
-
 int board_late_init(void)
 {
-
+	light_usb_boot_check();
 #if CONFIG_IS_ENABLED(LIGHT_SEC_UPGRADE)
 	extern void sec_upgrade_thread(void);
+	extern void nonsec_upgrade_thread(void);
 	extern void sec_firmware_version_dump(void);
 	sec_upgrade_thread();
+	nonsec_upgrade_thread();
 	sec_firmware_version_dump();
 #endif
 
-	light_usb_boot_check();
 	ap_peri_clk_disable();
+#ifdef CONFIG_MCU_HC32fX
+	mcu_poweron();
+#endif
+
+#ifdef CONFIG_DM_CHARGE_DISPLAY
+	charge_display();
+#endif
+
+	update_sn();
+	update_mac();
+
 	return 0;
 }
 
@@ -1971,6 +2176,32 @@ static inline int fdt_disabled_node(void *blob,const char *path)
 	return fdt_status_disabled(blob,offset);
 }
 
+/*First check if path1 exist, if not, alternate to path2*/
+static inline int fdt_disabled_node_alt(void *blob,const char *path1, const char *path2)
+{
+	int offset;
+	offset = fdt_path_offset(blob,path1);
+	if (offset < 0) {
+		offset = fdt_path_offset(blob,path2);
+		if(offset < 0)
+		{
+			printf("ERROR:failed to find %s node or %s node in dtb (ret %d)\n",path1,path2,offset);
+			return offset;
+		}
+	}
+	return fdt_status_disabled(blob,offset);
+}
+
+/*First check if alias name *fisrt exist, if not, alternate to alias name *alt*/
+static inline int fdt_status_disabled_by_alias_alt(void *blob,const char *fisrt,const char* alt)
+{
+	int ret;
+	ret = fdt_status_disabled_by_alias(blob,fisrt);
+	if(ret < 0)
+		ret = fdt_status_disabled_by_alias(blob,alt);
+	return ret;
+}
+
 static int do_board_check_hibernate(cmd_tbl_t *cmdtp, int flag, int argc,
 		       char * const argv[])
 {
@@ -1979,15 +2210,25 @@ static int do_board_check_hibernate(cmd_tbl_t *cmdtp, int flag, int argc,
 	ulong addr;
 	void *blob = NULL;
 	ulong mask = 0;
-	int mmc_parts;
 	int resume_part;
 	bool fastresume = 0;
 	#define ON_RET_ERROR(str) if(ret < 0) printf("set node %s status failed %d\n",str,ret)
 	ALLOC_CACHE_ALIGN_BUFFER(u8,swsusp_header_buf,PAGE_SIZE);
 	u8 *header = &swsusp_header_buf[0];
+	struct blk_desc *dev_desc;
+	struct disk_partition part_info;
 
-	mmc_parts = env_get_hex("mmcpart",3);
-	resume_part = mmc_parts - 2;
+	dev_desc = blk_get_dev("mmc", CONFIG_FASTBOOT_FLASH_MMC_DEV);
+	if (dev_desc == NULL) {
+		printf("Failed to find MMC device\n");
+		return CMD_RET_FAILURE;
+	}
+
+	resume_part = part_get_info_by_name(dev_desc, "swap", &part_info);
+	if (resume_part < 0) {
+		printf("Failed to find swap partition\n");
+		return CMD_RET_FAILURE;
+	}
 
 	if(argc >= 4) { // is user pass in ,use that
 		sprintf(runcmd, "read %s %s %s 0 8",
@@ -2057,10 +2298,10 @@ static int do_board_check_hibernate(cmd_tbl_t *cmdtp, int flag, int argc,
 	ret = fdt_status_disabled_by_alias(blob,"i2c2");
 	ON_RET_ERROR("i2c2");
 
-	ret = fdt_status_disabled_by_alias(blob,"audio_i2c0");
-	ON_RET_ERROR("audio_i2c0");
-	ret = fdt_status_disabled_by_alias(blob,"audio_i2c1");
-	ON_RET_ERROR("audio_i2c1");
+	ret = fdt_status_disabled_by_alias_alt(blob,"audio_i2c0","i2c5");
+	ON_RET_ERROR("audio_i2c0 or i2c5");
+	ret = fdt_status_disabled_by_alias_alt(blob,"audio_i2c1","i2c6");
+	ON_RET_ERROR("audio_i2c1 or i2c6");
 	ret = fdt_status_disabled_by_alias(blob,"ethernet0");
 	ON_RET_ERROR("ethernet0");
 	ret = fdt_status_disabled_by_alias(blob,"ethernet1");
@@ -2077,24 +2318,24 @@ static int do_board_check_hibernate(cmd_tbl_t *cmdtp, int flag, int argc,
 
 	//default mask is 0, need set this node disbaled
 	if(0 == (mask & 0x01)) {
-		ret = fdt_disabled_node(blob,"/soc/light_i2s");
-		ON_RET_ERROR("/soc/light_i2s");
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s0");
-		ON_RET_ERROR("/soc/audio_i2s0");
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s1");
-		ON_RET_ERROR("/soc/audio_i2s1");
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s2");
-		ON_RET_ERROR("/soc/audio_i2s2");
+		ret = fdt_disabled_node_alt(blob,"/soc/light_i2s","/soc/ap-i2s");
+		ON_RET_ERROR("/soc/light_i2s or /soc/ap-i2s");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s0","/soc/audio-i2s0");
+		ON_RET_ERROR("/soc/audio_i2s0 or /soc/audio-i2s0");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s1","/soc/audio-i2s1");
+		ON_RET_ERROR("/soc/audio_i2s1 or /soc/audio-i2s1");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s2","/soc/audio-i2s2");
+		ON_RET_ERROR("/soc/audio_i2s2 or /soc/audio-i2s2");
 	}
 	if(0 == (mask & 0x02)) {
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd0");
-		ON_RET_ERROR("/soc/audio_i2s_8ch_sd0");
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd1");
-		ON_RET_ERROR("/soc/audio_i2s_8ch_sd1");
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd2");
-		ON_RET_ERROR("/soc/audio_i2s_8ch_sd2");
-		ret = fdt_disabled_node(blob,"/soc/audio_i2s_8ch_sd3");
-		ON_RET_ERROR("/soc/audio_i2s_8ch_sd3");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s_8ch_sd0","/soc/i2s-8ch-sd0");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd0 or /soc/i2s-8ch-sd0");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s_8ch_sd1","/soc/i2s-8ch-sd1");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd1 or /soc/i2s-8ch-sd1");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s_8ch_sd2","/soc/i2s-8ch-sd2");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd2 or /soc/i2s-8ch-sd2");
+		ret = fdt_disabled_node_alt(blob,"/soc/audio_i2s_8ch_sd3","/soc/i2s-8ch-sd3");
+		ON_RET_ERROR("/soc/audio_i2s_8ch_sd3 or /soc/i2s-8ch-sd3");
 	}
 	/*set resume_bootargs for kernel do fast bootup */
 	sprintf(runcmd,"resume=/dev/mmcblk0p%d notrace noftrace nopty noclkdebug ",resume_part);

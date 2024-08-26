@@ -6,6 +6,7 @@
 #include <linux/delay.h>
 #include <command.h>
 #include "light_regu.h"
+#include <dm/device.h>
 
 #define FDT32_TO_CPU(x) (fdt32_to_cpu(x))
 
@@ -18,7 +19,7 @@
 #endif
 
 #ifdef AON_CONF_DEBUG
-#define AON_CONF_D(fmt, args...)  printf(fmt,##args)
+#define AON_CONF_D(fmt, args...) printf(fmt, ##args)
 #else
 #define AON_CONF_D(fmt, args...)
 #endif
@@ -69,7 +70,7 @@ static int misc_regu_remove(struct udevice *dev)
 	return 0;
 }
 
-static soc_virtual_id_t *found_base_virtual_id(char *name)
+static soc_virtual_id_t *found_base_virtual_id(const char *name)
 {
 	for (int i = 0; i < ARRAY_SIZE(soc_base_virtual_id_list); i++)
 	{
@@ -111,7 +112,7 @@ static int misc_regu_get_virtual_regu_config(struct udevice *dev, ofnode parent_
 	soc_virtual_id_t *soc_base_id;
 	ofnode_for_each_subnode(child_node, parent_node)
 	{
-		//printf("sub node name: %s\n", ofnode_get_name(child_node));
+		// printf("sub node name: %s\n", ofnode_get_name(child_node));
 		regu_num++;
 	}
 
@@ -134,8 +135,8 @@ static int misc_regu_get_virtual_regu_config(struct udevice *dev, ofnode parent_
 	ofnode_for_each_subnode(child_node, parent_node)
 	{
 		const char *virtual_id_name = ofnode_get_name(child_node);
-		int min_uv;
-		int max_uv;
+	    uint32_t min_uv;
+		uint32_t max_uv;
 		soc_base_id = found_base_virtual_id(virtual_id_name);
 		if (soc_base_id)
 		{
@@ -173,7 +174,11 @@ static int misc_regu_get_virtual_regu_config(struct udevice *dev, ofnode parent_
 		{
 			id_list[index].max_uv = max_uv;
 		}
-#warning "check double"
+		if (id_list[index].max_uv < id_list[index].min_uv)
+		{
+			printf("id:%d regulator-max-microvolt:%d is smaller than regulator-min-microvolt:%d\n", index, id_list[index].max_uv, id_list[index].min_uv);
+			return -1;
+		}
 		// printf("Get virtual regu_id:[%d]:%s min_uv:%dmv max_uv:%dmv\n", id_list[index].id, id_list[index].virtual_id_name,
 		// 	   id_list[index].min_uv, id_list[index].max_uv);
 		index++;
@@ -185,12 +190,12 @@ static int misc_regu_get_virtual_regu_config(struct udevice *dev, ofnode parent_
 	return 0;
 }
 
-static int misc_grep_pmic_dev_name_info(char *dev_name, pmic_dev_info_t *dev)
+static int misc_grep_pmic_dev_name_info(const char *dev_name, pmic_dev_info_t *dev)
 {
 	int flag_num = 0;
 	int version_flag = 0;
 	int index = 0;
-	char *dev_name_orig = dev_name;
+	const char *dev_name_orig = dev_name;
 	while (*dev_name)
 	{
 		if (*dev_name == ',')
@@ -235,20 +240,117 @@ static int get_node_index(const char *name)
 	return strtoul(name, NULL, 10);
 }
 
+static int misc_pmic_parent_io_ctrl_config(ofnode dev_node, pmic_parent_ctrl_info_t *ctrl_info)
+{
+	ofnode parent_ctrl_sub_node, parent_pmic_node;
+	int get_aon_ctrl_info_flag = 0;
+	int get_pmic_pin_ctrl_info_flag = 0;
+	uint32_t prop_size;
+	int prop_len;
+	const uint32_t *prop_val;
+
+	ofnode_for_each_subnode(parent_ctrl_sub_node, dev_node)
+	{
+		const char *node_name = ofnode_get_name(parent_ctrl_sub_node);
+		if (!strncmp(node_name, PMIC_PARENT_CTRL_NAME, strlen(PMIC_PARENT_CTRL_NAME)))
+		{
+			if (ofnode_read_bool(parent_ctrl_sub_node, "aon_pin_ctrl_info"))
+			{
+				prop_val = ofnode_get_property(parent_ctrl_sub_node, "aon_pin_ctrl_info", &prop_len);
+				if (!prop_val)
+				{
+					printf("aon_pin_ctrl_info property not found\n");
+					return -1;
+				}
+				prop_size = prop_len / sizeof(uint32_t);
+				if (prop_size != 3)
+				{
+					printf("invalid pmic-aon_pin_ctrl_info cell size %d, it should set format as aon_pin_ctrl_info = <<port> <pin> <activate_status>>\n", prop_size);
+					return -1;
+				}
+				ctrl_info->pmic_ctrl_type = PMIC_CTRL_BY_AON_GPIO;
+				ctrl_info->info.aon_io.gpio_port = FDT32_TO_CPU(prop_val[0]);
+				ctrl_info->info.aon_io.pin = FDT32_TO_CPU(prop_val[1]);
+				ctrl_info->info.aon_io.activate_status = FDT32_TO_CPU(prop_val[2]);
+				if (ctrl_info->info.aon_io.activate_status != HW_ID_ACTIVATE_HIGH && ctrl_info->info.aon_io.activate_status != HW_ID_ACTIVATE_LOW)
+				{
+					printf("aon io activate should set to: ACTIVATE_HIGH:0 or ACTIVATE_LOW:1");
+					return -1;
+				}
+				get_aon_ctrl_info_flag = 1;
+			}
+
+			if (ofnode_read_bool(parent_ctrl_sub_node, "pmic_pin_ctrl_info"))
+			{
+				prop_val = ofnode_get_property(parent_ctrl_sub_node, "pmic_pin_ctrl_info", &prop_len);
+				if (!prop_val)
+				{
+					printf("pmic_pin_ctrl_info property not found\n");
+					return -1;
+				}
+				prop_size = prop_len / sizeof(uint32_t);
+				if (prop_size != 3)
+				{
+					printf("invalid pmic-pmic_pin_ctrl_info cell size %d, it should set format as pmic_pin_ctrl_info = <<&pmic_dev> <pin> <activate_status>>\n", prop_size);
+					return -1;
+				}
+
+				parent_pmic_node = ofnode_get_by_phandle(FDT32_TO_CPU(prop_val[0]));
+				if (!ofnode_valid(parent_pmic_node))
+				{
+					printf("parent_pmic_node  not found\n");
+					return -1;
+				}
+				int parent_pmic_index = get_node_index(ofnode_get_name(parent_pmic_node));
+				if (parent_pmic_index < 0)
+				{
+					printf("parent_pmic_node index not found\n");
+					return -1;
+				}
+
+				ctrl_info->pmic_ctrl_type = PMIC_CTRL_BY_PMIC_GPIO;
+				ctrl_info->info.pmic_io.pmic_id = parent_pmic_index;
+				ctrl_info->info.pmic_io.io_hw_id = FDT32_TO_CPU(prop_val[1]);
+				ctrl_info->info.pmic_io.activate_status = FDT32_TO_CPU(prop_val[2]);
+				if (ctrl_info->info.pmic_io.activate_status != HW_ID_ACTIVATE_HIGH && ctrl_info->info.pmic_io.activate_status != HW_ID_ACTIVATE_LOW)
+				{
+					printf("pmic io activate should set to: HW_ID_ACTIVATE_HIGH:0 or HW_ID_ACTIVATE_LOW:1");
+					return -1;
+				}
+				get_pmic_pin_ctrl_info_flag = 1;
+			}
+
+			if (get_aon_ctrl_info_flag && get_pmic_pin_ctrl_info_flag)
+			{
+				printf("aon_pin_ctrl_info or pmic_pin_ctrl_info should only support one for a pmic dev\n");
+				return -1;
+			}
+			if (!get_aon_ctrl_info_flag && !get_pmic_pin_ctrl_info_flag)
+			{
+				printf("aon_pin_ctrl_info or pmic_pin_ctrl_info should only support one for a pmic dev\n");
+				return -1;
+			}
+			return 0;
+		}
+	}
+	ctrl_info->pmic_ctrl_type = PMIC_CTRL_BY_NOTHINTG;
+	return 0;
+}
+
 static int misc_regu_get_pmic_dev_config(ofnode parent_node, pmic_dev_info_t *pmic_dev_info_list)
 {
 	int ret = 0;
-	ofnode child_node, errio_node;
-	fdt_addr_t index;
-	char *pmic_name;
+	ofnode child_node;
+	int index;
+	const char *pmic_name;
 	int pmic_wdt_flag = 0;
 	int pmic_index = 0;
 	int pmic_addr_len = 0, pmic_addr_size;
 	int gpio_addr_len = 0, gpio_addr_size;
 	char err_io_str[40] = "NOT_SUPPORT";
 	char lpm_io_str[40] = "NOT_SUPPORT";
+	char parent_pmic_str[60] = "NOT_SUPPORT";
 	uint32_t port, pin, trigger_mode;
-	uint32_t phandle;
 	const uint32_t *prop_val;
 
 	ofnode_for_each_subnode(child_node, parent_node)
@@ -266,7 +368,7 @@ static int misc_regu_get_pmic_dev_config(ofnode parent_node, pmic_dev_info_t *pm
 			pmic_name = ofnode_read_string(child_node, "pmic-name");
 			if (!pmic_name)
 			{
-				printf("pmic_name property not set for %s%d", PMIC_DEV_DTS_NAME, index);
+				printf("pmic_name property not set for %s %d", PMIC_DEV_DTS_NAME, index);
 				return -1;
 			}
 
@@ -289,7 +391,7 @@ static int misc_regu_get_pmic_dev_config(ofnode parent_node, pmic_dev_info_t *pm
 			}
 			pmic_addr_size = pmic_addr_len / sizeof(uint32_t);
 
-			if (pmic_addr_size != 2 &&  pmic_addr_size!= 1)
+			if (pmic_addr_size != 2 && pmic_addr_size != 1)
 			{
 				printf("invalid pmic-addr cell size %d\n", pmic_addr_size);
 				return -1;
@@ -310,16 +412,23 @@ static int misc_regu_get_pmic_dev_config(ofnode parent_node, pmic_dev_info_t *pm
 				else
 				{
 					port = FDT32_TO_CPU(prop_val[0]);
-					pin = 1 << FDT32_TO_CPU(prop_val[1]);
+					pin = FDT32_TO_CPU(prop_val[1]);
 					trigger_mode = FDT32_TO_CPU(prop_val[2]);
 					dev->flag |= PMIC_DEV_ENABLE_ERR_IO;
 					dev->err_io_info.gpio_port = port;
 					dev->err_io_info.pin = pin;
 					dev->err_io_info.trigger_mode = trigger_mode;
+					if (dev->err_io_info.trigger_mode > GPIO_IRQ_MODE_HIGH_LEVEL)
+					{
+						printf("io trigger_mode support max:%d, it is set to %d\n", GPIO_IRQ_MODE_HIGH_LEVEL, dev->err_io_info.trigger_mode);
+						return -1;
+					}
 					sprintf(err_io_str, "port:%d pin:%d trigger:%d", port, pin, trigger_mode);
 				}
-			} else {
-                    sprintf(err_io_str, "NOT_SUPPORT");
+			}
+			else
+			{
+				sprintf(err_io_str, "NOT_SUPPORT");
 			}
 
 			prop_val = ofnode_get_property(child_node, "lpm_gpio", &gpio_addr_len);
@@ -334,23 +443,56 @@ static int misc_regu_get_pmic_dev_config(ofnode parent_node, pmic_dev_info_t *pm
 				else
 				{
 					port = FDT32_TO_CPU(prop_val[0]);
-					pin = 1 << FDT32_TO_CPU(prop_val[1]);
+					pin = FDT32_TO_CPU(prop_val[1]);
 					trigger_mode = FDT32_TO_CPU(prop_val[2]);
 					dev->flag |= PMIC_DEV_ENABLE_LPM_IO;
 					dev->lpm_io_info.gpio_port = port;
 					dev->lpm_io_info.pin = pin;
 					dev->lpm_io_info.trigger_mode = trigger_mode;
+					if (dev->lpm_io_info.trigger_mode > GPIO_IRQ_MODE_HIGH_LEVEL)
+					{
+						printf("io trigger_mode support max:%d, it is set to %d\n", GPIO_IRQ_MODE_HIGH_LEVEL, dev->lpm_io_info.trigger_mode);
+						return -1;
+					}
 					sprintf(lpm_io_str, "port:%d pin:%d trigger:%d", port, pin, trigger_mode);
 				}
-			} else {
-				sprintf(lpm_io_str,"NOT_SUPPORT");
+			}
+			else
+			{
+				sprintf(lpm_io_str, "NOT_SUPPORT");
+			}
+			ret = misc_pmic_parent_io_ctrl_config(child_node, &dev->ctrl_info);
+			if (ret)
+			{
+				printf("grep pmic parent io ctrl faild %d\n", ret);
+				return -1;
+			}
+			else
+			{
+				if (dev->ctrl_info.pmic_ctrl_type == PMIC_CTRL_BY_AON_GPIO)
+				{
+					sprintf(parent_pmic_str, "ctrl by aon io: port:%d pin:%d activate_status:%d", dev->ctrl_info.info.aon_io.gpio_port, dev->ctrl_info.info.aon_io.pin, dev->ctrl_info.info.aon_io.activate_status);
+				}
+				else if (dev->ctrl_info.pmic_ctrl_type == PMIC_CTRL_BY_PMIC_GPIO)
+				{
+					sprintf(parent_pmic_str, "ctrl by pmic io: pmic:%d hw_id:%d activate_status:%d", dev->ctrl_info.info.pmic_io.pmic_id, dev->ctrl_info.info.pmic_io.io_hw_id, dev->ctrl_info.info.pmic_io.activate_status);
+				}
+				else
+				{
+					sprintf(parent_pmic_str, "NOT_SUPPORT");
+				}
 			}
 
 			dev->pmic_id = index;
 			ret = misc_grep_pmic_dev_name_info(pmic_name, dev);
 			pmic_index++;
-			AON_CONF_D("Get pmic dev:[%d]:%s|%s addr1:0x%02x addr2:0x%02x wdt:{%s} errio:{%s} lpm_io:{%s}\n", index, dev->device_name, dev->version_name, dev->addr1, dev->addr2, (dev->flag & PMIC_DEV_ENABLE_WDT ? "SUPPORT" : "NOT_SUPPORT"), err_io_str, lpm_io_str);
+			AON_CONF_D("Get pmic dev:[%d]:%s|%s addr1:0x%02x addr2:0x%02x wdt:{%s} errio:{%s} lpm_io:{%s} pmic_ctrl_info:{%s}\n", index, dev->device_name, dev->version_name, dev->addr1, dev->addr2, (dev->flag & PMIC_DEV_ENABLE_WDT ? "SUPPORT" : "NOT_SUPPORT"), err_io_str, lpm_io_str, parent_pmic_str);
 		}
+	}
+	if (!pmic_index)
+	{
+		printf("No %s node found\n", PMIC_DEV_DTS_NAME);
+		return -1;
 	}
 	return 0;
 }
@@ -383,15 +525,10 @@ static int misc_regu_get_pmic_dev_by_name(const char *name, int pmic_dev_num, pm
 
 static int misc_regu_get_each_regu_hw_id_config(ofnode regu_id_node, int pmic_dev_num, pmic_dev_info_t *pmic_dev_info_list, soc_virtual_id_t *virtual_id_info, pmic_hw_info_t *id)
 {
-	uint32_t phandle;
 	ofnode pmic_node, pmic_parent_node;
 
-	char *pmic_name;
-
 	int prop_len, prop_size;
-	int on_order, on_delay_ms;
-	int off_order, off_delay_ms;
-	int pmic_index, parent_pmic_index;
+	int pmic_index;
 	const uint32_t *prop_val;
 
 	/*get pmic_dev = <&pmic_dev_0 DA9063_ID_BCORE1>*/
@@ -451,12 +588,14 @@ static int misc_regu_get_each_regu_hw_id_config(ofnode regu_id_node, int pmic_de
 		}
 		(*id).soft_power_ctrl_info.on_info.on_order = FDT32_TO_CPU(prop_val[0]);
 		(*id).soft_power_ctrl_info.on_info.on_delay_ms = FDT32_TO_CPU(prop_val[1]);
-		if(prop_size == 3) {
-            (*id).soft_power_ctrl_info.on_info.init_target_uv = FDT32_TO_CPU(prop_val[2]);
-		} else {
+		if (prop_size == 3)
+		{
+			(*id).soft_power_ctrl_info.on_info.init_target_uv = FDT32_TO_CPU(prop_val[2]);
+		}
+		else
+		{
 			(*id).soft_power_ctrl_info.on_info.init_target_uv = 0;
 		}
-		
 	}
 
 	/*get auto_off_info = <1 1>*/
@@ -507,8 +646,12 @@ static int misc_regu_get_each_regu_hw_id_config(ofnode regu_id_node, int pmic_de
 
 		(*id).parent_hw_info.pmic_id = pmic_dev_info_list[pmic_index].pmic_id;
 		(*id).parent_hw_info.io_hw_id = FDT32_TO_CPU(prop_val[1]);
-#warning "check status"
 		(*id).parent_hw_info.activate_status = FDT32_TO_CPU(prop_val[2]);
+		if (FDT32_TO_CPU(prop_val[2]) != HW_ID_ACTIVATE_HIGH && FDT32_TO_CPU(prop_val[2]) != HW_ID_ACTIVATE_LOW)
+		{
+			printf("parent hw io activate should set to: HW_ID_ACTIVATE_HIGH:0 or HW_ID_ACTIVATE_LOW:1");
+			return -1;
+		}
 	}
 
 	return 0;
@@ -519,13 +662,11 @@ static int misc_regu_get_each_regu_config(ofnode regu_config_node, int pmic_dev_
 	int ret = 0;
 	ofnode hw_id_node;
 	ofnode coupling_node;
-	uint32_t phandle = 0;
 	int index = 0;
-	char *regu_id_name;
 	const uint32_t *prop_val;
 	int prop_len = 0;
 	int prop_size = 0;
-    int coupling_num = 0;
+	int coupling_num = 0;
 	uint16_t hw_id_used_flag = 0x0;
 
 	ofnode_for_each_subnode(hw_id_node, regu_config_node)
@@ -540,9 +681,9 @@ static int misc_regu_get_each_regu_config(ofnode regu_config_node, int pmic_dev_
 				return -1;
 			}
 
-			if (index >= PMIC_MAX_HW_ID_NUM || index >= 8 * sizeof(uint16_t))
+			if (index >= PMIC_MAX_HW_ID_NUM || index >= 8 * 2)
 			{
-				printf("regu_id index should less than %d\n", MIN(PMIC_MAX_HW_ID_NUM, 8 * sizeof(uint16_t)));
+				printf("regu_id index should less than %d\n", MIN(PMIC_MAX_HW_ID_NUM, 8 * 2));
 				return -1;
 			}
 
@@ -559,11 +700,10 @@ static int misc_regu_get_each_regu_config(ofnode regu_config_node, int pmic_dev_
 			ret = misc_regu_get_each_regu_hw_id_config(hw_id_node, pmic_dev_num, pmic_dev_info_list, regu_info, &pmic_regu_id_info->sub.id[index]);
 			if (ret)
 			{
-				printf("get hw_id@%d config faild %d\n", ret);
+				printf("get hw_id@%d config faild %d\n", index, ret);
 				return -1;
 			}
 		}
-
 	}
 
 	for (int i = PMIC_MAX_HW_ID_NUM - 1; i >= 0; i--)
@@ -573,74 +713,81 @@ static int misc_regu_get_each_regu_config(ofnode regu_config_node, int pmic_dev_
 			(*pmic_regu_id_info).sub.id[i].pmic_id = PMIC_ID_INVALID;
 		}
 	}
-    
+
 	ofnode_for_each_subnode(coupling_node, regu_config_node)
 	{
 		const char *node_name = ofnode_get_name(coupling_node);
 
 		if (!strncmp(node_name, COUPLING_ID_INFO_NAME, strlen(COUPLING_ID_INFO_NAME)))
 		{
-		/*get info = <0 1 -5 30>;*/
-	     prop_val = ofnode_get_property(coupling_node, "info", &prop_len);
-	    if (!prop_val)
-	    {
-		   printf("no info property set for %s", node_name);
-		   return -1;
-	    } else
-	    {
-			prop_size = prop_len / sizeof(uint32_t);
-			if (prop_size != 4)
+			/*get info = <0 1 -5 30>;*/
+			prop_val = ofnode_get_property(coupling_node, "info", &prop_len);
+			if (!prop_val)
 			{
-				printf("coupling info property should set in format as info = <id0 id1 max_spread min_spread)>\n");
+				printf("no info property set for %s", node_name);
 				return -1;
 			}
+			else
+			{
+				prop_size = prop_len / sizeof(uint32_t);
+				if (prop_size != 4)
+				{
+					printf("coupling info property should set in format as info = <id0 id1 max_spread min_spread)>\n");
+					return -1;
+				}
 
-            int id0 = FDT32_TO_CPU(prop_val[0]);
-		    int id1 = FDT32_TO_CPU(prop_val[1]);
-			int8_t max_spread = FDT32_TO_CPU(prop_val[2]);
-			int8_t min_spread = FDT32_TO_CPU(prop_val[3]);
+				int id0 = FDT32_TO_CPU(prop_val[0]);
+				int id1 = FDT32_TO_CPU(prop_val[1]);
+				int8_t max_spread = FDT32_TO_CPU(prop_val[2]);
+				int8_t min_spread = FDT32_TO_CPU(prop_val[3]);
 
-			if(ofnode_read_bool(coupling_node, "negative-min")) {
-                 min_spread = -min_spread; 
-			}
-			if(ofnode_read_bool(coupling_node, "negative-max")) {
-                 max_spread = -max_spread; 
-			}
-			if(id0 == id1) {
-                printf("coupling info: id0 id1 should not be equal");
-				return -1;
-			}
-			if(min_spread > max_spread) {
-                printf("coupling info: min_spread:%d is higher than max_spread:%d", min_spread, max_spread);
-				return -1;
-			}
-			if(id0 >= PMIC_MAX_HW_ID_NUM || id1 >= PMIC_MAX_HW_ID_NUM) {
-                printf("coupling info: id0:%d id1:%d is higher than max_id:%d", id0, id1, PMIC_MAX_HW_ID_NUM -1);
-				return -1;
-			}
+				if (ofnode_read_bool(coupling_node, "negative-min"))
+				{
+					min_spread = -min_spread;
+				}
+				if (ofnode_read_bool(coupling_node, "negative-max"))
+				{
+					max_spread = -max_spread;
+				}
+				if (id0 == id1)
+				{
+					printf("coupling info: id0 id1 should not be equal");
+					return -1;
+				}
+				if (min_spread > max_spread)
+				{
+					printf("coupling info: min_spread:%d is higher than max_spread:%d", min_spread, max_spread);
+					return -1;
+				}
+				if (id0 >= PMIC_MAX_HW_ID_NUM || id1 >= PMIC_MAX_HW_ID_NUM)
+				{
+					printf("coupling info: id0:%d id1:%d is higher than max_id:%d", id0, id1, PMIC_MAX_HW_ID_NUM - 1);
+					return -1;
+				}
 
-			if((*pmic_regu_id_info).sub.id[id0].pmic_id == PMIC_ID_INVALID || (*pmic_regu_id_info).sub.id[id1].pmic_id == PMIC_ID_INVALID) {
-                printf("coupling info:id0:%d id1:%d is invalid", id0, id1);
-				return -1;
+				if ((*pmic_regu_id_info).sub.id[id0].pmic_id == PMIC_ID_INVALID || (*pmic_regu_id_info).sub.id[id1].pmic_id == PMIC_ID_INVALID)
+				{
+					printf("coupling info:id0:%d id1:%d is invalid", id0, id1);
+					return -1;
+				}
+				(*pmic_regu_id_info).sub.coupling_list[coupling_num].id0 = id0;
+				(*pmic_regu_id_info).sub.coupling_list[coupling_num].id1 = id1;
+				(*pmic_regu_id_info).sub.coupling_list[coupling_num].max_spread = max_spread;
+				(*pmic_regu_id_info).sub.coupling_list[coupling_num].min_spread = min_spread;
+				coupling_num++;
+				if (coupling_num > PMIC_MAX_COUPLING_NUM)
+				{
+					printf("coupling info should no more than %d\n", coupling_num);
+					return -1;
+				}
 			}
-			(*pmic_regu_id_info).sub.coupling_list[coupling_num].id0 = id0;
-			(*pmic_regu_id_info).sub.coupling_list[coupling_num].id1 = id1;
-			(*pmic_regu_id_info).sub.coupling_list[coupling_num].max_spread = max_spread;
-			(*pmic_regu_id_info).sub.coupling_list[coupling_num].min_spread = min_spread;
-			coupling_num++;
-			if(coupling_num > PMIC_MAX_COUPLING_NUM) {
-                printf("coupling info should no more than %d\n", coupling_num);
-				return -1;
-			}
-	   }
 		}
-
 	}
 
-	for(int i = PMIC_MAX_COUPLING_NUM - 1; i >= coupling_num; i--)
+	for (int i = PMIC_MAX_COUPLING_NUM - 1; i >= coupling_num; i--)
 	{
-       (*pmic_regu_id_info).sub.coupling_list[i].id0 =  REGU_SUB_ID_INVALID;
-	   (*pmic_regu_id_info).sub.coupling_list[i].id1 =  REGU_SUB_ID_INVALID;
+		(*pmic_regu_id_info).sub.coupling_list[i].id0 = REGU_SUB_ID_INVALID;
+		(*pmic_regu_id_info).sub.coupling_list[i].id1 = REGU_SUB_ID_INVALID;
 	}
 
 	return 0;
@@ -649,11 +796,10 @@ static int misc_regu_get_each_regu_config(ofnode regu_config_node, int pmic_dev_
 static int misc_regu_get_regu_config(ofnode parent_node, int pmic_dev_num, pmic_dev_info_t *pmic_dev_info_list, int virtual_id_num, soc_virtual_id_t *regu_list, csi_regu_id_t *pmic_regu_id_list)
 {
 	ofnode child_node;
-	int index = 0;
 	uint32_t phandle = 0;
 	int ret = 0;
 	ofnode regu_virtual_node;
-	char *regu_id_name;
+	const char *regu_id_name;
 	int virtual_id_index = 0;
 	uint16_t virtual_id_config_flag = 0;
 	int regu_config_index = 0;
@@ -661,7 +807,7 @@ static int misc_regu_get_regu_config(ofnode parent_node, int pmic_dev_num, pmic_
 	ofnode_for_each_subnode(child_node, parent_node)
 	{
 		virtual_id_index = 0;
-		char *node_name = ofnode_get_name(child_node);
+		const char *node_name = ofnode_get_name(child_node);
 		if (!strncmp(node_name, REGU_ID_CONF_NAME, strlen(REGU_ID_CONF_NAME)))
 		{
 
@@ -718,7 +864,7 @@ static int misc_regu_get_regu_config(ofnode parent_node, int pmic_dev_num, pmic_
 				return -1;
 			}
 
-			AON_CONF_D("Get regu config, virtual_regu_id:[%d]:%s min_uv:%dmv max_uv:%dmv\n", virtual_id, regu_list[virtual_id_index].virtual_id_name, regu_list[virtual_id_index].min_uv,regu_list[virtual_id_index].max_uv);
+			AON_CONF_D("Get regu config, virtual_regu_id:[%d]:%s min_uv:%dmv max_uv:%dmv\n", virtual_id, regu_list[virtual_id_index].virtual_id_name, regu_list[virtual_id_index].min_uv, regu_list[virtual_id_index].max_uv);
 			for (int i = 0; i < ARRAY_SIZE(regu_conf->sub.id); i++)
 			{
 				pmic_hw_info_t *sub = &regu_conf->sub.id[i];
@@ -758,24 +904,31 @@ static int misc_regu_get_regu_config(ofnode parent_node, int pmic_dev_num, pmic_
 				}
 			}
 			int temp_flag = 0;
-			for(int i = 0; i < ARRAY_SIZE(regu_conf->sub.coupling_list); i++) {
-                coupling_desc_t* coupling_info = &regu_conf->sub.coupling_list[i];
-				if(coupling_info->id0 != REGU_SUB_ID_INVALID) {
-					if(!temp_flag) {
-                        AON_CONF_D(">>>>>>");
+			for (int i = 0; i < ARRAY_SIZE(regu_conf->sub.coupling_list); i++)
+			{
+				coupling_desc_t *coupling_info = &regu_conf->sub.coupling_list[i];
+				if (coupling_info->id0 != REGU_SUB_ID_INVALID)
+				{
+					if (!temp_flag)
+					{
+						AON_CONF_D(">>>>>>");
 						temp_flag = 1;
 					}
-                    AON_CONF_D("%s@%d:{id0:%d id1:%d max_spreed:%dmv min_spreed:%dmv}   ", COUPLING_ID_INFO_NAME, i,coupling_info->id0, coupling_info->id1, coupling_info->max_spread *10 , coupling_info->min_spread * 10);
+					AON_CONF_D("%s@%d:{id0:%d id1:%d max_spreed:%dmv min_spreed:%dmv}   ", COUPLING_ID_INFO_NAME, i, coupling_info->id0, coupling_info->id1, coupling_info->max_spread * 10, coupling_info->min_spread * 10);
 				}
 			}
-			if(temp_flag) {
+			if (temp_flag)
+			{
 				AON_CONF_D("\n");
 			}
 			regu_config_index++;
 		}
 	}
-
-#warning "add no config check"
+	if (!regu_config_index)
+	{
+		printf("No %s node found\n", REGU_ID_CONF_NAME);
+		return -1;
+	}
 	return 0;
 }
 
@@ -816,7 +969,7 @@ static int misc_regu_get_aon_pmic_config(struct udevice *dev, ofnode parent_node
 	if (ret)
 	{
 		printf("pmic dev config get faild %d", ret);
-#warning "free"
+		free(pmic_dev_info_list);
 		return -1;
 	}
 
@@ -846,7 +999,8 @@ static int misc_regu_get_aon_pmic_config(struct udevice *dev, ofnode parent_node
 	if (ret)
 	{
 		printf("get regu config faild %d\n", ret);
-#warning "free"
+		free(pmic_dev_info_list);
+		free(pmic_regu_id_list);
 		return -1;
 	}
 
@@ -859,15 +1013,19 @@ static int misc_regu_get_aon_pmic_config(struct udevice *dev, ofnode parent_node
 	return 0;
 }
 
+extern int device_bind_ofnode(struct udevice *parent, const struct driver *driver,
+                       const char *name, const void *platdata, ofnode node,
+                       struct udevice **devp);
+
 static int misc_regu_bind(struct udevice *dev)
 {
 	struct mic_regu_platdata *plat = dev_get_platdata(dev);
 	ofnode parent_node = dev->node;
-
+	const uint32_t *prop_val;
+	int prop_len = 0;
+	int prop_size = 0;
 	int ret;
-	ofnode child_node, node, regu_node, aon_conf_node;
-	const void *blob = gd->fdt_blob;
-	int subnode;
+	ofnode child_node, aon_conf_node = {0}, regu_node = {0};
 	struct udevice *dev_1;
 
 	/* If this is a child device, there is nothing to do here */
@@ -888,7 +1046,7 @@ static int misc_regu_bind(struct udevice *dev)
 	ofnode_for_each_subnode(child_node, parent_node)
 	{
 		/* Increment base_id for all subnodes, also the disabled ones */
-		//printf("sub node name: %s\n", ofnode_get_name(child_node));
+		// printf("sub node name: %s\n", ofnode_get_name(child_node));
 		if (!strncmp(ofnode_get_name(child_node), REGU_DTS_NAME, strlen(REGU_DTS_NAME)))
 		{
 			regu_node = child_node;
@@ -900,8 +1058,6 @@ static int misc_regu_bind(struct udevice *dev)
 			get_aon_conf_dst_flag = 1;
 		}
 	}
-
-
 
 	if (!get_regu_dts_flag)
 	{
@@ -921,17 +1077,47 @@ static int misc_regu_bind(struct udevice *dev)
 		return -ENOMEM;
 	}
 
-	plat->wakeup_flag  = 0;
+	plat->wakeup_flag = 0;
 
-	if (ofnode_read_bool(parent_node, "wakeup-by-gpio-on")) {
+	if (ofnode_read_bool(parent_node, "wakeup-by-gpio-on"))
+	{
 		plat->wakeup_flag |= AON_WAKEUP_BY_GPIO;
 		printf("aon wakeup by gpio enabled\n");
 	}
 
-	if (ofnode_read_bool(parent_node, "wakeup-by-rtc-on")) {
+	if (ofnode_read_bool(parent_node, "wakeup-by-rtc-on"))
+	{
 		plat->wakeup_flag |= AON_WAKEUP_BY_RTC;
 		printf("aon wakeup by rtc enabled\n");
 	}
+
+	/*grep ii-config info*/
+	prop_val = ofnode_get_property(aon_conf_node, "iic-config", &prop_len);
+	if (!prop_val)
+	{
+		printf("pmic-addr property not found\n");
+		return -1;
+	}
+	prop_size = prop_len / sizeof(uint32_t);
+	if (prop_size != 3)
+	{
+		printf("invalid iic-config cell size %d,it should set in format as iic-config = <<id> <addr_mode> <speed>>\n", prop_size);
+		return -1;
+	}
+	plat->iic_config.iic_id = FDT32_TO_CPU(prop_val[0]);
+	plat->iic_config.addr_mode = FDT32_TO_CPU(prop_val[1]);
+	plat->iic_config.speed = FDT32_TO_CPU(prop_val[2]);
+	if (plat->iic_config.addr_mode > IIC_ADDRESS_10BIT)
+	{
+		printf("iic addr_mode only support IIC_ADDRESS_7BIT:0 IIC_ADDRESS_10BIT:1\n");
+		return -1;
+	}
+	if (plat->iic_config.speed > IIC_BUS_SPEED_HIGH)
+	{
+		printf("iic speed max support IIC_BUS_SPEED_HIGH:%d\n", IIC_BUS_SPEED_HIGH);
+		return -1;
+	}
+	printf("iic id:%d addr_mode:%d speed:%d\n", plat->iic_config.iic_id, plat->iic_config.addr_mode, plat->iic_config.speed);
 
 	ret = misc_regu_get_virtual_regu_config(dev, regu_node, &plat->regu_list);
 	if (ret)

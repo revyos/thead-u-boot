@@ -994,7 +994,7 @@ if(bits==64) {
  }
 }
 
-#define MEMSIZE_MIN_MB (2*1024)
+#define MEMSIZE_MIN_MB (1*1024)
 #define MEMSIZE_MAX_MB (16*1024)
 #define UNIT_MB (1024*1024)
 int lpddr4_query_boundary(enum DDR_TYPE type, int rank_num, int speed,
@@ -1007,35 +1007,29 @@ int lpddr4_query_boundary(enum DDR_TYPE type, int rank_num, int speed,
   if (bits == DDR_BITWIDTH_32) {// only phy0
     if (rank_num == 2) {
       if (size == 0x80000000) //2GB
-        goto err_ret;
+        goto ret_ok;
       else if (size == 0x100000000) //4GB
         goto ret_ok;
       else if (size == 0x200000000) //8GB
         goto ret_ok;
-      else if (size == 0x400000000) //16GB
-        goto err_ret;
       else
         goto err_ret;
     }
     else { // single rank
-      if (size == 0x80000000) //2GB
+      if (size == 0x40000000) //1GB
+        goto ret_ok;
+      else if (size == 0x80000000) //2GB
         goto ret_ok;
       else if (size == 0x100000000) //4GB
-        goto err_ret;
-      else if (size == 0x200000000) //8GB
-        goto err_ret;
-      else if (size == 0x400000000) //16GB
-        goto err_ret;
+        goto ret_ok;
       else
         goto err_ret;
     }
   }
   else if (bits == DDR_BITWIDTH_64) { // phy0+phy1
     if (rank_num == 2) {
-      if (size == 0x80000000) //2GB
-        goto err_ret;
-      else if (size == 0x100000000) //4GB
-        goto err_ret;
+      if (size == 0x100000000) //4GB
+        goto ret_ok;
       else if (size == 0x200000000) //8GB
         goto ret_ok;
       else if (size == 0x400000000) //16GB
@@ -1045,13 +1039,11 @@ int lpddr4_query_boundary(enum DDR_TYPE type, int rank_num, int speed,
     }
     else { // single rank
       if (size == 0x80000000) //2GB
-        goto err_ret;
+        goto ret_ok;
       else if (size == 0x100000000) //4GB
         goto ret_ok;
       else if (size == 0x200000000) //8GB
-        goto err_ret;
-      else if (size == 0x400000000) //16GB
-        goto err_ret;
+        goto ret_ok;
       else
         goto err_ret;
     }
@@ -1075,35 +1067,69 @@ int adjust_ddr_addrmap(enum DDR_TYPE type, int rank_num, int speed,
 
   if (bits == DDR_BITWIDTH_32) {// only phy0
     if (rank_num == 2) {
-      if (size == 0x100000000) {//4GB
+      if (size == 0x80000000) {//2GB
+        wr(ADDRMAP0,0x001f0016); // cs_bit0: HIF[28]
+        wr(ADDRMAP6,0x0f070707); // row15: NULL
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x100000000) {//4GB
         wr(ADDRMAP0,0x001f0017); // cs_bit0: HIF[29]
+        wr(ADDRMAP6,0x07070707); // row15: HIF[28]
         wr(ADDRMAP7,0x00000f0f); // row16: NULL
       }
       else if (size == 0x200000000) {//8GB
         wr(ADDRMAP0,0x001f0018); // cs_bit0: HIF[30]
+        wr(ADDRMAP6,0x07070707); // row15: HIF[28]
         wr(ADDRMAP7,0x00000f07); // row16: HIF[29]
       }
     }
 	else { // single rank
-      if (size == 0x80000000) //2GB
-        wr(ADDRMAP0,0x001f001f); // cs_bit0: NULL
+      wr(ADDRMAP0,0x001f001f); // cs_bit0: NULL
+      if (size == 0x40000000) {//1GB
+        wr(ADDRMAP6,0x0f070707); // row15: NULL
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x80000000) {//2GB
+        wr(ADDRMAP6,0x07070707); // row15: HIF[28]
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x100000000) {//4GB
+        wr(ADDRMAP6,0x07070707); // row15: HIF[28]
+        wr(ADDRMAP7,0x00000f07); // row16: HIF[29]
+      }
     }
   }
   else if (bits == DDR_BITWIDTH_64) { // phy0+phy1
     if (rank_num == 2) {
-      if (size == 0x200000000) {//8GB
+      if (size == 0x100000000) {//4GB
+        wr(ADDRMAP0,0x00040017); // cs_bit0: HIF[29]
+        wr(ADDRMAP6,0x0f080808); // row15: NULL
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x200000000) {//8GB
         wr(ADDRMAP0,0x00040018); // cs_bit0: HIF[30]
+        wr(ADDRMAP6,0x08080808); // row15: HIF[29]
         wr(ADDRMAP7,0x00000f0f); // row16: NULL
       }
       else if (size == 0x400000000) {//16GB
         wr(ADDRMAP0,0x00040019); // cs_bit0: HIF[31]
+        wr(ADDRMAP6,0x08080808); // row15: HIF[29]
         wr(ADDRMAP7,0x00000f08); // row16: HIF[30]
       }
     }
     else { // single rank
-      if (size == 0x100000000) {//4GB
-        wr(ADDRMAP0,0x0004001f); // cs_bit0: NULL
+      wr(ADDRMAP0,0x0004001f); // cs_bit0: NULL
+      if (size == 0x80000000) {//2GB
+        wr(ADDRMAP6,0x0f080808); // row15: NULL
         wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x100000000) {//4GB
+        wr(ADDRMAP6,0x08080808); // row15: HIF[29]
+        wr(ADDRMAP7,0x00000f0f); // row16: NULL
+      }
+      else if (size == 0x200000000) {//8GB
+        wr(ADDRMAP6,0x08080808); // row15: HIF[29]
+        wr(ADDRMAP7,0x00000f08); // row16: HIF[30]
       }
     }
   }

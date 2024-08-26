@@ -237,9 +237,15 @@ static int prepare_data_from_vendor_boot(struct andr_img_hdr *hdr, int dtb_start
 			if (ramdisk_entry->ramdisk_type != VENDOR_RAMDISK_TYPE_RECOVERY) {
 				continue;
 			}
-			printf("find recovery from ramdisk table.");
+			printf("find recovery from ramdisk table.\n");
 			int ramdisk_start = env_get_hex(ENV_RAMDISK_ADDR, DEFAULT_RAMDISK_ADDR);
 			int recovery_ramdisk_offset = vendor_boot_pagesize * o + ramdisk_entry->ramdisk_offset;
+
+			printf("ramdisk_start:%x, ramdisk_size:%x, dtb_start:%x\n", ramdisk_start, ramdisk_entry->ramdisk_size, dtb_start);
+			if (ramdisk_start + ramdisk_entry->ramdisk_size > dtb_start) {
+				printf("ramdisk space are overlaped !!!\n");
+			}
+
 			memcpy((void *)(uint64_t)ramdisk_start, vendor_boot_data + recovery_ramdisk_offset,
 													 ramdisk_entry->ramdisk_size);//ramdisk
 			//get bootconfig form vendor_boot.img and append bootconfig to ramdisk
@@ -292,10 +298,10 @@ static void prepare_loaded_parttion_data(const uint8_t* data, bool isRecovery)
 		printf("Boot image kernel_start:%x, kernel_offset:%x, kernel_size:%d\n", kernel_start, kernel_offset, hdr->kernel_size);
 		printf("Boot image ramdisk_start:%x, ramdisk_offset:%x, ramdisk_size:%d\n", ramdisk_start, ramdisk_offset, hdr->ramdisk_size);
 		printf("Boot image page_size:%d\n", hdr->page_size);
-		printf("dtb_offset:%x, dtb_size:%d\n", dtb_offset, hdr->dtb_size);
+		printf("dtb_start:%x, dtb_offset:%x, dtb_size:%d\n", dtb_start, dtb_offset, hdr->dtb_size);
 
- 		if (kernel_start + hdr->kernel_size > ramdisk_start || kernel_start + hdr->kernel_size > dtb_start) {
-			printf("boot.img kernel space and ramdis space are overlaped !!!\n");
+		if (kernel_start + hdr->kernel_size > ramdisk_start || kernel_start + hdr->kernel_size > dtb_start || ramdisk_start + hdr->ramdisk_size > dtb_start) {
+			printf("boot.img kernel space and ramdisk space are overlaped !!!\n");
 		} else {
 			memcpy((void *)(uint64_t)kernel_start, data + kernel_offset, hdr->kernel_size);
 			if (!isRecovery) {

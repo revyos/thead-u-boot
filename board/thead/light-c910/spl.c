@@ -377,7 +377,6 @@ int boundary_verify(unsigned long boundary) {
 
 int setup_ddr_addrmap(void)
 {
-	int ret;
 	unsigned long boundary = (unsigned long)MAXIMAL_DDR_DENSITY_MB * UNIT_MB;
 
 	// verify data accessing result firstly
@@ -421,13 +420,14 @@ void cpu_performance_enable(void)
 #define CSR_MHINT2_E	0x7cc
 #define CSR_MHINT4	0x7ce
 	csr_write(CSR_SMPEN, 0x1);
+	csr_write(CSR_MCCR2, 0xe2490009);
+	csr_write(CSR_MXSTATUS, 0x638000);
+	csr_write(CSR_MHINT, 0x6e30c | (1<<21) | (1<<22)); // set bit21 & bit 22 to close tlb & fence broadcast
+	// FIXME: Clear bit[12] to disable L0BTB.
+	csr_write(CSR_MHCR, 0x17f); // clear bit7 to disable indirect brantch prediction
 	// FIXME set mhint2[22] to enable core icg en
 	csr_write(CSR_MHINT2_E, csr_read(CSR_MHINT2_E) | 0x420000);
 	csr_write(CSR_MHINT4, csr_read(CSR_MHINT4) | 0x410);
-	csr_write(CSR_MCCR2, 0xe2490009);
-	// FIXME: Clear bit[12] to disable L0BTB.
-	csr_write(CSR_MHCR, 0x17f); // clear bit7 to disable indirect brantch prediction
-	csr_write(CSR_MHINT, 0x6e30c | (1<<21) | (1<<22)); // set bit21 & bit 22 to close tlb & fence broadcast
 }
 
 static int bl1_img_have_head(unsigned long img_src_addr)
@@ -508,7 +508,11 @@ void board_init_f(ulong dummy)
 	}
 #endif
 	ddr_clk_config(0);
+#ifdef CONFIG_RV_BOOK
+	cpu_clk_config(750000000);
+#else
 	cpu_clk_config(0);
+#endif
 
 	init_ddr();
 	setup_ddr_scramble();

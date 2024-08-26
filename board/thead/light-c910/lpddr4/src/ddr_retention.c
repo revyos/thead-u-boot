@@ -988,9 +988,8 @@ static const uint32_t RetRegList_addr[934] =
     0x13840,
 };
 
-void dwc_ddr_misc_regu_save()
+void dwc_ddr_misc_regu_save(void)
 {
-    uint32_t data =  0;
     ddr_Regu_Config->misc_reg_num =  ARRAY_SIZE(MiscRegList);
     Reg_Misc_Addr_Val_t* misc_addr_t =  (Reg_Misc_Addr_Val_t*)((char*)ddr_Regu_Config +  64);
     for(int i = 0; i < ddr_Regu_Config->misc_reg_num; i++) {
@@ -1010,6 +1009,11 @@ int dwc_ddrphy_phyinit_regInterface(regInstr myRegInstr) {
 
     uint32_t phy_reg_num = ARRAY_SIZE(RetRegList_addr);
     ddr_Regu_Config->phy_reg_num = phy_reg_num;
+#ifdef CONFIG_DDR_DUAL_RANK
+    ddr_Regu_Config->ddr_rank   =  2;
+#else
+    ddr_Regu_Config->ddr_rank   =  1;
+#endif
     Reg_Phy_Addr_Val_t* phy_addr_t = (Reg_Phy_Addr_Val_t*)((char*)ddr_Regu_Config +  64 +  sizeof(Reg_Misc_Addr_Val_t) *  ARRAY_SIZE(MiscRegList));
 
 #ifdef CONFIG_DDR_MSG
