@@ -1,6 +1,7 @@
 #include "../include/common_lib.h"
 #include "../include/ddr_common_func.h"
 #include "../include/ddr_retention.h"
+#include "../include/pinmux.h"
 
 /*
 /// data structure to store register address, value pairs

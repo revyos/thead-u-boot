@@ -338,37 +338,37 @@ int boundary_verify(unsigned long boundary) {
 	phys_addr_t verify_addr4 = (phys_addr_t)boundary + CONFIG_SYS_SDRAM_BASE;
 
 	// verify data accessing result firstly
-	writel(MAGIC_DATA2, verify_addr);
+	writel(MAGIC_DATA2, (void *)verify_addr);
 	invalidate_dcache_range(verify_addr, verify_addr + CONFIG_SYS_CACHELINE_SIZE);
-	if (readl(verify_addr) != MAGIC_DATA2) {
+	if (readl((void *)verify_addr) != MAGIC_DATA2) {
 		printf("ddr rw test failed\n");
 		return -1;
 	}
-	writel(MAGIC_DATA, verify_addr);  // writing at beginning
+	writel(MAGIC_DATA, (void *)verify_addr);  // writing at beginning
 	invalidate_dcache_range(verify_addr, verify_addr + CONFIG_SYS_CACHELINE_SIZE);
-	if (readl(verify_addr) != MAGIC_DATA) {
+	if (readl((void *)verify_addr) != MAGIC_DATA) {
 		printf("ddr rw test failed\n");
 		return -1;
 	}
-	writel(MAGIC_DATA2, verify_addr2); // writing at one-quarter addr
-	writel(MAGIC_DATA3, verify_addr3); // writing at half addr
+	writel(MAGIC_DATA2, (void *)verify_addr2); // writing at one-quarter addr
+	writel(MAGIC_DATA3, (void *)verify_addr3); // writing at half addr
 	invalidate_dcache_range(verify_addr, verify_addr + CONFIG_SYS_CACHELINE_SIZE);
 	invalidate_dcache_range(verify_addr2, verify_addr2 + CONFIG_SYS_CACHELINE_SIZE);
 	invalidate_dcache_range(verify_addr3, verify_addr3 + CONFIG_SYS_CACHELINE_SIZE);
 
 	if (boundary == (unsigned long)MAXIMAL_DDR_DENSITY_MB * UNIT_MB) { // boundary by design
-		if ((readl(verify_addr) == MAGIC_DATA) &&
-			(readl(verify_addr2) == MAGIC_DATA2) &&
-			(readl(verify_addr3) == MAGIC_DATA3))
+		if ((readl((void *)verify_addr) == MAGIC_DATA) &&
+			(readl((void *)verify_addr2) == MAGIC_DATA2) &&
+			(readl((void *)verify_addr3) == MAGIC_DATA3))
 			return 0;
 	}
 	else {
-		writel(MAGIC_DATA4, verify_addr4); // writing out of boundary
+		writel(MAGIC_DATA4, (void *)verify_addr4); // writing out of boundary
 		invalidate_dcache_range(verify_addr4, verify_addr4 + CONFIG_SYS_CACHELINE_SIZE);
-		if ((readl(verify_addr) == MAGIC_DATA4) && // overwrite by verify_addr4
-			(readl(verify_addr2) == MAGIC_DATA2) &&
-			(readl(verify_addr3) == MAGIC_DATA3) &&
-			(readl(verify_addr4) == MAGIC_DATA4))
+		if ((readl((void *)verify_addr) == MAGIC_DATA4) && // overwrite by verify_addr4
+			(readl((void *)verify_addr2) == MAGIC_DATA2) &&
+			(readl((void *)verify_addr3) == MAGIC_DATA3) &&
+			(readl((void *)verify_addr4) == MAGIC_DATA4))
 			return 0;
 	}
 

@@ -3,6 +3,7 @@
 #include "../include/common_lib.h"
 #include "../include/ddr_common_func.h"
 #include "../include/ddr_retention.h"
+#include "../include/pinmux.h"
 
 DDR_SYSREG_REG_SW_REG_S ddr_sysreg;
 
