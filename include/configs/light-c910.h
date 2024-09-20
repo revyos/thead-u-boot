@@ -144,6 +144,7 @@
 	"dtb_addr=0x03800000\0" \
 	"fdt_addr_r=0x03800000\0" \
 	"fdtoverlay_addr_r=0x03700000\0" \
+	"initrd_high=0x1a000000\0" \
 	"kernel_addr_r=0x00200000\0" \
 	"ramdisk_addr_r=0x06000000\0" \
 	"boot_conf_addr_r=0xc0000000\0" \
