@@ -49,7 +49,7 @@ int get_ddr_rank_number() {
 #ifdef CONFIG_DDR_MSG
 	DDR_DEBUG("unsupported ddr rank type!!!\n");
 #endif
-    return NULL;
+    return 0;
 #endif
 }
 
