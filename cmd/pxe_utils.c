@@ -335,7 +335,7 @@ static int label_localboot(struct pxe_label *label)
  * Loads fdt overlays specified in 'fdtoverlays'.
  */
 #ifdef CONFIG_OF_LIBFDT_OVERLAY
-static void label_boot_fdtoverlay(struct cmd_tbl *cmdtp, struct pxe_label *label)
+static void label_boot_fdtoverlay(cmd_tbl_t *cmdtp, struct pxe_label *label)
 {
 	char *fdtoverlay = label->fdtoverlays;
 	struct fdt_header *working_fdt;
