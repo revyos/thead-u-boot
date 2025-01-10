@@ -508,11 +508,7 @@ void board_init_f(ulong dummy)
 	}
 #endif
 	ddr_clk_config(0);
-#ifdef CONFIG_RV_BOOK
-	cpu_clk_config(750000000);
-#else
 	cpu_clk_config(0);
-#endif
 
 	init_ddr();
 	setup_ddr_scramble();
