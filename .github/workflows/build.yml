@@ -152,7 +152,7 @@ jobs:
               tree ${GITHUB_WORKSPACE}/output
 
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: thead-u-uboot-${{ matrix.name }}
           path: output/*.bin
