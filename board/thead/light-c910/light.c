@@ -2402,13 +2402,59 @@ static void light_iopin_init(void)
 }
 #endif
 
+#define PWM_BASE				((void *)0xffec01c000)
+#define PWM_CHAN_REG(chan, off)	(PWM_BASE + (chan) * 0x20 + (off))
+#define PWM_PER_OFFSET			0x08  // Offset for Periodic Control Register
+#define PWM_FP_OFFSET			0x0C  // Offset for First Phase Control Register
+#define PWM_CTRL_OFFSET			0x00  // Offset for Control Register
+// See T-HEAD TH1520 Peripheral Interface User Manual
+// https://dl.sipeed.com/shareURL/LICHEE/licheepi4a/09_Doc
 
 static void light_pwm_config(void)
 {
-	/* pwm0 */
-	writel(0x4b0, (void *)0xFFEC01C008);
-	writel(0x258, (void *)0xFFEC01C00c);
-	writel(0x328, (void *)0xFFEC01C000);
+	/*
+	 * Enable MIPI Display backlight on PWM0.
+	 * Period=1200 clock cycles, Duty Cycle=50%
+	*/
+	// Set PWM Period to 1200 clock cycles
+	writel(0x4b0, PWM_CHAN_REG(0, PWM_PER_OFFSET));
+	// Set PWM First Phase to 600 clock cycles
+	writel(0x258, PWM_CHAN_REG(0, PWM_FP_OFFSET));
+	// Configure PWM Control Register:
+	// [9]  INACTOUT  = 1 (inactive output set to high)
+	// [8]  FPOUT     = 1 (first phase output set to high)
+	// [7:6] EVTRIG   = 00 (event-triggered mode disabled)
+	// [5:4] MODE     = 10 (continuous mode)
+	// [3]   INTEN    = 1 (interrupt enabled)
+	// [2]   CFG_UPDATE = 0 (do not wait for configuration update)
+	// [1]   SOFT_RST = 0 (software reset disabled)
+	// [0]   START    = 0 (PWM start coding enable, rising edge effective)
+	// Final address: 0xffec01c000 + 0x00 (channel 0) + 0x00 (control register offset) = 0xffec01c000
+	writel(0b1100101000, PWM_CHAN_REG(0, PWM_CTRL_OFFSET));
+}
+
+static void lpi4a_fan_pwm_config(void)
+{
+	/*
+	 * Enable fan on PWM1(GPIO10) for Lichee Pi 4A.
+	 * See LPi4A Schematic:
+	 * https://dl.sipeed.com/shareURL/LICHEE/licheepi4a/02_Schematic
+	*/
+	// Set PWM Period to 1200 clock cycles
+	writel(0x4b0, PWM_CHAN_REG(1, PWM_PER_OFFSET));
+	// Set PWM First Phase to 600 clock cycles
+	writel(0x258, PWM_CHAN_REG(1, PWM_FP_OFFSET));
+	// Configure PWM Control Register:
+	// [9]  INACTOUT  = 1 (inactive output set to high)
+	// [8]  FPOUT     = 1 (first phase output set to high)
+	// [7:6] EVTRIG   = 00 (event-triggered mode disabled)
+	// [5:4] MODE     = 10 (continuous mode)
+	// [3]   INTEN    = 0 (interrupt disabled)
+	// [2]   CFG_UPDATE = 0 (do not wait for configuration update)
+	// [1]   SOFT_RST = 0 (software reset disabled)
+	// [0]   START    = 0 (PWM start coding enable, rising edge effective)
+	// Final address: 0xffec01c000 + 0x20 (channel 1) + 0x00 (control register offset) = 0xffec01c020
+	writel(0b1100100000, PWM_CHAN_REG(1, PWM_CTRL_OFFSET));
 }
 
 int board_init(void)
@@ -2425,6 +2471,9 @@ int board_init(void)
 
 	light_pwm_config();
 
+#ifdef CONFIG_TARGET_LIGHT_FM_C910_LPI4A
+	lpi4a_fan_pwm_config();
+#endif
 	return 0;
 }
 
