@@ -244,7 +244,7 @@ int do_bootslave(cmd_tbl_t * cmdtp, int flag, int argc, char * const argv[])
 }
 #endif
 
-static void light_c910_set_gpio_output_high(void)
+static void light_c910_set_gpio_output_high(const char* gpio_name)
 {
 	ofnode node;
 	struct gpio_desc select_gpio;
@@ -257,9 +257,9 @@ static void light_c910_set_gpio_output_high(void)
 		return;
 	}
 
-	if (gpio_request_by_name_nodev(node, "select-gpio", 0,
+	if (gpio_request_by_name_nodev(node, gpio_name, 0,
 				       &select_gpio, GPIOD_IS_OUT)) {
-		printf("%s: could not find a /config/select-gpio\n", __func__);
+		printf("%s: could not find a /config/%s\n", __func__, gpio_name);
 		return;
 	}
 
@@ -268,7 +268,12 @@ static void light_c910_set_gpio_output_high(void)
 
 int misc_init_r(void)
 {
-	light_c910_set_gpio_output_high();
+	// Enable blue LED
+	light_c910_set_gpio_output_high("select-gpio");
+
+	// Enable fan on some boards(currently only on Meles)
+	// For LPi4A, the fan is controlled by PWM, see lpi4a_fan_pwm_config() in light.c
+	light_c910_set_gpio_output_high("fan-gpio");
 
 	return 0;
 }

@@ -9,7 +9,8 @@
 	#size-cells = <2>;
 
 	config {
-		select-gpio = <&gpio1_porta 16 0>;
+		select-gpio = <&gpio1_porta 16 0>; // Enable the blue LED on Milk-V Meles
+		fan-gpio = <&gpio2_porta 4 0>; // Enable the fan on Milk-V Meles, see schematic for details
 	};
 
 	memory@0 {
