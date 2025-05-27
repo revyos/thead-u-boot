@@ -24,6 +24,10 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 	ulong ld;
 	ulong relocated_addr;
 	ulong image_size;
+	char *tmp;
+	ulong dest_end;
+	ulong decomp_dst;
+	ulong comp_len;
 
 	ret = do_bootm_states(cmdtp, flag, argc, argv, BOOTM_STATE_START,
 			      images, 1);
@@ -36,6 +40,29 @@ static int booti_start(cmd_tbl_t *cmdtp, int flag, int argc,
 	} else {
 		ld = simple_strtoul(argv[0], NULL, 16);
 		debug("*  kernel: cmdline image address = 0x%08lx\n", ld);
+	}
+
+	tmp = map_sysmem(ld, 0);
+
+	decomp_dst = env_get_ulong("kernel_comp_addr_r", 16, 0);
+	comp_len = env_get_ulong("kernel_comp_size", 16, 0);
+
+	if (!decomp_dst || !comp_len) {
+		puts("kernel_comp_addr_r or kernel_comp_size aren't defined!\n");
+		return -EINVAL;
+	}
+
+	ret = image_decomp(IH_COMP_GZIP, 0, ld, IH_TYPE_KERNEL,
+			   (void *)decomp_dst, (void *)ld, comp_len,
+			   comp_len * 10, &dest_end);
+
+	if (!ret) {
+		printf("Kernel image compression size = 0x%08lx, address = 0x%08lx\n",
+		       comp_len, decomp_dst);
+
+		memmove((void *)ld, (void *)decomp_dst, dest_end);
+	} else {
+		printf("failed to decompress kernel image: %d\n", ret);
 	}
 
 	ret = booti_setup(ld, &relocated_addr, &image_size, false);
