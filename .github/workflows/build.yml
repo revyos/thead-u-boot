@@ -1,4 +1,4 @@
-name: thead-u-boot-build
+name: th1520-vendor-uboot-build
 
 on:
   push:
@@ -8,12 +8,8 @@ on:
       - '*'
   pull_request:
   workflow_dispatch:
-  schedule:
-    - cron: "0 2 * * *"
 
 env:
-  xuantie_toolchain: https://occ-oss-prod.oss-cn-hangzhou.aliyuncs.com/resource//1705395627867
-  toolchain_file_name: Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1-20240115.tar.gz
   mainline_toolchain: https://github.com/riscv-collab/riscv-gnu-toolchain/releases/download/2024.04.12
   mainline_toolchain_file_name: riscv64-glibc-ubuntu-22.04-gcc-nightly-2024.04.12-nightly.tar.gz
   wget_alias: 'wget --retry-connrefused --waitretry=1 --read-timeout=20 --timeout=15 -t 0'
@@ -22,11 +18,6 @@ env:
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
-      matrix:
-        name: [thead-gcc, gcc-13]
-
     runs-on: ubuntu-22.04
 
     steps:
@@ -43,15 +34,9 @@ jobs:
       - name: uboot compile
         run: |
               mkdir output
-              if [[ ${{ matrix.name }} = "thead-gcc" ]]; then
-                ${wget_alias} ${xuantie_toolchain}/${toolchain_file_name}
-                tar -xvf ${toolchain_file_name} -C /opt
-                export PATH="/opt/Xuantie-900-gcc-linux-5.10.4-glibc-x86_64-V2.8.1/bin:$PATH"
-              else
-                ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
-                tar -xvf ${mainline_toolchain_file_name} -C /opt
-                export PATH="/opt/riscv/bin:$PATH"
-              fi
+              ${wget_alias} ${mainline_toolchain}/${mainline_toolchain_file_name}
+              tar -xvf ${mainline_toolchain_file_name} -C /opt
+              export PATH="/opt/riscv/bin:$PATH"
               ${CROSS_COMPILE}gcc -v
 
               pushd $PWD
@@ -123,13 +108,13 @@ jobs:
       - name: 'Upload Artifact'
         uses: actions/upload-artifact@v7
         with:
-          name: thead-u-uboot-${{ matrix.name }}
+          name: th1520-uboot
           path: output/*.bin
           retention-days: 30
 
       - name: 'Create release by tag'
         uses: softprops/action-gh-release@v3
-        if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.name == 'thead-gcc' }}
+        if: ${{ startsWith(github.ref, 'refs/tags/') }}
         with:
           files: output/*.bin
           token: ${{ secrets.GITHUB_TOKEN }}
