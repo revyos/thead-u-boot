@@ -38,7 +38,7 @@ jobs:
                                   dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf device-tree-compiler
 
       - name: Checkout uboot
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: uboot compile
         run: |
@@ -121,14 +121,14 @@ jobs:
               tree ${GITHUB_WORKSPACE}/output
 
       - name: 'Upload Artifact'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: thead-u-uboot-${{ matrix.name }}
           path: output/*.bin
           retention-days: 30
 
       - name: 'Create release by tag'
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v3
         if: ${{ startsWith(github.ref, 'refs/tags/') && matrix.name == 'thead-gcc' }}
         with:
           files: output/*.bin
